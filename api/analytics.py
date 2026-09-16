@@ -337,6 +337,11 @@ def _interval_width(pos: str, pts: float) -> float:
     return max(3.0, min(14.0, 5.0 * pf * qf))
 
 
+def _remaining_games(cur_week: int, bye_week: int) -> int:
+    """Games left in the season, minus the bye if it hasn't happened yet."""
+    return max(0, 18 - cur_week - (1 if bye_week and bye_week > cur_week else 0))
+
+
 def _compute_auction_values(players: list, roster_positions: list, num_teams: int, budget: int) -> list:
     """Compute auction dollar values from VBD.
 
