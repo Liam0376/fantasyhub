@@ -138,7 +138,11 @@ def fetch_week_weather(sched_rows: list[dict], target_week: int, season: int) ->
     Open-Meteo's 16-day window can't cover far-future weeks anyway, so
     only the immediate target week gets a real forecast; every other
     remaining week is weather-neutral (matches Open-Meteo's actual
-    limitation, not an arbitrary cutoff)."""
+    limitation, not an arbitrary cutoff).
+
+    Dome and closed-roof stadiums are skipped — they fall back to
+    correct dome-neutral values (wind=0, temp=72) from build_game_context.
+    """
     out: dict[str, dict] = {}
     for g in sched_rows:
         if str(g.get("season")) != str(season) or g.get("game_type") != "REG":
@@ -147,6 +151,9 @@ def fetch_week_weather(sched_rows: list[dict], target_week: int, season: int) ->
             if int(g.get("week") or 0) != target_week:
                 continue
         except (ValueError, TypeError):
+            continue
+        # Skip Open-Meteo fetch for dome/closed stadiums
+        if g.get("roof", "") in ("dome", "closed"):
             continue
         gametime = g.get("gametime") or "13:00"
         gameday = g.get("gameday") or ""
