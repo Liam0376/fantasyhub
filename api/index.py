@@ -1,7 +1,14 @@
 """Vercel serverless entry point. Routes /api/* requests."""
 import json
+import os
+import sys
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
+
+# Vercel's Python runtime loads this file without adding api/ to
+# sys.path, so sibling imports (league, projections, scoring) fail
+# with ModuleNotFoundError. Bootstrap the path first.
+sys.path.insert(0, os.path.dirname(__file__))
 
 from league import fetch_league
 from projections import get_projections
