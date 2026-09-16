@@ -14,7 +14,8 @@
       <h1>Fantasy Hub</h1>
       <p class="subtitle">Paste your Sleeper league link for instant projections and auction values</p>
       <div class="input-row">
-        <input type="text" id="leagueInput" placeholder="Sleeper league URL or ID" autocomplete="off">
+        <label for="leagueInput">Sleeper league URL or ID</label>
+        <input type="text" id="leagueInput" placeholder="Sleeper league URL or ID" autocomplete="off" inputmode="url">
         <button id="analyzeBtn" onclick="importLeague()">Analyze League</button>
       </div>
       <div id="error" class="error" style="display:none"></div>
@@ -51,7 +52,7 @@
       <!-- Projections tab -->
       <div id="tab-projections" class="tab-content active">
         <div class="table-controls">
-          <input type="text" id="searchInput" placeholder="Search player, team, position..." oninput="filterTable()">
+          <input type="search" id="searchInput" placeholder="Search player, team, position..." oninput="filterTable()" inputmode="search">
           <select id="posFilter" onchange="filterTable()">
             <option value="">All Positions</option>
             <option value="QB">QB</option>
