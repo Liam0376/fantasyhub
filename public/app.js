@@ -19,6 +19,7 @@ const PROJ_COLS = [
   { key: 'projected_points', cls: 'num', format: v => v?.toFixed(1) },
   { key: 'width', cls: 'num', format: v => `±${v?.toFixed(1)}` },
   { key: 'ros_points', cls: 'num', format: v => v?.toFixed(0) },
+  { key: 'bye_week', cls: 'num', format: v => (v ? `BYE ${v}` : '') },
   { key: 'tier', format: v => `<span class="tier-badge tier-${v}">${v}</span>` },
 ];
 

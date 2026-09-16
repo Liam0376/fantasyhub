@@ -4,7 +4,8 @@ import os
 
 from league import fetch_league
 from projections import get_projections
-from scoring import describe_scoring, score_avg_stats
+from scoring import (FLEX_ELIGIBILITY, IDP_POSITIONS, describe_scoring,
+                     score_avg_stats, score_team_def)
 
 
 # Width factors for confidence intervals (matches projection.py v2)
@@ -28,6 +29,46 @@ def _norm_name(n: str) -> str:
     n = (n or "").lower()
     n = re.sub(r"\b(jr\.?|sr\.?|ii|iii|iv|v)\b", "", n)
     return re.sub(r"[^a-z0-9 ]", "", n).strip()
+
+
+def _roster_group(pos: str) -> str:
+    """Map granular positions onto Sleeper roster groups.
+
+    Sleeper IDP slots are DL/LB/DB but nflverse reports DE/DT/CB/S/...
+    """
+    p = (pos or "UNK").upper()
+    if p in ("DE", "DT", "NT", "EDGE"):
+        return "DL"
+    if p in ("CB", "S", "SAF", "FS", "SS"):
+        return "DB"
+    if p in ("MLB", "ILB", "OLB"):
+        return "LB"
+    return p
+
+
+def _eligible_positions(roster_positions: list) -> set:
+    """Positions that can start in this league (explicit slots + flex pools).
+
+    Unknown/empty roster (API failure) falls back to offense + K + DEF
+    so the board still renders instead of going blank.
+    """
+    if not roster_positions:
+        return {"QB", "RB", "WR", "TE", "K", "DEF"}
+    eligible = set()
+    for pos in roster_positions:
+        up = (pos or "").upper()
+        if up in ("BN", "IR", "TAXI"):
+            continue
+        if up in FLEX_ELIGIBILITY:
+            eligible.update(FLEX_ELIGIBILITY[up])
+        elif up:
+            eligible.add(up)
+    return eligible
+
+
+def _is_eligible(pos: str, eligible: set) -> bool:
+    p = (pos or "").upper()
+    return p in eligible or _roster_group(p) in eligible
 
 
 def _paid_map(draft_picks: list) -> dict:
@@ -59,6 +100,34 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
     players = projections.get("players", [])
     injuries = _load_injuries()
     paid = _paid_map(league.get("draft_picks"))
+    eligible = _eligible_positions(roster_positions)
+
+    # Team defenses come from the schedule/team-stats snapshot, scored
+    # with the league's own DEF brackets. Skipped when the league has
+    # no DEF slot (or the snapshot predates team_def).
+    for td in projections.get("team_def", []) or []:
+        if not _is_eligible("DEF", eligible):
+            continue
+        davg = td.get("def_avg") or {}
+        dpts = score_team_def(davg, scoring)
+        players.append({
+            "player_id": f"DEF_{td.get('team', '')}",
+            "player_name": td.get("team", ""),
+            "position": "DEF",
+            "team": td.get("team", ""),
+            "opponent_team": td.get("opponent_team", ""),
+            "avg_stats": {},
+            "_fantasy_points": dpts,
+            "_def_scoring": True,
+            "bye_week": td.get("bye_week"),
+            "remaining_games": None,  # filled bye-aware below
+            "injury_status": None,
+        })
+
+    # Drop positions that can never start here (600 dead IDP rows in
+    # offense-only leagues). BN holds anyone, so filter on starter
+    # eligibility, not roster membership.
+    players = [p for p in players if _is_eligible(p.get("position"), eligible)]
 
     if not players:
         return {
@@ -76,8 +145,10 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
 
     # Score per-game avg raw stats with THIS league's scoring.
     # Standard (rec=0), Half (0.5), PPR (1.0), 4 vs 6pt pass TD,
-    # TE premium, yardage bonuses, FG distance — all from Sleeper.
+    # TE premium, yardage bonuses, FG distance, IDP — all from Sleeper.
     for p in players:
+        if p.get("_def_scoring"):
+            continue  # team DEF already scored above
         avg = p.get("avg_stats") or {}
         pos = (p.get("position") or "UNK").upper()
         if avg:
@@ -89,15 +160,27 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
 
     # Compute replacement levels
     replacement = _replacement_levels(players, roster_positions, num_teams)
+    cur_week = projections.get("week") or 0
 
     # Compute VBD and auction values
     results = []
     for p in players:
         pts = p["_fantasy_points"]
         pos = (p.get("position") or "UNK").upper()
-        vor = pts - replacement.get(pos, 0.0)
+        rep = replacement.get(_roster_group(pos), replacement.get(pos, 0.0))
+        vor = pts - rep
         width = _interval_width(pos, pts)
-        remaining = p.get("remaining_games", 0) or 0
+        # Bye-aware ROS: the bye week scores 0 and never counts toward
+        # remaining games.
+        bye_week = p.get("bye_week")
+        try:
+            bye_week = int(bye_week) if bye_week else 0
+        except (ValueError, TypeError):
+            bye_week = 0
+        if p.get("remaining_games") is None:
+            remaining = max(0, 18 - cur_week - (1 if bye_week and bye_week > cur_week else 0))
+        else:
+            remaining = p.get("remaining_games", 0) or 0
         injury = p.get("injury_status") or injuries.get(f"{_norm_name(p.get('player_name', ''))}|{pos}")
         amount_paid = paid.get((_norm_name(p.get("player_name", "")), pos))
 
@@ -114,6 +197,7 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
             "vor": round(max(0, vor), 2),
             "ros_points": round(pts * remaining, 2),
             "remaining_games": remaining,
+            "bye_week": bye_week or None,
             "injury_status": injury,
             "amount_paid": amount_paid,
             "tier": 0,
@@ -189,54 +273,77 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
 
 
 def _replacement_levels(players: list, roster_positions: list, num_teams: int) -> dict:
-    """Compute replacement level per position from league roster shape."""
-    pos_counts = {}
-    flex_count = 0
-    for pos in roster_positions:
-        pos = pos.upper()
-        if pos in ("BN", "IR"):
-            continue
-        if pos == "FLEX":
-            flex_count += 1
-            continue
-        pos_counts[pos] = pos_counts.get(pos, 0) + 1
+    """Replacement level per roster group from league roster shape.
 
-    # Split flex slots proportionally to actual starter counts. Missing
-    # positions get zero share — no default 2/2/1 template.
-    if flex_count > 0:
-        rb_base = pos_counts.get("RB", 0)
-        wr_base = pos_counts.get("WR", 0)
-        te_base = pos_counts.get("TE", 0)
-        total = rb_base + wr_base + te_base
-        if total > 0:
-            rb_add = round(flex_count * rb_base / total)
-            wr_add = round(flex_count * wr_base / total)
-            te_add = flex_count - rb_add - wr_add
-            pos_counts["RB"] = pos_counts.get("RB", 0) + rb_add
-            pos_counts["WR"] = pos_counts.get("WR", 0) + wr_add
-            pos_counts["TE"] = pos_counts.get("TE", 0) + te_add
+    Handles every Sleeper flex type (FLEX, SUPER_FLEX, WRRB_FLEX,
+    REC_FLEX, IDP_FLEX): each flex pool splits proportionally to the
+    starter counts of its eligible positions. Granular IDP positions
+    group onto DL/LB/DB.
+    """
+    pos_counts: dict[str, int] = {}
+    flex_pools: list[set] = []
+    for pos in roster_positions or []:
+        up = (pos or "").upper()
+        if up in ("BN", "IR", "TAXI") or not up:
+            continue
+        if up == "SUPER_FLEX":
+            # Convention: the marginal superflex starter is a QB (nearly
+            # every team starts two). Counts as a full QB slot — a
+            # proportional split would bury it in RB/WR and undervalue
+            # QBs by ~12 ranks.
+            pos_counts["QB"] = pos_counts.get("QB", 0) + 1
+            continue
+        if up in FLEX_ELIGIBILITY:
+            flex_pools.append(set(FLEX_ELIGIBILITY[up]))
+            continue
+        pos_counts[up] = pos_counts.get(up, 0) + 1
 
-    # Sort players by position and projected points
-    by_pos = {}
+    # Group identical flex pools (e.g. 2x FLEX) and split each pool's
+    # slot count by largest remainder over the ORIGINAL starter counts.
+    # Deterministic (name tiebreak); missing positions get zero share.
+    from collections import Counter
+
+    base_counts = dict(pos_counts)
+    pool_counts = Counter(frozenset(p) for p in flex_pools)
+    for pool_fs, nslots in pool_counts.items():
+        groups = {}
+        for member in pool_fs:
+            g = _roster_group(member)
+            if g in base_counts and g not in groups:
+                groups[g] = base_counts[g]
+        total = sum(groups.values())
+        if total <= 0 or nslots <= 0:
+            continue
+        raw = {g: nslots * b / total for g, b in groups.items()}
+        alloc = {g: int(raw[g]) for g in groups}
+        rem = nslots - sum(alloc.values())
+        order = sorted(groups, key=lambda g: (-(raw[g] % 1), -groups[g], g))
+        for g in order[:rem]:
+            alloc[g] += 1
+        for g, a in alloc.items():
+            pos_counts[g] = pos_counts.get(g, 0) + a
+
+    # Sort players by roster group and projected points
+    by_pos: dict[str, list] = {}
     for p in players:
-        pos = (p.get("position") or "UNK").upper()
+        g = _roster_group(p.get("position"))
         pts = p.get("_fantasy_points", 0) or p.get("projected_points", 0) or 0
-        by_pos.setdefault(pos, []).append(pts)
+        by_pos.setdefault(g, []).append(pts)
 
-    for pos in by_pos:
-        by_pos[pos].sort(reverse=True)
+    for g in by_pos:
+        by_pos[g].sort(reverse=True)
 
     # Replacement level = projection at rank (slots_per_team * num_teams)
     levels = {}
-    for pos, count in pos_counts.items():
+    for grp, count in pos_counts.items():
         slots = count * num_teams
-        proj = by_pos.get(pos, [])
+        proj = by_pos.get(grp, [])
         if slots < len(proj):
-            levels[pos] = proj[slots]  # first player OUTSIDE starter pool
+            levels[grp] = proj[slots]  # first player OUTSIDE starter pool
         elif proj:
-            levels[pos] = proj[-1] * 0.8  # shallow pool: discount worst
+            levels[grp] = proj[-1] * 0.8  # shallow pool: discount worst
         else:
-            levels[pos] = 0.0
+            levels[grp] = 0.0
 
     return levels
 

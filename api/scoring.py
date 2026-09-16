@@ -23,8 +23,29 @@ AVG_STAT_KEYS = [
     "fg_missed_40_49", "fg_missed_50_59", "fg_missed_60_",
     "fg_missed",
     "passing_first_downs", "rushing_first_downs", "receiving_first_downs",
-    "pt_return_tds",
+    "pt_return_tds", "special_teams_tds",
+    # IDP (individual defensive players)
+    "def_tackles_solo", "def_tackles_with_assist", "def_tackles_for_loss",
+    "def_sacks", "def_qb_hits", "def_interceptions", "def_interception_yards",
+    "def_pass_defended", "def_fumbles_forced", "def_tds", "def_safeties",
+    "def_fg_blocks", "def_pat_blocks", "def_punt_blocks",
 ]
+
+# Sleeper roster slots that can be filled by multiple positions.
+# Used for replacement-level math and for filtering projections to the
+# league's own eligible positions. No hardcoded FLEX-only assumption.
+FLEX_ELIGIBILITY = {
+    "FLEX": {"RB", "WR", "TE"},
+    "SUPER_FLEX": {"QB", "RB", "WR", "TE"},
+    "WRRB_FLEX": {"RB", "WR"},
+    "REC_FLEX": {"WR", "TE"},
+    "IDP_FLEX": {"DL", "LB", "DB", "DE", "DT", "CB", "S", "SAF", "FS",
+                 "SS", "MLB", "ILB", "OLB", "NT", "DL", "EDGE"},
+}
+
+# Granular defensive positions grouped for IDP_FLEX-style matching.
+IDP_POSITIONS = {"DL", "LB", "DB", "DE", "DT", "CB", "S", "SAF", "FS",
+                 "SS", "MLB", "ILB", "OLB", "NT", "EDGE"}
 
 
 def _f(key, default=0.0):
@@ -90,6 +111,37 @@ def score_avg_stats(avg: dict, scoring: dict, position: str) -> float:
     pts += _f(avg.get("fg_missed")) * g("fgmiss")
     # Special teams TD (return TDs)
     pts += _f(avg.get("pt_return_tds")) * g("st_td")
+    pts += _f(avg.get("special_teams_tds")) * g("st_td")
+    # IDP (individual defensive players) — nflverse def_* columns map
+    # directly onto Sleeper IDP keys.
+    pts += _f(avg.get("def_tackles_solo")) * g("tkl_solo")
+    pts += _f(avg.get("def_tackles_solo")) * g("idp_tkl_solo")
+    pts += _f(avg.get("def_tackles_solo")) * g("tkl")
+    pts += _f(avg.get("def_tackles_with_assist")) * g("tkl_ast")
+    pts += _f(avg.get("def_tackles_for_loss")) * g("tkl_loss")
+    pts += _f(avg.get("def_tackles_for_loss")) * g("idp_tkl_loss")
+    pts += _f(avg.get("def_sacks")) * g("sack")
+    pts += _f(avg.get("def_sacks")) * g("idp_sack")
+    pts += _f(avg.get("def_qb_hits")) * g("qb_hit")
+    pts += _f(avg.get("def_qb_hits")) * g("idp_qb_hit")
+    pts += _f(avg.get("def_interceptions")) * g("int")
+    pts += _f(avg.get("def_interceptions")) * g("idp_int")
+    pts += _f(avg.get("def_interception_yards")) * g("int_ret_yd")
+    pts += _f(avg.get("def_interception_yards")) * g("idp_int_ret_yd")
+    pts += _f(avg.get("def_pass_defended")) * g("pass_def")
+    pts += _f(avg.get("def_pass_defended")) * g("def_pass_def")
+    pts += _f(avg.get("def_pass_defended")) * g("idp_pass_def")
+    pts += _f(avg.get("def_fumbles_forced")) * g("ff")
+    pts += _f(avg.get("def_fumbles_forced")) * g("idp_ff")
+    pts += _f(avg.get("fumble_recovery_opp")) * g("idp_fum_rec")
+    pts += _f(avg.get("def_tds")) * g("def_td")
+    pts += _f(avg.get("def_tds")) * g("idp_def_td")
+    pts += _f(avg.get("def_safeties")) * g("safe")
+    pts += _f(avg.get("def_safeties")) * g("idp_safe")
+    blocks = (_f(avg.get("def_fg_blocks")) + _f(avg.get("def_pat_blocks"))
+              + _f(avg.get("def_punt_blocks")))
+    pts += blocks * g("blk_kick")
+    pts += blocks * g("idp_blk_kick")
     # Yardage bonuses — awarded when per-game avg clears the threshold.
     # Approximation (true bonus depends on single-game distribution),
     # but correct directionally and league-specific.
@@ -111,6 +163,77 @@ def score_avg_stats(avg: dict, scoring: dict, position: str) -> float:
         pts += g("bonus_pass_cmp_25")
     # Long-TD bonuses (pass_td_40p etc.) need TD-distance data nflverse
     # player-week lacks — documented limitation, scored as 0.
+    return pts
+
+
+def _bracket_points(scoring: dict, prefix: str, value: float) -> float:
+    """Match Sleeper range-bracket keys (pts_allow_1_6, yds_allow_550p).
+
+    Works with any league's custom ranges — parses the numbers out of
+    the key instead of hardcoding the standard brackets.
+    """
+    import re
+
+    best = 0.0
+    for key, mult in scoring.items():
+        if not key.startswith(prefix):
+            continue
+        rest = key[len(prefix):]
+        m = re.fullmatch(r"(\d+)_(\d+)", rest)
+        if m:
+            lo, hi = int(m.group(1)), int(m.group(2))
+        else:
+            m = re.fullmatch(r"(\d+)p", rest)
+            if m:
+                lo, hi = int(m.group(1)), float("inf")
+            else:
+                m = re.fullmatch(r"(\d+)", rest)
+                if not m:
+                    continue
+                lo = hi = int(m.group(1))
+        if lo <= value <= hi:
+            try:
+                best = float(mult or 0)
+            except (ValueError, TypeError):
+                pass
+    return best
+
+
+def score_team_def(avg: dict, scoring: dict) -> float:
+    """Score a team defense's per-game avgs with league DEF settings.
+
+    avg needs: sacks, ints, fum_rec, def_tds, safeties, blk_kicks,
+    pts_allowed, yds_allowed (all per-game). Yards-allowed brackets
+    score 0 when the source lacks opponent yardage — flagged by the
+    caller via yds_allowed=None.
+    """
+    if not scoring:
+        return 0.0
+    g = lambda k: _f(scoring.get(k, 0))
+    pts = 0.0
+    pts += _f(avg.get("sacks")) * g("sack")
+    pts += _f(avg.get("ints")) * g("int")
+    pts += _f(avg.get("fum_rec")) * g("fum_rec")
+    pts += _f(avg.get("ff")) * g("ff")
+    pts += _f(avg.get("def_tds")) * g("def_td")
+    pts += _f(avg.get("safeties")) * g("safe")
+    pts += _f(avg.get("blk_kicks")) * g("blk_kick")
+    pts += _f(avg.get("st_tds")) * g("st_td")
+    # def_st_* variants credit ONLY when the primary key is absent/zero.
+    # They describe the same plays (a pick-6 is one event); stacking both
+    # would double-count a single TD/FF.
+    if not g("fum_rec"):
+        pts += _f(avg.get("fum_rec")) * g("def_st_fum_rec")
+    if not g("ff"):
+        pts += _f(avg.get("ff")) * g("def_st_ff")
+    if not g("def_td"):
+        pts += _f(avg.get("def_tds")) * g("def_st_td")
+    if avg.get("pts_allowed") is not None:
+        pts += _bracket_points(scoring, "pts_allow_", _f(avg.get("pts_allowed")))
+        pts += _f(avg.get("pts_allowed")) * g("pts_allow")
+    if avg.get("yds_allowed") is not None:
+        pts += _bracket_points(scoring, "yds_allow_", _f(avg.get("yds_allowed")))
+        pts += _f(avg.get("yds_allowed")) * g("yds_allow")
     return pts
 
 

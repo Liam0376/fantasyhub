@@ -38,6 +38,8 @@ def get_projections(week: str | None = None, season: str | None = None) -> dict:
         "season": int(season),
         "updated_at": data.get("updated_at", ""),
         "players": data.get("players", []),
+        "team_def": data.get("team_def", []),
+        "byes": data.get("byes", {}),
         "stale": False,
     }
 
@@ -56,6 +58,8 @@ def _fallback_projections(season: str, week: str) -> dict:
                     "season": int(season),
                     "updated_at": data.get("updated_at", ""),
                     "players": data.get("players", []),
+                    "team_def": data.get("team_def", []),
+                    "byes": data.get("byes", {}),
                     "note": f"Using projections from {f}",
                     "stale": True,
                 }
