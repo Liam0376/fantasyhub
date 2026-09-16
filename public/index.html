@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fantasy Hub — Football Analytics</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏈</text></svg>">
+</head>
+<body>
+  <div id="app">
+    <!-- Landing -->
+    <div id="landing" class="hero">
+      <h1>Fantasy Hub</h1>
+      <p class="subtitle">Paste your Sleeper league link for instant projections and auction values</p>
+      <div class="input-row">
+        <input type="text" id="leagueInput" placeholder="Sleeper league URL or ID" autocomplete="off">
+        <button id="analyzeBtn" onclick="importLeague()">Analyze League</button>
+      </div>
+      <div id="error" class="error" style="display:none"></div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" style="display:none">
+      <div class="spinner"></div>
+      <p id="loadingText">Importing league from Sleeper...</p>
+    </div>
+
+    <!-- Main view -->
+    <div id="main" style="display:none">
+      <header>
+        <div class="header-left">
+          <h2 id="leagueName">League</h2>
+          <span id="leagueMeta" class="meta"></span>
+        </div>
+        <div class="header-right">
+          <div class="week-nav">
+            <button onclick="changeWeek(-1)">← Prev</button>
+            <span id="weekLabel">Week 1</span>
+            <button onclick="changeWeek(1)">Next →</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Tabs -->
+      <nav class="tabs">
+        <button class="tab active" data-tab="projections" onclick="switchTab('projections')">Projections</button>
+        <button class="tab" data-tab="auction" onclick="switchTab('auction')">Auction</button>
+      </nav>
+
+      <!-- Projections tab -->
+      <div id="tab-projections" class="tab-content active">
+        <div class="table-controls">
+          <input type="text" id="searchInput" placeholder="Search player, team, position..." oninput="filterTable()">
+          <select id="posFilter" onchange="filterTable()">
+            <option value="">All Positions</option>
+            <option value="QB">QB</option>
+            <option value="RB">RB</option>
+            <option value="WR">WR</option>
+            <option value="TE">TE</option>
+            <option value="K">K</option>
+            <option value="DEF">DEF</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table id="projTable">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="rank">#</th>
+                <th class="sortable" data-sort="player_name">Player</th>
+                <th class="sortable" data-sort="position">Pos</th>
+                <th class="sortable" data-sort="team">Team</th>
+                <th class="sortable" data-sort="opponent_team">Opp</th>
+                <th class="sortable num" data-sort="projected_points">Proj</th>
+                <th class="sortable num" data-sort="width">±</th>
+                <th class="sortable num" data-sort="ros_points">ROS</th>
+                <th class="sortable" data-sort="tier">Tier</th>
+              </tr>
+            </thead>
+            <tbody id="projBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Auction tab -->
+      <div id="tab-auction" class="tab-content">
+        <div class="auction-kpis">
+          <div class="kpi">
+            <div class="kpi-label">Budget</div>
+            <div class="kpi-value" id="kpiBudget">$200</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Teams</div>
+            <div class="kpi-value" id="kpiTeams">12</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Total Pool</div>
+            <div class="kpi-value" id="kpiPool">$2,400</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="auctionTable">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="rank">#</th>
+                <th class="sortable" data-sort="player_name">Player</th>
+                <th class="sortable" data-sort="position">Pos</th>
+                <th class="sortable" data-sort="team">Team</th>
+                <th class="sortable num" data-sort="projected_points">Proj</th>
+                <th class="sortable num" data-sort="vor">VOR</th>
+                <th class="sortable num" data-sort="auction_value">$</th>
+                <th class="sortable" data-sort="tier">Tier</th>
+                <th class="sortable" data-sort="edge">Edge</th>
+              </tr>
+            </thead>
+            <tbody id="auctionBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/lib/api.js"></script>
+  <script src="/lib/table.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

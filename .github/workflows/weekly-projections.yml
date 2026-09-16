@@ -1,0 +1,46 @@
+name: Weekly Projections
+
+on:
+  schedule:
+    # Tuesday 6:00 UTC — after Monday Night Football
+    - cron: '0 6 * * 2'
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'NFL week (leave empty for auto-detect)'
+        required: false
+      season:
+        description: 'NFL season year'
+        required: false
+
+jobs:
+  compute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: Compute projections
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.week }}" != "" ]; then
+            ARGS="$ARGS --week ${{ github.event.inputs.week }}"
+          fi
+          if [ "${{ github.event.inputs.season }}" != "" ]; then
+            ARGS="$ARGS --season ${{ github.event.inputs.season }}"
+          fi
+          python scripts/compute_week.py $ARGS
+
+      - name: Commit projections
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/projections/
+          git diff --cached --quiet || git commit -m "chore: update projections $(date -u +%Y-%m-%d)"
+          git push
