@@ -122,6 +122,16 @@ th.sortable:active {
   font-size: 0.9rem;
 }
 
+.alert {
+  margin: 16px 24px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
 /* Loading */
 #loading {
   display: flex;

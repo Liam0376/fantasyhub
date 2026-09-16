@@ -10,37 +10,26 @@ Usage:
 """
 import argparse
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
+from scoring import AVG_STAT_KEYS, score_avg_stats
+
 # nflverse weekly stats URL
 STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"
 
-# Scoring keys that map nflverse stats to fantasy points (standard PPR)
-SCORING = {
-    "passing_yards": 0.04,
-    "passing_tds": 5.0,
-    "passing_interceptions": -2.0,
-    "rushing_yards": 0.1,
-    "rushing_tds": 6.0,
-    "receiving_yards": 0.1,
-    "receiving_tds": 6.0,
-    "receptions": 1.0,
-    "fumbles_lost_total": -2.0,
-    "passing_2pt_conversions": 2.0,
-    "rushing_2pt_conversions": 2.0,
-    "receiving_2pt_conversions": 2.0,
-    "pat_made": 1.0,
-    "pat_missed": -1.0,
-    "fg_made_0_19": 3.0,
-    "fg_made_20_29": 3.0,
-    "fg_made_30_39": 3.0,
-    "fg_made_40_49": 4.0,
-    "fg_made_50_59": 5.0,
-    "fg_made_60_": 6.0,
-    "fg_missed": -1.0,
+# Reference scoring for the stored projected_points field only (lets the
+# JSON stand alone). League-specific scoring happens in api/analytics.py
+# from avg_stats — never from this reference number.
+REF_SCORING = {
+    "pass_yd": 0.04, "pass_td": 4.0, "pass_int": -1.0, "pass_2pt": 2.0,
+    "rush_yd": 0.1, "rush_td": 6.0, "rush_2pt": 2.0,
+    "rec": 1.0, "rec_yd": 0.1, "rec_td": 6.0, "rec_2pt": 2.0,
+    "fum_lost": -2.0, "xpm": 1.0, "xpmiss": -1.0,
+    "fgm_0_19": 3.0, "fgm_20_29": 3.0, "fgm_30_39": 3.0,
+    "fgm_40_49": 4.0, "fgm_50_59": 5.0, "fgm_60_": 6.0, "fgmiss": -1.0,
 }
 
 # Position width factors for confidence intervals
@@ -66,26 +55,21 @@ def fetch_weekly_stats(season: int) -> list[dict]:
     return rows
 
 
-def score_player(stats: dict) -> float:
-    """Compute fantasy points from a single week's stats."""
-    # If nflverse already computed PPR points, use that
-    ppr = stats.get("fantasy_points_ppr")
-    if ppr:
-        try:
-            return float(ppr)
-        except (ValueError, TypeError):
-            pass
-
-    # Otherwise compute from individual stats
-    points = 0.0
-    for key, multiplier in SCORING.items():
-        val = float(stats.get(key) or 0)
-        points += val * multiplier
-    return points
+def _num(v) -> float:
+    try:
+        return float(v or 0)
+    except (ValueError, TypeError):
+        return 0.0
 
 
 def compute_projections(stats_rows: list[dict], current_week: int, season: int) -> list[dict]:
-    """Compute projections for remaining weeks using weighted averages."""
+    """Project per-game avg raw stats using recency weighting.
+
+    Stores avg_stats per player so api/analytics.py can score with any
+    league's Sleeper scoring_settings (Standard/Half/PPR, 4 vs 6pt pass
+    TD, TE premium, bonuses). projected_points is a 4pt-pass-TD PPR
+    reference only — never used for league-specific math.
+    """
     # Group by player
     players = {}
     for row in stats_rows:
@@ -113,10 +97,9 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int) 
                 "games": [],
             }
 
-        pts = score_player(row)
+        pts = 0.0  # scored after averaging, not per game
         players[pid]["games"].append({
             "week": week,
-            "points": pts,
             "stats": row,
         })
 
@@ -130,15 +113,19 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int) 
         if not games:
             continue
 
-        # Weighted average: recent games weighted 2x
-        total_weight = 0
-        weighted_sum = 0
-        for i, g in enumerate(games):
-            weight = 2 if i >= len(games) - 3 else 1  # last 3 games weighted 2x
-            weighted_sum += g["points"] * weight
-            total_weight += weight
+        # Weighted average of RAW stats: last 3 games weighted 2x.
+        # Scoring happens later per league — never baked in here.
+        weights = [2 if i >= len(games) - 3 else 1 for i in range(len(games))]
+        total_w = sum(weights)
+        avg_stats = {}
+        for key in AVG_STAT_KEYS:
+            s = sum(_num(g["stats"].get(key)) * w for g, w in zip(games, weights))
+            v = s / total_w if total_w else 0.0
+            if v:
+                avg_stats[key] = round(v, 3)
 
-        avg_pts = weighted_sum / total_weight if total_weight > 0 else 0
+        pos = (p["position"] or "UNK").upper()
+        avg_pts = score_avg_stats(avg_stats, REF_SCORING, pos)
 
         # Remaining games
         played = len(games)
@@ -165,6 +152,7 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int) 
             "ros_points": round(ros_pts, 2),
             "remaining_games": remaining,
             "games_played": played,
+            "avg_stats": avg_stats,
         })
 
     # Sort by projected points

@@ -50,15 +50,31 @@ def fetch_league(league_id: str) -> dict:
     scoring = league.get("scoring_settings", {})
     roster_positions = league.get("roster_positions", [])
 
-    budget = 200
+    # Auction budget + draft type come from the drafts endpoint, never
+    # hardcoded. League object has no drafts key — must fetch separately.
+    draft_type = "unknown"
+    budget = None
+    draft_teams = None
     try:
-        drafts = league.get("drafts") or []
-        for d in drafts:
-            if d.get("type") == "auction":
-                budget = d.get("settings", {}).get("budget", 200)
-                break
+        dr = requests.get(f"{BASE}/league/{league_id}/drafts", timeout=10)
+        if dr.ok:
+            for d in dr.json() or []:
+                dtype = (d.get("type") or "").lower()
+                dset = d.get("settings") or {}
+                if dtype == "auction":
+                    draft_type = "auction"
+                    budget = int(dset.get("budget") or 200)
+                    draft_teams = int(dset.get("teams") or 0) or None
+                    break
+                elif dtype in ("snake", "linear"):
+                    if draft_type == "unknown":
+                        draft_type = dtype
     except Exception:
         pass
+    if budget is None:
+        # Snake leagues have no auction budget; keep None so the UI
+        # hides the auction tab instead of showing fake $200 values.
+        budget = 200 if draft_type == "auction" else 0
 
     return {
         "league_id": league_id,
@@ -68,7 +84,8 @@ def fetch_league(league_id: str) -> dict:
             "scoring": scoring,
             "roster_positions": roster_positions,
             "budget": budget,
-            "num_teams": league.get("total_rosters", len(teams)),
+            "draft_type": draft_type,
+            "num_teams": league.get("total_rosters") or draft_teams or len(teams),
         },
         "teams": teams,
     }

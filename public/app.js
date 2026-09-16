@@ -2,11 +2,12 @@
 import { fetchLeague, fetchAnalytics } from '/lib/api.js';
 import { renderTable, sortTable } from '/lib/table.js';
 
-// State
+// State — week/season start null so the backend auto-detects the
+// current NFL week instead of forcing week 1 on every league.
 let league = null;
 let analytics = null;
-let currentWeek = 1;
-let currentSeason = 2026;
+let currentWeek = null;
+let currentSeason = null;
 let sortState = { key: 'projected_points', dir: 'desc', tab: 'projections' };
 
 // Projection columns
@@ -60,10 +61,17 @@ window.importLeague = async function() {
 
   try {
     league = await fetchLeague(leagueId);
-    currentSeason = league.season || 2026;
+    currentSeason = league.season || null;
 
     showLoading('Computing auction values...');
     analytics = await fetchAnalytics(leagueId, currentWeek, currentSeason);
+    // Adopt the backend-resolved week/season so the picker shows the
+    // actual projections week, not a hardcoded default.
+    if (analytics?.meta) {
+      if (analytics.meta.week) currentWeek = analytics.meta.week;
+      if (analytics.meta.season) currentSeason = analytics.meta.season;
+      document.getElementById('weekLabel').textContent = `Week ${currentWeek}`;
+    }
 
     showMain();
     render();
@@ -77,13 +85,22 @@ window.importLeague = async function() {
 
 // Week navigation
 window.changeWeek = function(delta) {
-  currentWeek = Math.max(1, Math.min(18, currentWeek + delta));
+  const base = currentWeek || 1;
+  currentWeek = Math.max(1, Math.min(18, base + delta));
   document.getElementById('weekLabel').textContent = `Week ${currentWeek}`;
   // Re-fetch analytics for new week
   if (league) {
     showLoading('Loading projections...');
     fetchAnalytics(league.league_id, currentWeek, currentSeason)
-      .then(data => { analytics = data; render(); hideLoading(); })
+      .then(data => {
+        analytics = data;
+        if (data?.meta?.week) {
+          currentWeek = data.meta.week;
+          document.getElementById('weekLabel').textContent = `Week ${currentWeek}`;
+        }
+        render();
+        hideLoading();
+      })
       .catch(e => { hideLoading(); showError(`Failed to load week ${currentWeek}: ${e.message}`); });
   }
 };
@@ -138,17 +155,34 @@ function render() {
   const tbody = document.getElementById(isAuction ? 'auctionBody' : 'projBody');
   renderTable(tbody, sorted, cols, { emptyText: 'No players match filters' });
 
-  // Update header
+  // Update header — scoring format comes from the league's own
+  // Sleeper scoring_settings (Standard/Half/PPR, TE premium, pass TD).
   if (league) {
     document.getElementById('leagueName').textContent = league.name;
-    document.getElementById('leagueMeta').textContent = `${league.settings.num_teams}-team · $${league.settings.budget} budget · ${(league.settings.roster_positions || []).filter(p => p !== 'BN' && p !== 'IR').length} starters`;
+    const scoringLabel = analytics?.meta?.scoring_format || '';
+    const starters = (league.settings.roster_positions || []).filter(p => p !== 'BN' && p !== 'IR').length;
+    document.getElementById('leagueMeta').textContent =
+      `${league.settings.num_teams}-team · ${scoringLabel} · ${starters} starters`;
+  }
+
+  // Snake leagues have no auction budget — hide the auction tab and
+  // show projections only instead of fake $200 values.
+  const draftType = league?.settings?.draft_type || analytics?.meta?.draft_type || 'unknown';
+  const auctionTab = document.querySelector('.tab[data-tab="auction"]');
+  if (draftType && draftType !== 'auction' && draftType !== 'unknown') {
+    if (auctionTab) auctionTab.style.display = 'none';
+    if (sortState.tab === 'auction') window.switchTab('projections');
+    const auctionPane = document.getElementById('tab-auction');
+    if (auctionPane) auctionPane.innerHTML = `<div class="alert">This league drafts snake-style, so auction values don't apply.</div>`;
+  } else if (auctionTab) {
+    auctionTab.style.display = '';
   }
 
   // Update auction KPIs
   if (analytics?.meta) {
-    document.getElementById('kpiBudget').textContent = `$${analytics.meta.budget}`;
-    document.getElementById('kpiTeams').textContent = analytics.meta.num_teams;
-    document.getElementById('kpiPool').textContent = `$${(analytics.meta.total_budget || 0).toLocaleString()}`;
+    document.getElementById('kpiBudget').textContent = analytics.meta.budget ? `$${analytics.meta.budget}` : '—';
+    document.getElementById('kpiTeams').textContent = analytics.meta.num_teams ?? '—';
+    document.getElementById('kpiPool').textContent = analytics.meta.total_budget ? `$${analytics.meta.total_budget.toLocaleString()}` : '—';
   }
 }
 

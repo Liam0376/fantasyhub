@@ -1,12 +1,8 @@
 """Compute league-specific VBD and auction values."""
 from league import fetch_league
 from projections import get_projections
+from scoring import describe_scoring, score_avg_stats
 
-
-# Position replacement counts for 12-team league (used for auction VBD)
-POS_REPLACEMENT_COUNTS = {
-    "QB": 12, "RB": 28, "WR": 32, "TE": 12, "K": 12, "DEF": 12,
-}
 
 # Width factors for confidence intervals (matches projection.py v2)
 POS_WIDTH_FACTORS = {"QB": 1.55, "RB": 1.07, "WR": 1.12, "TE": 0.88, "K": 0.85, "DEF": 0.75}
@@ -20,6 +16,7 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
     roster_positions = settings["roster_positions"]
     num_teams = settings["num_teams"]
     budget = settings["budget"]
+    draft_type = settings.get("draft_type", "unknown")
 
     projections = get_projections(week=week, season=season)
     players = projections.get("players", [])
@@ -31,14 +28,25 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
                 "league_id": league_id,
                 "league_name": league["name"],
                 "budget": budget,
+                "draft_type": draft_type,
                 "num_teams": num_teams,
+                "scoring_format": describe_scoring(scoring),
                 "error": "No projections available",
             },
         }
 
-    # Compute per-player fantasy points using league scoring
+    # Score per-game avg raw stats with THIS league's scoring.
+    # Standard (rec=0), Half (0.5), PPR (1.0), 4 vs 6pt pass TD,
+    # TE premium, yardage bonuses, FG distance — all from Sleeper.
     for p in players:
-        p["_fantasy_points"] = _score_player(p, scoring)
+        avg = p.get("avg_stats") or {}
+        pos = (p.get("position") or "UNK").upper()
+        if avg:
+            p["_fantasy_points"] = score_avg_stats(avg, scoring, pos)
+        else:
+            # Legacy JSON without avg_stats (pre-rescore): fall back to
+            # stored reference points so old files still render.
+            p["_fantasy_points"] = p.get("projected_points", 0) or 0
 
     # Compute replacement levels
     replacement = _replacement_levels(players, roster_positions, num_teams)
@@ -50,6 +58,7 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
         pos = (p.get("position") or "UNK").upper()
         vor = pts - replacement.get(pos, 0.0)
         width = _interval_width(pos, pts)
+        remaining = p.get("remaining_games", 0) or 0
 
         results.append({
             "player_id": p.get("player_id", ""),
@@ -62,8 +71,8 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
             "projection_upper": round(pts + width, 2),
             "width": round(width, 2),
             "vor": round(max(0, vor), 2),
-            "ros_points": p.get("ros_points", 0),
-            "remaining_games": p.get("remaining_games", 0),
+            "ros_points": round(pts * remaining, 2),
+            "remaining_games": remaining,
             "injury_status": p.get("injury_status"),
             "tier": 0,
             "auction_value": 0,
@@ -124,41 +133,18 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
             "week": projections.get("week"),
             "season": projections.get("season"),
             "updated_at": projections.get("updated_at"),
+            "stale": projections.get("stale", False),
             "budget": budget,
+            "draft_type": draft_type,
             "num_teams": num_teams,
-            "total_budget": budget * num_teams,
+            "scoring_format": describe_scoring(scoring),
+            "total_budget": (budget or 0) * num_teams,
         },
     }
 
 
-def _score_player(player: dict, scoring: dict) -> float:
-    """Score a player using league scoring settings.
-
-    Projections JSON stores projected_points computed with default scoring.
-    When league scoring differs from default, we adjust proportionally.
-    """
-    base_pts = player.get("projected_points", 0) or 0
-    if not scoring:
-        return base_pts
-
-    # If league uses default scoring, return as-is
-    if scoring.get("pass_td", 0) == 5.0 and scoring.get("rec", 0) == 1.0:
-        return base_pts
-
-    # Rough adjustment: scale by passing TD and reception scoring deltas
-    # (full raw-stat scoring would require storing per-stat projections)
-    td_scale = scoring.get("pass_td", 5.0) / 5.0
-    rec_scale = scoring.get("rec", 1.0) / 1.0
-    pos = (player.get("position") or "").upper()
-    if pos == "QB":
-        return base_pts * td_scale
-    if pos in ("WR", "TE"):
-        return base_pts * rec_scale
-    return base_pts
-
-
 def _replacement_levels(players: list, roster_positions: list, num_teams: int) -> dict:
-    """Compute replacement level per position."""
+    """Compute replacement level per position from league roster shape."""
     pos_counts = {}
     flex_count = 0
     for pos in roster_positions:
@@ -170,16 +156,20 @@ def _replacement_levels(players: list, roster_positions: list, num_teams: int) -
             continue
         pos_counts[pos] = pos_counts.get(pos, 0) + 1
 
-    # Split flex slots among RB/WR/TE proportionally to their starter counts
+    # Split flex slots proportionally to actual starter counts. Missing
+    # positions get zero share — no default 2/2/1 template.
     if flex_count > 0:
-        rb_base = pos_counts.get("RB", 2)
-        wr_base = pos_counts.get("WR", 2)
-        te_base = pos_counts.get("TE", 1)
+        rb_base = pos_counts.get("RB", 0)
+        wr_base = pos_counts.get("WR", 0)
+        te_base = pos_counts.get("TE", 0)
         total = rb_base + wr_base + te_base
         if total > 0:
-            pos_counts["RB"] = pos_counts.get("RB", 0) + round(flex_count * rb_base / total)
-            pos_counts["WR"] = pos_counts.get("WR", 0) + round(flex_count * wr_base / total)
-            pos_counts["TE"] = pos_counts.get("TE", 0) + flex_count - round(flex_count * rb_base / total) - round(flex_count * wr_base / total)
+            rb_add = round(flex_count * rb_base / total)
+            wr_add = round(flex_count * wr_base / total)
+            te_add = flex_count - rb_add - wr_add
+            pos_counts["RB"] = pos_counts.get("RB", 0) + rb_add
+            pos_counts["WR"] = pos_counts.get("WR", 0) + wr_add
+            pos_counts["TE"] = pos_counts.get("TE", 0) + te_add
 
     # Sort players by position and projected points
     by_pos = {}
@@ -214,13 +204,20 @@ def _interval_width(pos: str, pts: float) -> float:
 
 
 def _compute_auction_values(players: list, roster_positions: list, num_teams: int, budget: int) -> list:
-    """Compute auction dollar values from VBD."""
-    # Total budget in the league
+    """Compute auction dollar values from VBD.
+
+    Bench + K + DEF spots are assumed $1 minimum; the rest of the
+    league budget is allocated by VOR share. All counts come from the
+    league's own roster_positions — no hardcoded 12x14.
+    """
+    if not budget or not num_teams:
+        return []
     total_budget = budget * num_teams
 
-    # Minimum roster fill: 1 K + 1 DEF = $2 each = $2 * num_teams * 2
-    min_fill = 2 * num_teams * 2
-    starter_pool = total_budget - min_fill
+    up = [p.upper() for p in (roster_positions or [])]
+    cheap_spots = sum(1 for p in up if p in ("BN", "K", "DEF"))
+    min_fill = cheap_spots * num_teams * 1
+    starter_pool = max(0, total_budget - min_fill)
 
     # Sum VOR of all positive-VOR players (the "value pool")
     positive_vor = [p for p in players if p["vor"] > 0]
