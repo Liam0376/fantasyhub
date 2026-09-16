@@ -53,6 +53,7 @@ def hub_draft(league_id: str) -> dict:
     league = fetch_league(league_id)
     s = league["settings"]
     return {
+        "league_id": league["league_id"],
         "draft_type": s.get("draft_type", "unknown"),
         "auction_budget": s.get("budget", 0),
         "total_rosters": s.get("num_teams"),
