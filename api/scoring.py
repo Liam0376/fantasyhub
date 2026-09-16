@@ -285,3 +285,15 @@ def describe_scoring(scoring: dict) -> str:
     if pass_td is not None:
         parts.append(f"{_f(pass_td):g}pt pass TD")
     return " · ".join(parts)
+
+
+def normalize_row_stats(row: dict) -> dict:
+    """Convert stat values in a row from strings to floats for stat_projector.
+
+    CSV DictReader gives string values; project_player_stats expects floats.
+    """
+    normalized = dict(row)
+    for key in AVG_STAT_KEYS:
+        if key in normalized:
+            normalized[key] = _f(normalized[key])
+    return normalized

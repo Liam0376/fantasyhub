@@ -21,7 +21,7 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
 from conformal import qhat, POS_RESIDUALS
-from scoring import score_avg_stats, AVG_STAT_KEYS
+from scoring import score_avg_stats, AVG_STAT_KEYS, normalize_row_stats
 from stat_projector import project_player_stats, COVERED_STATS
 
 STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"
@@ -120,16 +120,6 @@ def _num(v) -> float:
         return 0.0
 
 
-def _normalize_row_stats(row: dict) -> dict:
-    """Convert stat values in a row from strings to floats for stat_projector.
-
-    CSV DictReader gives string values; project_player_stats expects floats.
-    """
-    normalized = dict(row)
-    for key in AVG_STAT_KEYS:
-        if key in normalized:
-            normalized[key] = _num(normalized[key])
-    return normalized
 
 
 def _old_method(history: list[dict], stat_keys: list[str]) -> dict:
@@ -178,7 +168,7 @@ def run_backtest(season: int, weeks: list[int]) -> dict:
             old_pts = score_avg_stats(old_avg, REF_SCORING, pos)
 
             # Normalize row stats to floats before passing to project_player_stats
-            norm_history = [_normalize_row_stats(g) for g in history]
+            norm_history = [normalize_row_stats(g) for g in history]
             new_avg = project_player_stats(norm_history, pos)
             new_pts = score_avg_stats(
                 {k: new_avg.get(k, 0.0) for k in covered}, REF_SCORING, pos)

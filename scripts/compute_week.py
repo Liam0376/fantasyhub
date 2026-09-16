@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
 from conformal import qhat, POS_RESIDUALS
-from scoring import AVG_STAT_KEYS, score_avg_stats, score_team_def
+from scoring import AVG_STAT_KEYS, normalize_row_stats, score_avg_stats, score_team_def
 from stat_projector import project_player_stats, build_game_context, COVERED_STATS
 from weather import STADIUM_COORDS, get_forecast
 
@@ -308,13 +308,6 @@ def _num_or_none(v):
         return None
 
 
-def _normalize_row_stats(row: dict) -> dict:
-    """Convert stat values in a row from strings to floats for stat_projector."""
-    normalized = dict(row)
-    for key in AVG_STAT_KEYS:
-        if key in normalized:
-            normalized[key] = _num(normalized[key])
-    return normalized
 
 
 def compute_projections(stats_rows: list[dict], current_week: int, season: int,
@@ -332,8 +325,9 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
 
     ROS is still avg_pts * remaining_games (unchanged from before this
     port) — this port fixes the THIN-SAMPLE OVERWEIGHTING in the average
-    itself, not the ROS summation strategy (see spec: independent
-    per-week ROS summation was scoped OUT to keep this port bounded).
+    itself, not the ROS summation strategy (deferred at plan time; the
+    spec requires per-week independent summation but it was scoped out
+    to keep this port bounded).
     """
     current_hist, prior_hist = fetch_current_and_prior_season_history(
         stats_rows, prior_season_rows or [], current_week, season)
@@ -354,8 +348,13 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
     # yet still need an entry so rookies/first-week-back players appear.
     for row in stats_rows:
         pid = row.get("player_id") or row.get("player_name", "")
-        if pid and pid not in players and row.get("season_type", "REG") == "REG" \
-                and int(row.get("season", 0) or 0) == season:
+        if not pid or pid in players or row.get("season_type", "REG") != "REG":
+            continue
+        try:
+            row_season = int(row.get("season", 0) or 0)
+        except (ValueError, TypeError):
+            continue
+        if row_season == season:
             players[pid] = {
                 "player_id": pid,
                 "player_name": row.get("player_display_name") or row.get("player_name", ""),
@@ -384,8 +383,8 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
         covered = COVERED_STATS.get(pos, [])
         if covered:
             # Normalize stat values to floats for stat_projector
-            norm_history = [_normalize_row_stats(g) for g in history]
-            norm_prior = [_normalize_row_stats(g) for g in prior_games]
+            norm_history = [normalize_row_stats(g) for g in history]
+            norm_prior = [normalize_row_stats(g) for g in prior_games]
             projected = project_player_stats(
                 player_history=norm_history, position=pos,
                 prior_season_stats=norm_prior, implied_total=implied_total,
