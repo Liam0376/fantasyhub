@@ -16,6 +16,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
 from scoring import AVG_STAT_KEYS, score_avg_stats, score_team_def
+from stat_projector import project_player_stats, build_game_context, COVERED_STATS
+from weather import STADIUM_COORDS, get_forecast
 
 try:
     from nfl_state import get_nfl_state
@@ -82,6 +84,86 @@ def fetch_csv(url: str, label: str) -> list[dict]:
     rows = list(csv.DictReader(io.StringIO(resp.text)))
     print(f"  Got {len(rows)} {label} rows")
     return rows
+
+
+def fetch_prior_season_stats(season: int) -> list[dict]:
+    """Prior season's full weekly stats, for the thin-sample blend.
+    Soft-fail: returns [] if unavailable (a new/expansion scenario, or
+    the URL 404s for a season with no prior-year data on nflverse)."""
+    try:
+        return fetch_csv(STATS_URL.format(season=season - 1), "prior season stats")
+    except Exception as e:
+        print(f"  Prior season fetch failed ({e}) — thin-sample blend disabled")
+        return []
+
+
+def fetch_current_and_prior_season_history(stats_rows: list[dict], prior_rows: list[dict],
+                                            current_week: int, season: int) -> tuple[dict, dict]:
+    """Group both seasons' rows by player_id -> list of game dicts.
+
+    Returns (current_history, prior_history) — current_history only
+    includes weeks strictly before current_week (true out-of-sample,
+    same discipline as the father project's build_weekly_projections)."""
+    current: dict[str, list] = {}
+    for row in stats_rows:
+        pid = row.get("player_id") or row.get("player_name", "")
+        if not pid:
+            continue
+        if row.get("season") and int(row.get("season", 0)) != season:
+            continue
+        if row.get("season_type", "REG") != "REG":
+            continue
+        try:
+            wk = int(row.get("week", 0))
+        except (ValueError, TypeError):
+            continue
+        if wk <= 0 or wk >= current_week:
+            continue
+        current.setdefault(pid, []).append(row)
+
+    prior: dict[str, list] = {}
+    for row in prior_rows:
+        pid = row.get("player_id") or row.get("player_name", "")
+        if pid:
+            prior.setdefault(pid, []).append(row)
+
+    for pid in current:
+        current[pid].sort(key=lambda r: int(r.get("week", 0)))
+    return current, prior
+
+
+def fetch_week_weather(sched_rows: list[dict], target_week: int, season: int) -> dict:
+    """(team -> {temp_f, wind_mph}) for the target week's games only.
+    Open-Meteo's 16-day window can't cover far-future weeks anyway, so
+    only the immediate target week gets a real forecast; every other
+    remaining week is weather-neutral (matches Open-Meteo's actual
+    limitation, not an arbitrary cutoff)."""
+    out: dict[str, dict] = {}
+    for g in sched_rows:
+        if str(g.get("season")) != str(season) or g.get("game_type") != "REG":
+            continue
+        try:
+            if int(g.get("week") or 0) != target_week:
+                continue
+        except (ValueError, TypeError):
+            continue
+        gametime = g.get("gametime") or "13:00"
+        gameday = g.get("gameday") or ""
+        if not gameday:
+            continue
+        for team_key in ("home_team", "away_team"):
+            team = g.get(team_key)
+            coords = STADIUM_COORDS.get(team)
+            if not team or not coords:
+                continue
+            try:
+                iso = f"{gameday}T{gametime}:00"
+                forecast = get_forecast(coords[0], coords[1], iso)
+            except Exception:
+                forecast = None
+            if forecast:
+                out[team] = forecast
+    return out
 
 
 def compute_byes(sched_rows: list[dict], season: int) -> dict:
@@ -218,33 +300,54 @@ def _num_or_none(v):
         return None
 
 
-def compute_projections(stats_rows: list[dict], current_week: int, season: int,
-                        byes: dict | None = None) -> list[dict]:
-    """Project per-game avg raw stats using recency weighting.
+def _normalize_row_stats(row: dict) -> dict:
+    """Convert stat values in a row from strings to floats for stat_projector."""
+    normalized = dict(row)
+    for key in AVG_STAT_KEYS:
+        if key in normalized:
+            normalized[key] = _num(normalized[key])
+    return normalized
 
-    Stores avg_stats per player so api/analytics.py can score with any
-    league's Sleeper scoring_settings (Standard/Half/PPR, 4 vs 6pt pass
-    TD, TE premium, bonuses). projected_points is a 4pt-pass-TD PPR
-    reference only — never used for league-specific math.
+
+def compute_projections(stats_rows: list[dict], current_week: int, season: int,
+                        byes: dict | None = None, prior_season_rows: list[dict] | None = None,
+                        game_ctx: dict | None = None, weather_by_team: dict | None = None) -> list[dict]:
+    """Project per-game avg raw stats for the CURRENT target week only.
+
+    For stat keys the father project's backtested pipeline covers
+    (COVERED_STATS: QB/skill/kicker core stats), uses the full
+    shrinkage/regression/Vegas/weather pipeline (api/stat_projector.py).
+    For every other AVG_STAT_KEYS entry (IDP, first downs, fumble-recovery
+    detail, long-TD, FG-miss brackets, PAT missed, special-teams TD — no
+    backtest evidence for these categories), keeps the original bare
+    weighted_recent_avg — same behavior as before this port.
+
+    ROS is still avg_pts * remaining_games (unchanged from before this
+    port) — this port fixes the THIN-SAMPLE OVERWEIGHTING in the average
+    itself, not the ROS summation strategy (see spec: independent
+    per-week ROS summation was scoped OUT to keep this port bounded).
     """
-    # Group by player
+    current_hist, prior_hist = fetch_current_and_prior_season_history(
+        stats_rows, prior_season_rows or [], current_week, season)
+
     players = {}
+    for pid, games in current_hist.items():
+        first = games[-1]
+        players[pid] = {
+            "player_id": pid,
+            "player_name": first.get("player_display_name") or first.get("player_name", ""),
+            "position": first.get("position") or first.get("position_group", ""),
+            "team": first.get("team", ""),
+            "opponent_team": first.get("opponent_team", ""),
+            "games": games,
+        }
+    # Players who only exist in the CURRENT week's row list (fetched by the
+    # caller for team/opponent context) but have no prior game this season
+    # yet still need an entry so rookies/first-week-back players appear.
     for row in stats_rows:
         pid = row.get("player_id") or row.get("player_name", "")
-        if not pid:
-            continue
-
-        # Only REG season, current season
-        if row.get("season") and int(row.get("season", 0)) != season:
-            continue
-        if row.get("season_type", "REG") != "REG":
-            continue
-
-        week = int(row.get("week", 0))
-        if week <= 0 or week > current_week:
-            continue
-
-        if pid not in players:
+        if pid and pid not in players and row.get("season_type", "REG") == "REG" \
+                and int(row.get("season", 0) or 0) == season:
             players[pid] = {
                 "player_id": pid,
                 "player_name": row.get("player_display_name") or row.get("player_name", ""),
@@ -254,47 +357,55 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                 "games": [],
             }
 
-        pts = 0.0  # scored after averaging, not per game
-        players[pid]["games"].append({
-            "week": week,
-            "stats": row,
-        })
-
-    # Compute projections for each player
-    projections = []
+    game_ctx = game_ctx or {}
+    weather_by_team = weather_by_team or {}
     total_weeks = 18
+    projections = []
 
     for pid, p in players.items():
-        games = sorted(p["games"], key=lambda g: g["week"])
+        pos = (p["position"] or "UNK").upper()
+        history = p["games"]
+        prior_games = prior_hist.get(pid, [])
+        ctx = game_ctx.get((p["team"], current_week), {})
+        implied_total = ctx.get("implied_total", 0)
+        weather = weather_by_team.get(p["team"], {})
+        wind_mph = weather.get("wind_mph", ctx.get("wind", 0) or 0)
+        temp_f = weather.get("temp_f", ctx.get("temp"))
 
-        if not games:
-            continue
-
-        # Weighted average of RAW stats: last 3 games weighted 2x.
-        # Scoring happens later per league — never baked in here.
-        weights = [2 if i >= len(games) - 3 else 1 for i in range(len(games))]
-        total_w = sum(weights)
-        avg_stats = {}
+        avg_stats: dict = {}
+        covered = COVERED_STATS.get(pos, [])
+        if covered:
+            # Normalize stat values to floats for stat_projector
+            norm_history = [_normalize_row_stats(g) for g in history]
+            norm_prior = [_normalize_row_stats(g) for g in prior_games]
+            projected = project_player_stats(
+                player_history=norm_history, position=pos,
+                prior_season_stats=norm_prior, implied_total=implied_total,
+                wind_mph=wind_mph, temp_f=temp_f,
+            )
+            for key in covered:
+                v = projected.get(key, 0.0)
+                if v:
+                    avg_stats[key] = round(v, 3)
+        # Uncovered stat keys: original bare weighted-recent-avg (unchanged).
+        weights = [2 if i >= len(history) - 3 else 1 for i in range(len(history))]
+        total_w = sum(weights) or 1
         for key in AVG_STAT_KEYS:
-            s = sum(_num(g["stats"].get(key)) * w for g, w in zip(games, weights))
+            if key in covered:
+                continue
+            s = sum(_num(g.get(key)) * w for g, w in zip(history, weights))
             v = s / total_w if total_w else 0.0
             if v:
                 avg_stats[key] = round(v, 3)
 
-        pos = (p["position"] or "UNK").upper()
         avg_pts = score_avg_stats(avg_stats, REF_SCORING, pos)
 
-        # Remaining games exclude the bye week (bye scores 0, never counts).
-        played = len(games)
+        played = len(history)
         bye_week = (byes or {}).get(p.get("team", ""))
         remaining = max(0, total_weeks - current_week
                         - (1 if bye_week and bye_week > current_week else 0))
-
-        # ROS projection = per-game average * remaining weeks
         ros_pts = avg_pts * remaining
 
-        # Confidence interval width
-        pos = (p["position"] or "UNK").upper()
         pf = POS_WIDTH.get(pos, 1.0)
         qf = 1.0 if avg_pts <= 12 else min(1.60, 1.0 + (avg_pts - 12) * 0.022)
         width = max(3.0, min(14.0, 5.0 * pf * qf))
@@ -315,9 +426,7 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
             "avg_stats": avg_stats,
         })
 
-    # Sort by projected points
     projections.sort(key=lambda x: x["projected_points"], reverse=True)
-
     return projections
 
 
@@ -346,6 +455,7 @@ def main():
 
     # Fetch stats
     stats_rows = fetch_weekly_stats(season)
+    prior_season_rows = fetch_prior_season_stats(season)
 
     # Schedule (byes) + team defense. Failures degrade gracefully:
     # no byes/team_def rather than no run at all.
@@ -365,8 +475,15 @@ def main():
         except Exception as e:
             print(f"  Team stats fetch failed ({e}) — skipping team defense")
 
+    # Vegas/weather context for the target week (built from the same
+    # schedule rows already fetched above for byes/team_def).
+    game_ctx = build_game_context(sched_rows) if sched_rows else {}
+    weather_by_team = fetch_week_weather(sched_rows, week, season) if sched_rows else {}
+    print(f"  Weather forecast for {len(weather_by_team)} teams this week")
+
     # Compute projections
-    projections = compute_projections(stats_rows, week, season, byes)
+    projections = compute_projections(stats_rows, week, season, byes,
+                                      prior_season_rows, game_ctx, weather_by_team)
     for td in team_def:
         td["bye_week"] = byes.get(td["team"])
     # Current-week opponents from the schedule (player-week rows carry
