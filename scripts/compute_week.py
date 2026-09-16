@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
+from conformal import qhat, POS_RESIDUALS
 from scoring import AVG_STAT_KEYS, score_avg_stats, score_team_def
 from stat_projector import project_player_stats, build_game_context, COVERED_STATS
 from weather import STADIUM_COORDS, get_forecast
@@ -406,9 +407,10 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                         - (1 if bye_week and bye_week > current_week else 0))
         ros_pts = avg_pts * remaining
 
+        base_width = qhat(POS_RESIDUALS.get(pos, POS_RESIDUALS["WR"]))
         pf = POS_WIDTH.get(pos, 1.0)
         qf = 1.0 if avg_pts <= 12 else min(1.60, 1.0 + (avg_pts - 12) * 0.022)
-        width = max(3.0, min(14.0, 5.0 * pf * qf))
+        width = max(3.0, min(14.0, base_width * pf * qf))
 
         projections.append({
             "player_id": pid,

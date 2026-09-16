@@ -4,8 +4,8 @@ frozen constants. See stat_projector.py's header for the coverage numbers
 these residual tables were measured against (v2, 2026-09-15: overall 84.2%).
 
 The raw qhat gives a formally calibrated interval (Vovk et al. 2005), but
-api/stat_projector.py scales it by position/point-magnitude factors, which
-breaks the formal coverage guarantee — the displayed intervals are
+api/analytics.py and scripts/compute_week.py scale it by position/point-magnitude
+factors, which breaks the formal coverage guarantee — the displayed intervals are
 heuristic, not calibrated. Widths are frozen for display stability; do not
 retune without a new backtest.
 """

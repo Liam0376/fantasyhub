@@ -20,6 +20,7 @@ from pathlib import Path
 import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
+from conformal import qhat, POS_RESIDUALS
 from scoring import score_avg_stats, AVG_STAT_KEYS
 from stat_projector import project_player_stats, COVERED_STATS
 
@@ -145,6 +146,9 @@ def run_backtest(season: int, weeks: list[int]) -> dict:
           and int(r.get("season", 0) or 0) == season]
 
     old_pairs, new_pairs = [], []
+    old_widths, new_widths = [], []
+    pos_width_factors = {"QB": 1.55, "RB": 1.07, "WR": 1.12, "TE": 0.88, "K": 0.85, "DEF": 0.75}
+
     for target_week in weeks:
         by_player: dict[str, list] = {}
         actuals: dict[str, dict] = {}
@@ -187,7 +191,20 @@ def run_backtest(season: int, weeks: list[int]) -> dict:
             old_pairs.append((old_pts, actual_pts))
             new_pairs.append((new_pts, actual_pts))
 
-    return {"old": compute_metrics(old_pairs), "new": compute_metrics(new_pairs)}
+            # Compute widths using conformal base + heuristic scaling
+            def compute_width(pts):
+                base_width = qhat(POS_RESIDUALS.get(pos, POS_RESIDUALS["WR"]))
+                pf = pos_width_factors.get(pos, 1.0)
+                qf = 1.0 if pts <= 12 else min(1.60, 1.0 + (pts - 12) * 0.022)
+                return max(3.0, min(14.0, base_width * pf * qf))
+
+            old_widths.append(compute_width(old_pts))
+            new_widths.append(compute_width(new_pts))
+
+    return {
+        "old": compute_metrics(old_pairs, old_widths),
+        "new": compute_metrics(new_pairs, new_widths)
+    }
 
 
 def main():
@@ -203,11 +220,11 @@ def main():
     print(f"Backtesting {args.season} weeks {lo}-{hi}...")
     results = run_backtest(args.season, weeks)
 
-    print(f"\n{'method':<10}{'n':>6}{'mae':>8}{'me':>8}{'spearman':>10}{'pairwise':>10}")
+    print(f"\n{'method':<10}{'n':>6}{'mae':>8}{'me':>8}{'spearman':>10}{'pairwise':>10}{'picp':>8}")
     for name in ("old", "new"):
         r = results[name]
         print(f"{name:<10}{r.get('n', 0):>6}{r.get('mae', 0):>8}{r.get('me', 0):>8}"
-             f"{r.get('spearman', 0) or 0:>10}{r.get('pairwise', 0) or 0:>10}")
+             f"{r.get('spearman', 0) or 0:>10}{r.get('pairwise', 0) or 0:>10}{r.get('picp', 0) or 0:>8}")
 
     out_dir = Path(__file__).parent.parent / "data" / "models"
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -4,13 +4,15 @@
     "mae": 4.828,
     "me": -0.694,
     "spearman": 0.555,
-    "pairwise": 0.695
+    "pairwise": 0.695,
+    "picp": 0.897
   },
   "new": {
     "n": 4251,
     "mae": 4.728,
     "me": -0.867,
     "spearman": 0.559,
-    "pairwise": 0.697
+    "pairwise": 0.697,
+    "picp": 0.898
   }
 }

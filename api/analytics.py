@@ -2,6 +2,7 @@
 import json
 import os
 
+from conformal import qhat, POS_RESIDUALS
 from league import fetch_league
 from projections import get_projections
 from scoring import (FLEX_ELIGIBILITY, describe_scoring,
@@ -331,10 +332,11 @@ def _replacement_levels(players: list, roster_positions: list, num_teams: int) -
 
 
 def _interval_width(pos: str, pts: float) -> float:
-    """Compute confidence interval half-width."""
+    """Compute confidence interval half-width using split-conformal base."""
+    base_width = qhat(POS_RESIDUALS.get(pos, POS_RESIDUALS["WR"]))
     pf = POS_WIDTH_FACTORS.get(pos, 1.0)
     qf = 1.0 if pts <= 12 else min(1.60, 1.0 + (pts - 12) * 0.022)
-    return max(3.0, min(14.0, 5.0 * pf * qf))
+    return max(3.0, min(14.0, base_width * pf * qf))
 
 
 def _remaining_games(cur_week: int, bye_week: int) -> int:
