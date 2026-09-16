@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 
 # nflverse weekly stats URL
-STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/player_stats/player_stats_{season}.csv"
+STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"
 
 # Scoring keys that map nflverse stats to fantasy points (standard PPR)
 SCORING = {
@@ -28,12 +28,19 @@ SCORING = {
     "receiving_yards": 0.1,
     "receiving_tds": 6.0,
     "receptions": 1.0,
-    "fumbles_lost": -2.0,
-    "two_point_conversion": 2.0,
-    "extra_points": 1.0,
-    "field_goals_0_39": 3.0,
-    "field_goals_40_49": 4.0,
-    "field_goals_50_plus": 5.0,
+    "fumbles_lost_total": -2.0,
+    "passing_2pt_conversions": 2.0,
+    "rushing_2pt_conversions": 2.0,
+    "receiving_2pt_conversions": 2.0,
+    "pat_made": 1.0,
+    "pat_missed": -1.0,
+    "fg_made_0_19": 3.0,
+    "fg_made_20_29": 3.0,
+    "fg_made_30_39": 3.0,
+    "fg_made_40_49": 4.0,
+    "fg_made_50_59": 5.0,
+    "fg_made_60_": 6.0,
+    "fg_missed": -1.0,
 }
 
 # Position width factors for confidence intervals
@@ -61,6 +68,15 @@ def fetch_weekly_stats(season: int) -> list[dict]:
 
 def score_player(stats: dict) -> float:
     """Compute fantasy points from a single week's stats."""
+    # If nflverse already computed PPR points, use that
+    ppr = stats.get("fantasy_points_ppr")
+    if ppr:
+        try:
+            return float(ppr)
+        except (ValueError, TypeError):
+            pass
+
+    # Otherwise compute from individual stats
     points = 0.0
     for key, multiplier in SCORING.items():
         val = float(stats.get(key) or 0)
@@ -90,9 +106,10 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int) 
         if pid not in players:
             players[pid] = {
                 "player_id": pid,
-                "player_name": row.get("player_name", ""),
-                "position": row.get("position", row.get("position_group", "")),
-                "team": row.get("recent_team") or row.get("team", ""),
+                "player_name": row.get("player_display_name") or row.get("player_name", ""),
+                "position": row.get("position") or row.get("position_group", ""),
+                "team": row.get("team", ""),
+                "opponent_team": row.get("opponent_team", ""),
                 "games": [],
             }
 
@@ -190,7 +207,7 @@ def main():
     data = {
         "week": week,
         "season": season,
-        "updated_at": datetime.utcnow().isoformat() + "Z",
+        "updated_at": datetime.now().isoformat() + "Z",
         "players": projections,
     }
 
