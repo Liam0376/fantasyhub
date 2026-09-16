@@ -1,4 +1,7 @@
 """Compute league-specific VBD and auction values."""
+import json
+import os
+
 from league import fetch_league
 from projections import get_projections
 from scoring import describe_scoring, score_avg_stats
@@ -6,6 +9,40 @@ from scoring import describe_scoring, score_avg_stats
 
 # Width factors for confidence intervals (matches projection.py v2)
 POS_WIDTH_FACTORS = {"QB": 1.55, "RB": 1.07, "WR": 1.12, "TE": 0.88, "K": 0.85, "DEF": 0.75}
+
+_INJURIES_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "injuries", "latest.json")
+
+
+def _load_injuries() -> dict:
+    """Sleeper injury snapshot from cron {norm_name|POS: status}."""
+    try:
+        with open(_INJURIES_PATH) as f:
+            return json.load(f).get("players", {})
+    except Exception:
+        return {}
+
+
+def _norm_name(n: str) -> str:
+    import re
+
+    n = (n or "").lower()
+    n = re.sub(r"\b(jr\.?|sr\.?|ii|iii|iv|v)\b", "", n)
+    return re.sub(r"[^a-z0-9 ]", "", n).strip()
+
+
+def _paid_map(draft_picks: list) -> dict:
+    """Sleeper draft picks -> {(norm_name, POS): amount} for model-vs-paid."""
+    out = {}
+    for p in draft_picks or []:
+        name = f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()
+        key = (_norm_name(name), (p.get("position") or "").upper())
+        try:
+            amt = int(p.get("amount") or p.get("bid_amount") or 0)
+        except (ValueError, TypeError):
+            amt = 0
+        if key[0] and amt:
+            out[key] = amt
+    return out
 
 
 def compute_analytics(league_id: str, week: str | None = None, season: str | None = None) -> dict:
@@ -20,6 +57,8 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
 
     projections = get_projections(week=week, season=season)
     players = projections.get("players", [])
+    injuries = _load_injuries()
+    paid = _paid_map(league.get("draft_picks"))
 
     if not players:
         return {
@@ -59,6 +98,8 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
         vor = pts - replacement.get(pos, 0.0)
         width = _interval_width(pos, pts)
         remaining = p.get("remaining_games", 0) or 0
+        injury = p.get("injury_status") or injuries.get(f"{_norm_name(p.get('player_name', ''))}|{pos}")
+        amount_paid = paid.get((_norm_name(p.get("player_name", "")), pos))
 
         results.append({
             "player_id": p.get("player_id", ""),
@@ -73,7 +114,8 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
             "vor": round(max(0, vor), 2),
             "ros_points": round(pts * remaining, 2),
             "remaining_games": remaining,
-            "injury_status": p.get("injury_status"),
+            "injury_status": injury,
+            "amount_paid": amount_paid,
             "tier": 0,
             "auction_value": 0,
             "auction_value_dollars": "$0",
@@ -135,9 +177,12 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
             "updated_at": projections.get("updated_at"),
             "stale": projections.get("stale", False),
             "budget": budget,
+            "budget_source": settings.get("budget_source", "none"),
             "draft_type": draft_type,
+            "draft_status": settings.get("draft_status"),
             "num_teams": num_teams,
             "scoring_format": describe_scoring(scoring),
+            "waiver_budget": settings.get("waiver_budget"),
             "total_budget": (budget or 0) * num_teams,
         },
     }

@@ -30,6 +30,7 @@ const AUCTION_COLS = [
   { key: 'projected_points', cls: 'num', format: v => v?.toFixed(1) },
   { key: 'vor', cls: 'num', format: v => v?.toFixed(1) },
   { key: 'auction_value', cls: 'num', format: v => `$${v}` },
+  { key: 'amount_paid', cls: 'num', format: v => (v ? `$${v}` : '—') },
   { key: 'tier', format: v => `<span class="tier-badge tier-${v}">${v}</span>` },
   { key: 'edge', format: v => `<span class="edge-${v?.toLowerCase()}">${v}</span>` },
 ];
@@ -166,16 +167,26 @@ function render() {
   }
 
   // Snake leagues have no auction budget — hide the auction tab and
-  // show projections only instead of fake $200 values.
+  // show a notice instead of fake $200 values. Toggle only, never
+  // destroy the tab DOM (switching leagues must restore it).
   const draftType = league?.settings?.draft_type || analytics?.meta?.draft_type || 'unknown';
   const auctionTab = document.querySelector('.tab[data-tab="auction"]');
-  if (draftType && draftType !== 'auction' && draftType !== 'unknown') {
-    if (auctionTab) auctionTab.style.display = 'none';
+  const auctionPane = document.getElementById('tab-auction');
+  let snakeNote = document.getElementById('snakeNote');
+  const isSnake = draftType && draftType !== 'auction' && draftType !== 'unknown';
+  if (auctionTab) auctionTab.style.display = isSnake ? 'none' : '';
+  if (isSnake) {
     if (sortState.tab === 'auction') window.switchTab('projections');
-    const auctionPane = document.getElementById('tab-auction');
-    if (auctionPane) auctionPane.innerHTML = `<div class="alert">This league drafts snake-style, so auction values don't apply.</div>`;
-  } else if (auctionTab) {
-    auctionTab.style.display = '';
+    if (auctionPane && !snakeNote) {
+      snakeNote = document.createElement('div');
+      snakeNote.id = 'snakeNote';
+      snakeNote.className = 'alert';
+      snakeNote.textContent = 'This league drafts snake-style, so auction values don\'t apply.';
+      auctionPane.prepend(snakeNote);
+    }
+    if (snakeNote) snakeNote.style.display = '';
+  } else if (snakeNote) {
+    snakeNote.style.display = 'none';
   }
 
   // Update auction KPIs
@@ -183,6 +194,15 @@ function render() {
     document.getElementById('kpiBudget').textContent = analytics.meta.budget ? `$${analytics.meta.budget}` : '—';
     document.getElementById('kpiTeams').textContent = analytics.meta.num_teams ?? '—';
     document.getElementById('kpiPool').textContent = analytics.meta.total_budget ? `$${analytics.meta.total_budget.toLocaleString()}` : '—';
+    const note = document.getElementById('budgetNote');
+    if (note) {
+      if (analytics.meta.budget_source === 'default') {
+        note.textContent = 'Draft budget unreadable — showing $200 default. Auction values are approximate.';
+        note.style.display = '';
+      } else {
+        note.style.display = 'none';
+      }
+    }
   }
 }
 

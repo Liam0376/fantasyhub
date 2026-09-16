@@ -32,10 +32,13 @@ jobs:
             ${{ github.event.inputs.week && format('--week {0}', github.event.inputs.week) || '' }} \
             ${{ github.event.inputs.season && format('--season {0}', github.event.inputs.season) || '' }}
 
-      - name: Commit projections
+      - name: Snapshot injuries
+        run: python scripts/fetch_injuries.py
+
+      - name: Commit data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/projections/
+          git add data/projections/ data/injuries/
           git diff --cached --quiet || git commit -m "chore: update projections $(date -u +%Y-%m-%d)"
           git push

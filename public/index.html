@@ -37,7 +37,7 @@
         <div class="header-right">
           <div class="week-nav">
             <button onclick="changeWeek(-1)">← Prev</button>
-            <span id="weekLabel">Week 1</span>
+            <span id="weekLabel">—</span>
             <button onclick="changeWeek(1)">Next →</button>
           </div>
         </div>
@@ -85,6 +85,7 @@
 
       <!-- Auction tab -->
       <div id="tab-auction" class="tab-content">
+        <div id="budgetNote" class="alert" style="display:none"></div>
         <div class="auction-kpis">
           <div class="kpi">
             <div class="kpi-label">Budget</div>
@@ -110,6 +111,7 @@
                 <th class="sortable num" data-sort="projected_points">Proj</th>
                 <th class="sortable num" data-sort="vor">VOR</th>
                 <th class="sortable num" data-sort="auction_value">$</th>
+                <th class="sortable num" data-sort="amount_paid">Paid</th>
                 <th class="sortable" data-sort="tier">Tier</th>
                 <th class="sortable" data-sort="edge">Edge</th>
               </tr>

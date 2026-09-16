@@ -17,6 +17,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
 from scoring import AVG_STAT_KEYS, score_avg_stats
 
+try:
+    from nfl_state import get_nfl_state
+except ImportError:
+    get_nfl_state = None
+
 # nflverse weekly stats URL
 STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"
 
@@ -163,22 +168,25 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int) 
 
 def main():
     parser = argparse.ArgumentParser(description="Compute weekly projections")
-    parser.add_argument("--week", type=int, help="Current NFL week (auto-detected if omitted)")
-    parser.add_argument("--season", type=int, default=datetime.now().year, help="NFL season year")
+    parser.add_argument("--week", type=int, help="Current NFL week (Sleeper state if omitted)")
+    parser.add_argument("--season", type=int, default=None, help="NFL season year (Sleeper state if omitted)")
     args = parser.parse_args()
 
-    # Auto-detect week
+    # Auto-detect week/season from Sleeper state, never date math.
     week = args.week
-    if not week:
-        now = datetime.now()
-        if now.month < 9 or (now.month == 9 and now.day < 8):
-            week = 1  # preseason → assume week 1
-        else:
-            sep8 = datetime(args.season, 9, 8)
-            delta = (now - sep8).days
-            week = min(18, max(1, (delta // 7) + 1))
-
     season = args.season
+    if not week or not season:
+        try:
+            st = (get_nfl_state or (lambda: None))()
+        except Exception:
+            st = None
+        if st:
+            week = week or st["week"]
+            season = season or st["season"]
+    if not week or not season:
+        now = datetime.now()
+        season = season or (now.year if now.month >= 9 else now.year - 1)
+        week = week or 1
     print(f"Computing projections for {season} week {week}...")
 
     # Fetch stats
