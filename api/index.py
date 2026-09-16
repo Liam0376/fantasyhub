@@ -38,6 +38,16 @@ class handler(BaseHTTPRequestHandler):
                 status, body = 200, {"status": "ok"}
             elif path == "/hub-api/ready":
                 status, body = 200, {"ready": True}
+            elif path in ("/hub-api/meta", "/hub-api/draft", "/hub-api/roster",
+                          "/hub-api/rosters-full", "/hub-api/projections",
+                          "/hub-api/projections/ros", "/hub-api/comparison",
+                          "/hub-api/matchups", "/hub-api/waiver", "/hub-api/trade",
+                          "/hub-api/games/predictions", "/hub-api/props/board") \
+                    and not g("league_id") and path not in ("/hub-api/games/predictions",):
+                # Boot calls with no stored league yet: graceful empty,
+                # matching the client's documented fallbacks, never a 500.
+                status, body = 200, {"error": "missing_league_id", "players": [],
+                                     "teams": [], "rosters": {}, "recommendations": []}
             elif path == "/hub-api/meta":
                 status, body = 200, hubapi.hub_meta(g("league_id"))
             elif path == "/hub-api/draft":
