@@ -76,7 +76,7 @@ def test_project_player_stats_empty_history_flags():
 
 def test_build_game_context_computes_implied_totals():
     schedule = [{
-        "week": 1, "game_type": "REG", "home_team": "BUF", "away_team": "MIA",
+        "week": "1", "game_type": "REG", "home_team": "BUF", "away_team": "MIA",
         "total_line": "48.0", "spread_line": "-6.5", "temp": "72", "wind": "5",
         "roof": "outdoors",
     }]

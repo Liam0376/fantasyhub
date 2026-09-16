@@ -217,6 +217,11 @@ def build_game_context(schedule: List[Dict]) -> Dict:
         week = g.get("week")
         if g.get("game_type") != "REG" or not week:
             continue
+        # Coerce week to int (CSV input is string); skip row on failure
+        try:
+            week = int(week)
+        except (ValueError, TypeError):
+            continue
 
         def _sf(v):
             try:
