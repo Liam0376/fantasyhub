@@ -39,8 +39,31 @@ FLEX_ELIGIBILITY = {
     "SUPER_FLEX": {"QB", "RB", "WR", "TE"},
     "WRRB_FLEX": {"RB", "WR"},
     "REC_FLEX": {"WR", "TE"},
-    "IDP_FLEX": {"DL", "LB", "DB", "DE", "DT", "CB", "S", "SAF", "FS",
-                 "SS", "MLB", "ILB", "OLB", "NT", "DL", "EDGE"},
+    "IDP_FLEX": {    "DL", "LB", "DB", "DE", "DT", "CB", "S", "SAF", "FS",
+                 "SS", "MLB", "ILB", "OLB", "NT", "EDGE"},
+}
+
+# Interval width factors (single source; analytics + compute import these).
+POS_WIDTH_FACTORS = {"QB": 1.55, "RB": 1.07, "WR": 1.12, "TE": 0.88,
+                     "K": 0.85, "DEF": 0.75}
+
+
+def interval_width(pos: str, pts: float) -> float:
+    """Confidence interval half-width. Single implementation."""
+    pf = POS_WIDTH_FACTORS.get((pos or "UNK").upper(), 1.0)
+    qf = 1.0 if pts <= 12 else min(1.60, 1.0 + (pts - 12) * 0.022)
+    return max(3.0, min(14.0, 5.0 * pf * qf))
+
+
+# Reference scoring for standalone JSON readability only. League math
+# never uses this — analytics always rescores from avg_stats.
+REFERENCE_SCORING = {
+    "pass_yd": 0.04, "pass_td": 4.0, "pass_int": -1.0, "pass_2pt": 2.0,
+    "rush_yd": 0.1, "rush_td": 6.0, "rush_2pt": 2.0,
+    "rec": 1.0, "rec_yd": 0.1, "rec_td": 6.0, "rec_2pt": 2.0,
+    "fum_lost": -2.0, "xpm": 1.0, "xpmiss": -1.0,
+    "fgm_0_19": 3.0, "fgm_20_29": 3.0, "fgm_30_39": 3.0,
+    "fgm_40_49": 4.0, "fgm_50_59": 5.0, "fgm_60_": 6.0, "fgmiss": -1.0,
 }
 
 # Granular defensive positions grouped for IDP_FLEX-style matching.
@@ -134,26 +157,37 @@ def score_avg_stats(avg: dict, scoring: dict, position: str) -> float:
     pts += _f(avg.get("pt_return_tds")) * g("st_td")
     pts += _f(avg.get("special_teams_tds")) * g("st_td")
     # IDP (individual defensive players) — nflverse def_* columns map
-    # directly onto Sleeper IDP keys.
+    # onto Sleeper IDP keys. Primary keys win; idp_* variants credit
+    # only when the primary is absent/zero (same play, never stacked).
     pts += _f(avg.get("def_tackles_solo")) * g("tkl_solo")
-    pts += _f(avg.get("def_tackles_solo")) * g("idp_tkl_solo")
-    pts += _f(avg.get("def_tackles_solo")) * g("tkl")
+    if not g("tkl_solo"):
+        pts += _f(avg.get("def_tackles_solo")) * g("idp_tkl_solo")
+    if not g("tkl_solo") and not g("idp_tkl_solo"):
+        pts += _f(avg.get("def_tackles_solo")) * g("tkl")
     pts += _f(avg.get("def_tackles_with_assist")) * g("tkl_ast")
     pts += _f(avg.get("def_tackles_for_loss")) * g("tkl_loss")
-    pts += _f(avg.get("def_tackles_for_loss")) * g("idp_tkl_loss")
+    if not g("tkl_loss"):
+        pts += _f(avg.get("def_tackles_for_loss")) * g("idp_tkl_loss")
     pts += _f(avg.get("def_sacks")) * g("sack")
-    pts += _f(avg.get("def_sacks")) * g("idp_sack")
+    if not g("sack"):
+        pts += _f(avg.get("def_sacks")) * g("idp_sack")
     pts += _f(avg.get("def_qb_hits")) * g("qb_hit")
-    pts += _f(avg.get("def_qb_hits")) * g("idp_qb_hit")
+    if not g("qb_hit"):
+        pts += _f(avg.get("def_qb_hits")) * g("idp_qb_hit")
     pts += _f(avg.get("def_interceptions")) * g("int")
-    pts += _f(avg.get("def_interceptions")) * g("idp_int")
+    if not g("int"):
+        pts += _f(avg.get("def_interceptions")) * g("idp_int")
     pts += _f(avg.get("def_interception_yards")) * g("int_ret_yd")
-    pts += _f(avg.get("def_interception_yards")) * g("idp_int_ret_yd")
+    if not g("int_ret_yd"):
+        pts += _f(avg.get("def_interception_yards")) * g("idp_int_ret_yd")
     pts += _f(avg.get("def_pass_defended")) * g("pass_def")
-    pts += _f(avg.get("def_pass_defended")) * g("def_pass_def")
-    pts += _f(avg.get("def_pass_defended")) * g("idp_pass_def")
+    if not g("pass_def"):
+        pts += _f(avg.get("def_pass_defended")) * g("def_pass_def")
+    if not g("pass_def") and not g("def_pass_def"):
+        pts += _f(avg.get("def_pass_defended")) * g("idp_pass_def")
     pts += _f(avg.get("def_fumbles_forced")) * g("ff")
-    pts += _f(avg.get("def_fumbles_forced")) * g("idp_ff")
+    if not g("ff"):
+        pts += _f(avg.get("def_fumbles_forced")) * g("idp_ff")
     pts += _f(avg.get("fumble_recovery_opp")) * g("idp_fum_rec")
     pts += _f(avg.get("def_tds")) * g("def_td")
     pts += _f(avg.get("def_tds")) * g("idp_def_td")
@@ -191,10 +225,14 @@ def _bracket_points(scoring: dict, prefix: str, value: float) -> float:
     """Match Sleeper range-bracket keys (pts_allow_1_6, yds_allow_550p).
 
     Works with any league's custom ranges — parses the numbers out of
-    the key instead of hardcoding the standard brackets.
+    the key instead of hardcoding the standard brackets. Fractional
+    averages round half up to the nearest integer bracket first, so
+    values between integer ranges (6.5, 13.5) score instead of zeroing.
     """
+    import math
     import re
 
+    v = math.floor(value + 0.5)
     best = 0.0
     for key, mult in scoring.items():
         if not key.startswith(prefix):
@@ -212,7 +250,7 @@ def _bracket_points(scoring: dict, prefix: str, value: float) -> float:
                 if not m:
                     continue
                 lo = hi = int(m.group(1))
-        if lo <= value <= hi:
+        if lo <= v <= hi:
             try:
                 best = float(mult or 0)
             except (ValueError, TypeError):

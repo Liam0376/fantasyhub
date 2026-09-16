@@ -156,7 +156,7 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
         except (ValueError, TypeError):
             bye_week = 0
         if p.get("remaining_games") is None:
-            remaining = max(0, 18 - cur_week - (1 if bye_week and bye_week > cur_week else 0))
+            remaining = _remaining_games(cur_week, bye_week)
         else:
             remaining = p.get("remaining_games", 0) or 0
         injury = p.get("injury_status") or injuries.get(f"{_norm_name(p.get('player_name', ''))}|{pos}")
@@ -211,7 +211,10 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
     # Merge auction values and compute edge (BUY/SELL/FAIR)
     vor_map = {p["player_id"]: p for p in results}
     if auction:
-        avg_dollar_per_vor = sum(a["auction_value"] for a in auction) / max(1, len(auction))
+        # Mean dollars per VOR across the pool (NOT per player —
+        # comparing $/VOR against $/player marked everyone BUY).
+        pool_vor = sum(a["vor"] for a in auction)
+        avg_dollar_per_vor = (sum(a["auction_value"] for a in auction) / pool_vor) if pool_vor > 0 else 0
         for av in auction:
             pid = av["player_id"]
             if pid in vor_map:

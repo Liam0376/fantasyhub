@@ -39,6 +39,7 @@ class handler(BaseHTTPRequestHandler):
             elif path == "/hub-api/ready":
                 status, body = 200, {"ready": True}
             elif path in ("/hub-api/meta", "/hub-api/draft", "/hub-api/roster",
+                           "/draft",
                           "/hub-api/rosters-full", "/hub-api/projections",
                           "/hub-api/projections/ros", "/hub-api/comparison",
                           "/hub-api/matchups", "/hub-api/waiver", "/hub-api/trade",
@@ -48,6 +49,8 @@ class handler(BaseHTTPRequestHandler):
                 # matching the client's documented fallbacks, never a 500.
                 status, body = 200, {"error": "missing_league_id", "players": [],
                                      "teams": [], "rosters": {}, "recommendations": []}
+            elif path == "/draft":
+                status, body = 200, hubapi.hub_draft(g("league_id"))
             elif path == "/hub-api/meta":
                 status, body = 200, hubapi.hub_meta(g("league_id"))
             elif path == "/hub-api/draft":
