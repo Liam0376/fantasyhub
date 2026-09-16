@@ -35,10 +35,13 @@ jobs:
       - name: Snapshot injuries
         run: python scripts/fetch_injuries.py
 
+      - name: Snapshot players
+        run: python scripts/snapshot_players.py
+
       - name: Commit data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/projections/ data/injuries/
+          git add data/projections/ data/injuries/ data/players/ data/slate/
           git diff --cached --quiet || git commit -m "chore: update projections $(date -u +%Y-%m-%d)"
           git push

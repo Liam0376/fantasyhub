@@ -1,4 +1,8 @@
-"""Vercel serverless entry point. Routes /api/* requests."""
+"""Vercel serverless entry point. Serves the hub SPA's /hub-api/*
+contract (plus /health and POST /refresh) from live Sleeper data.
+
+The legacy /api/* routes are gone — the hub UI is the only client.
+"""
 import json
 import os
 import sys
@@ -6,68 +10,89 @@ from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
 # Vercel's Python runtime loads this file without adding api/ to
-# sys.path, so sibling imports (league, projections, scoring) fail
-# with ModuleNotFoundError. Bootstrap the path first.
+# sys.path, so sibling imports fail with ModuleNotFoundError.
+# Bootstrap the path first.
 sys.path.insert(0, os.path.dirname(__file__))
 
-from league import fetch_league
-from projections import get_projections
-from analytics import compute_analytics
+import hubapi
 
 
 class handler(BaseHTTPRequestHandler):
+    def _send(self, status, body):
+        self.send_response(status)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(body, default=str).encode())
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
         qs = parse_qs(parsed.query)
-
-        headers = {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-        }
+        g = lambda k, d=None: (qs.get(k, [d])[0])
 
         try:
-            if path == "/api/league":
-                status, body = self._handle_league(qs)
-            elif path == "/api/projections":
-                status, body = self._handle_projections(qs)
-            elif path == "/api/analytics":
-                status, body = self._handle_analytics(qs)
+            if path == "/health":
+                status, body = 200, {"status": "ok"}
+            elif path == "/hub-api/ready":
+                status, body = 200, {"ready": True}
+            elif path == "/hub-api/meta":
+                status, body = 200, hubapi.hub_meta(g("league_id"))
+            elif path == "/hub-api/draft":
+                status, body = 200, hubapi.hub_draft(g("league_id"))
+            elif path == "/hub-api/projections/ros":
+                status, body = 200, hubapi.hub_projections(
+                    g("league_id"), week=g("week"), season=g("season"),
+                    limit=g("limit", 800), ros=True)
+            elif path == "/hub-api/projections":
+                status, body = 200, hubapi.hub_projections(
+                    g("league_id"), week=g("week"), season=g("season"),
+                    limit=g("limit", 800))
+            elif path == "/hub-api/comparison":
+                status, body = 200, hubapi.hub_comparison(
+                    g("league_id"), week=g("week"), season=g("season"),
+                    limit=g("limit", 800), edge=g("edge"))
+            elif path == "/hub-api/roster":
+                status, body = 200, hubapi.hub_roster(g("league_id"), g("roster_id"))
+            elif path == "/hub-api/rosters-full":
+                status, body = 200, hubapi.hub_rosters_full(g("league_id"), week=g("week"))
+            elif path == "/hub-api/matchups":
+                status, body = 200, hubapi.hub_matchups(g("league_id"), week=g("week"))
+            elif path == "/hub-api/waiver":
+                status, body = 200, hubapi.hub_waiver(g("league_id"), owner_id=g("owner_id"))
+            elif path == "/hub-api/trade":
+                status, body = 200, hubapi.hub_trade(
+                    g("league_id"), team_a_id=g("team_a_id"), team_b_id=g("team_b_id"))
+            elif path == "/hub-api/news":
+                status, body = 200, {"trending_adds": [], "fantasypros_news": []}
+            elif path == "/hub-api/refresh-log":
+                status, body = 200, {"entries": []}
+            elif path == "/hub-api/games/predictions":
+                status, body = 200, hubapi.hub_games(
+                    g("league_id"), week=g("week"), season=g("season"))
+            elif path == "/hub-api/props/board":
+                status, body = 200, hubapi.hub_props_board(
+                    g("league_id"), teams=g("teams"), week=g("week"), season=g("season"))
             else:
                 status, body = 404, {"error": "Not found"}
         except Exception as e:
             status, body = 500, {"error": str(e)}
+        self._send(status, body)
 
-        self.send_response(status)
-        for k, v in headers.items():
-            self.send_header(k, v)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps(body).encode())
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path in ("/refresh", "/hub-api/refresh"):
+            # Serverless is always live (Sleeper direct + weekly cron);
+            # there is nothing to sync, so report ok for the setup flow.
+            self._send(200, {"ok": True})
+        else:
+            self._send(404, {"error": "Not found"})
 
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
-
-    def _handle_league(self, qs):
-        league_id = qs.get("id", [None])[0]
-        if not league_id:
-            return 400, {"error": "Missing league id"}
-        return 200, fetch_league(league_id)
-
-    def _handle_projections(self, qs):
-        week = qs.get("week", [None])[0]
-        season = qs.get("season", [None])[0]
-        return 200, get_projections(week=week, season=season)
-
-    def _handle_analytics(self, qs):
-        league_id = qs.get("league_id", [None])[0]
-        week = qs.get("week", [None])[0]
-        season = qs.get("season", [None])[0]
-        if not league_id:
-            return 400, {"error": "Missing league_id"}
-        return 200, compute_analytics(league_id=league_id, week=week, season=season)

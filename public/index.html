@@ -1,129 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fantasy Hub — Football Analytics</title>
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏈</text></svg>">
-</head>
-<body>
-  <div id="app">
-    <!-- Landing -->
-    <div id="landing" class="hero">
-      <h1>Fantasy Hub</h1>
-      <p class="subtitle">Paste your Sleeper league link for instant projections and auction values</p>
-      <div class="input-row">
-        <label for="leagueInput">Sleeper league URL or ID</label>
-        <input type="text" id="leagueInput" placeholder="Sleeper league URL or ID" autocomplete="off" inputmode="url">
-        <button id="analyzeBtn" onclick="importLeague()">Analyze League</button>
-      </div>
-      <div id="error" class="error" style="display:none"></div>
-    </div>
-
-    <!-- Loading -->
-    <div id="loading" style="display:none">
-      <div class="spinner"></div>
-      <p id="loadingText">Importing league from Sleeper...</p>
-    </div>
-
-    <!-- Main view -->
-    <div id="main" style="display:none">
-      <header>
-        <div class="header-left">
-          <h2 id="leagueName">League</h2>
-          <span id="leagueMeta" class="meta"></span>
-        </div>
-        <div class="header-right">
-          <div class="week-nav">
-            <button onclick="changeWeek(-1)">← Prev</button>
-            <span id="weekLabel">—</span>
-            <button onclick="changeWeek(1)">Next →</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Gridiron Hub" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Gridiron Hub</title>
+    <meta name="description" content="Local fantasy football command center — projections, matchups, weather, tierlists, and auction draft guide." />
+    <link rel="icon" href="data:," />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏈</text></svg>" />
+    <script type="module" crossorigin src="/assets/index-CIIdx54w.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-D2crlyGP.css">
+  </head>
+  <body>
+    <a href="#app" class="skip-link">Skip to main content</a>
+    <div class="layout">
+      <aside class="sidebar" id="sidebar" aria-label="Primary">
+        <div class="sidebar-brand">
+          <div class="nav-logo">GH</div>
+          <div>
+            <div class="nav-title">GRIDIRON HUB</div>
+            <div class="nav-sub">—</div>
           </div>
         </div>
-      </header>
-
-      <!-- Tabs -->
-      <nav class="tabs">
-        <button class="tab active" data-tab="projections" onclick="switchTab('projections')">Projections</button>
-        <button class="tab" data-tab="auction" onclick="switchTab('auction')">Auction</button>
-      </nav>
-
-      <!-- Projections tab -->
-      <div id="tab-projections" class="tab-content active">
-        <div class="table-controls">
-          <input type="search" id="searchInput" placeholder="Search player, team, position..." oninput="filterTable()" inputmode="search">
-          <select id="posFilter" onchange="filterTable()">
-            <option value="">All Positions</option>
-            <option value="QB">QB</option>
-            <option value="RB">RB</option>
-            <option value="WR">WR</option>
-            <option value="TE">TE</option>
-            <option value="K">K</option>
-            <option value="DEF">DEF</option>
-          </select>
+        <nav class="sidebar-nav" id="navTabs" role="tablist" aria-label="Sections"></nav>
+        <div class="sidebar-foot">
+          <div class="staleness" id="stalenessTop" style="display:none"></div>
         </div>
-        <div class="table-wrap">
-          <table id="projTable">
-            <thead>
-              <tr>
-                <th class="sortable" data-sort="rank">#</th>
-                <th class="sortable" data-sort="player_name">Player</th>
-                <th class="sortable" data-sort="position">Pos</th>
-                <th class="sortable" data-sort="team">Team</th>
-                <th class="sortable" data-sort="opponent_team">Opp</th>
-                <th class="sortable num" data-sort="projected_points">Proj</th>
-                <th class="sortable num" data-sort="width">±</th>
-                <th class="sortable num" data-sort="ros_points">ROS</th>
-                <th class="sortable num" data-sort="bye_week">Bye</th>
-                <th class="sortable" data-sort="tier">Tier</th>
-              </tr>
-            </thead>
-            <tbody id="projBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Auction tab -->
-      <div id="tab-auction" class="tab-content">
-        <div id="budgetNote" class="alert" style="display:none"></div>
-        <div class="auction-kpis">
-          <div class="kpi">
-            <div class="kpi-label">Budget</div>
-            <div class="kpi-value" id="kpiBudget">—</div>
+      </aside>
+      <div class="main">
+        <header class="topbar" id="topbar">
+          <label class="search-top" aria-label="Global search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="globalSearch" placeholder="Search players, teams…  ( / )" autocomplete="off" />
+          </label>
+          <div class="topbar-right">
+            <button id="themeToggle" class="btn-icon" title="Toggle theme" aria-label="Toggle dark mode">
+              <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+              <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
+            <div class="staleness" id="staleness" title="Data freshness"><span class="dot cold" id="staleDot"></span><span id="staleText">checking…</span></div>
           </div>
-          <div class="kpi">
-            <div class="kpi-label">Teams</div>
-            <div class="kpi-value" id="kpiTeams">—</div>
-          </div>
-          <div class="kpi">
-            <div class="kpi-label">Total Pool</div>
-            <div class="kpi-value" id="kpiPool">—</div>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table id="auctionTable">
-            <thead>
-              <tr>
-                <th class="sortable" data-sort="rank">#</th>
-                <th class="sortable" data-sort="player_name">Player</th>
-                <th class="sortable" data-sort="position">Pos</th>
-                <th class="sortable" data-sort="team">Team</th>
-                <th class="sortable num" data-sort="projected_points">Proj</th>
-                <th class="sortable num" data-sort="vor">VOR</th>
-                <th class="sortable num" data-sort="auction_value">$</th>
-                <th class="sortable num" data-sort="amount_paid">Paid</th>
-                <th class="sortable" data-sort="tier">Tier</th>
-                <th class="sortable" data-sort="edge">Edge</th>
-              </tr>
-            </thead>
-            <tbody id="auctionBody"></tbody>
-          </table>
-        </div>
+          <div id="searchDropdown" class="search-dropdown" style="display:none; position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); width:min(640px, 92vw); max-height:420px; overflow-y:auto; background:var(--surface); border:1px solid var(--border-strong); border-radius:6px; box-shadow:0 16px 36px rgba(0,0,0,0.12); z-index:1000; padding:6px"></div>
+        </header>
+        <main class="page" id="app">
+          <div class="empty">Loading…</div>
+        </main>
       </div>
     </div>
-  </div>
-
-  <script type="module" src="/app.js"></script>
-</body>
+    <div id="mobileNav"></div>
+  </body>
 </html>

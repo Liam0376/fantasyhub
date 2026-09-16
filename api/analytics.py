@@ -5,6 +5,7 @@ import os
 from league import fetch_league
 from projections import get_projections
 from scoring import (FLEX_ELIGIBILITY, IDP_POSITIONS, describe_scoring,
+                     norm_name as _norm_name, roster_group as _roster_group,
                      score_avg_stats, score_team_def)
 
 
@@ -21,29 +22,6 @@ def _load_injuries() -> dict:
             return json.load(f).get("players", {})
     except Exception:
         return {}
-
-
-def _norm_name(n: str) -> str:
-    import re
-
-    n = (n or "").lower()
-    n = re.sub(r"\b(jr\.?|sr\.?|ii|iii|iv|v)\b", "", n)
-    return re.sub(r"[^a-z0-9 ]", "", n).strip()
-
-
-def _roster_group(pos: str) -> str:
-    """Map granular positions onto Sleeper roster groups.
-
-    Sleeper IDP slots are DL/LB/DB but nflverse reports DE/DT/CB/S/...
-    """
-    p = (pos or "UNK").upper()
-    if p in ("DE", "DT", "NT", "EDGE"):
-        return "DL"
-    if p in ("CB", "S", "SAF", "FS", "SS"):
-        return "DB"
-    if p in ("MLB", "ILB", "OLB"):
-        return "LB"
-    return p
 
 
 def _eligible_positions(roster_positions: list) -> set:
@@ -200,6 +178,7 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
             "bye_week": bye_week or None,
             "injury_status": injury,
             "amount_paid": amount_paid,
+            "avg_stats": p.get("avg_stats") or {},
             "tier": 0,
             "auction_value": 0,
             "auction_value_dollars": "$0",

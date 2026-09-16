@@ -55,6 +55,27 @@ def _f(key, default=0.0):
         return default
 
 
+def norm_name(n: str) -> str:
+    """Normalize a player name for cross-source matching (suffix-proof)."""
+    import re
+
+    n = (n or "").lower()
+    n = re.sub(r"\b(jr\.?|sr\.?|ii|iii|iv|v)\b", "", n)
+    return re.sub(r"[^a-z0-9 ]", "", n).strip()
+
+
+def roster_group(pos: str) -> str:
+    """Map granular positions onto Sleeper roster groups (DE->DL...)."""
+    p = (pos or "UNK").upper()
+    if p in ("DE", "DT", "NT", "EDGE"):
+        return "DL"
+    if p in ("CB", "S", "SAF", "FS", "SS"):
+        return "DB"
+    if p in ("MLB", "ILB", "OLB"):
+        return "LB"
+    return p
+
+
 def score_avg_stats(avg: dict, scoring: dict, position: str) -> float:
     """Score per-game avg raw stats with a league's Sleeper scoring_settings.
 

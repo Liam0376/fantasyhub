@@ -211,6 +211,13 @@ def _num(v) -> float:
         return 0.0
 
 
+def _num_or_none(v):
+    try:
+        return float(v) if v not in (None, "") else None
+    except (ValueError, TypeError):
+        return None
+
+
 def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                         byes: dict | None = None) -> list[dict]:
     """Project per-game avg raw stats using recency weighting.
@@ -381,6 +388,32 @@ def main():
         p["opponent_team"] = opponents.get(p.get("team", ""), "BYE")
     for td in team_def:
         td["opponent_team"] = opponents.get(td.get("team", ""), "BYE")
+
+    # Slate snapshots for every week (matchups view + game predictions).
+    # Compact: teams, stadium, time, Vegas lines. Wind/precip stay null
+    # (no source) so wind chips simply never match.
+    slate_dir = Path(__file__).parent.parent / "data" / "slate"
+    slate_dir.mkdir(parents=True, exist_ok=True)
+    by_week: dict[int, list] = {}
+    for g in sched_rows:
+        if str(g.get("season")) != str(season) or g.get("game_type") != "REG":
+            continue
+        try:
+            wk = int(g.get("week") or 0)
+        except (ValueError, TypeError):
+            continue
+        if not 1 <= wk <= 18:
+            continue
+        by_week.setdefault(wk, []).append({
+            "home_team": g.get("home_team"), "away_team": g.get("away_team"),
+            "stadium": g.get("stadium"), "gameday": g.get("gameday"),
+            "gametime": g.get("gametime"),
+            "spread_line": _num_or_none(g.get("spread_line")),
+            "total_line": _num_or_none(g.get("total_line")),
+        })
+    for wk, games in by_week.items():
+        with open(slate_dir / f"{season}_week_{wk:02d}.json", "w") as f:
+            json.dump({"week": wk, "season": season, "games": games}, f)
 
     # Write output
     out_dir = Path(__file__).parent.parent / "data" / "projections"
