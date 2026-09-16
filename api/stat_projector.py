@@ -10,7 +10,6 @@ values, not tunable knobs. Do not retune without a new backtest
 (scripts/backtest.py in this repo).
 """
 
-from collections import defaultdict
 from typing import Dict, List, Optional
 
 QB_STATS = [

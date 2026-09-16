@@ -43,28 +43,6 @@ FLEX_ELIGIBILITY = {
                  "SS", "MLB", "ILB", "OLB", "NT", "EDGE"},
 }
 
-# Interval width factors (single source; analytics + compute import these).
-POS_WIDTH_FACTORS = {"QB": 1.55, "RB": 1.07, "WR": 1.12, "TE": 0.88,
-                     "K": 0.85, "DEF": 0.75}
-
-
-def interval_width(pos: str, pts: float) -> float:
-    """Confidence interval half-width. Single implementation."""
-    pf = POS_WIDTH_FACTORS.get((pos or "UNK").upper(), 1.0)
-    qf = 1.0 if pts <= 12 else min(1.60, 1.0 + (pts - 12) * 0.022)
-    return max(3.0, min(14.0, 5.0 * pf * qf))
-
-
-# Reference scoring for standalone JSON readability only. League math
-# never uses this — analytics always rescores from avg_stats.
-REFERENCE_SCORING = {
-    "pass_yd": 0.04, "pass_td": 4.0, "pass_int": -1.0, "pass_2pt": 2.0,
-    "rush_yd": 0.1, "rush_td": 6.0, "rush_2pt": 2.0,
-    "rec": 1.0, "rec_yd": 0.1, "rec_td": 6.0, "rec_2pt": 2.0,
-    "fum_lost": -2.0, "xpm": 1.0, "xpmiss": -1.0,
-    "fgm_0_19": 3.0, "fgm_20_29": 3.0, "fgm_30_39": 3.0,
-    "fgm_40_49": 4.0, "fgm_50_59": 5.0, "fgm_60_": 6.0, "fgmiss": -1.0,
-}
 
 # Granular defensive positions grouped for IDP_FLEX-style matching.
 IDP_POSITIONS = {"DL", "LB", "DB", "DE", "DT", "CB", "S", "SAF", "FS",

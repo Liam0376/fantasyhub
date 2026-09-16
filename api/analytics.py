@@ -4,7 +4,7 @@ import os
 
 from league import fetch_league
 from projections import get_projections
-from scoring import (FLEX_ELIGIBILITY, IDP_POSITIONS, describe_scoring,
+from scoring import (FLEX_ELIGIBILITY, describe_scoring,
                      norm_name as _norm_name, roster_group as _roster_group,
                      score_avg_stats, score_team_def)
 
