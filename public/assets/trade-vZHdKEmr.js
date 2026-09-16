@@ -1,4 +1,4 @@
-import{b as O,e as o,J as X,m as V,p as Y,j as Z,q as ee,t as te,g as ae,h as se,f as re,k as ie}from"./index-CIIdx54w.js";import{c as ne,v as oe,a as de}from"./vbdAuction-Bn4eSdiY.js";import"./auctionMath-C3MdTGNI.js";async function pe(n){const B=new URLSearchParams(location.hash.split("?")[1]||"");let z=B.get("team_a")||"1",P=B.get("team_b")||"2";n.innerHTML=`
+import{b as O,e as o,J as X,m as V,p as Y,j as Z,q as ee,t as te,g as ae,h as se,f as re,k as ie}from"./index-BUQ5dhSf.js";import{c as ne,v as oe,a as de}from"./vbdAuction-C55c_rdg.js";import"./auctionMath-D_Qmc0Wq.js";async function pe(n){const B=new URLSearchParams(location.hash.split("?")[1]||"");let z=B.get("team_a")||"1",P=B.get("team_b")||"2";n.innerHTML=`
     <div class="hero reveal in">
       <h1>Trade</h1>
       <p>Select two teams, pick the players being traded on each side, and analyze Model weekly &amp; ROS trade impact.</p>

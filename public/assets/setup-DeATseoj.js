@@ -1,4 +1,4 @@
-import{f as q,D as C,i as k,e as i,v as B,L,M as w,N as I,k as H,O as R,P as _,Q as T,R as U}from"./index-CIIdx54w.js";function A(n){return`<div class="player-modal-backdrop show" id="setupBackdrop" style="position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; padding:16px">
+import{f as q,D as C,i as k,e as i,v as B,L,M as w,N as I,k as H,O as R,P as _,Q as T,R as U}from"./index-BUQ5dhSf.js";function A(n){return`<div class="player-modal-backdrop show" id="setupBackdrop" style="position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; padding:16px">
     <div class="card player-modal-card show" id="setupCard" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="setupTitle" style="max-width:520px; width:100%; max-height:90vh; overflow:auto; padding:20px">
       ${n}
     </div>
@@ -13,7 +13,7 @@ import{f as q,D as C,i as k,e as i,v as B,L,M as w,N as I,k as H,O as R,P as _,Q
     </div>`:""}
     <label class="faint" for="setupInput" style="display:block; margin-bottom:4px">1 · Sleeper league ID <span class="faint">(or paste your league URL)</span></label>
     <div class="row" style="gap:8px; margin-bottom:12px">
-      <input id="setupInput" class="search-top" style="flex:1; border:1px solid var(--border); border-radius:8px; padding:8px 10px" placeholder="1397736035240173568" inputmode="numeric" value="${k(m)}" />
+      <input id="setupInput" class="search-top" style="flex:1; border:1px solid var(--border); border-radius:8px; padding:8px 10px" placeholder="e.g. 123456789012345678" inputmode="numeric" value="${k(m)}" />
       <button class="btn btn-primary btn-sm" id="setupValidate">Look up</button>
     </div>
     <div id="setupResult" aria-live="polite"></div>
