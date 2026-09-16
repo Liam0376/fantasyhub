@@ -18,10 +18,10 @@ from pathlib import Path
 # nflverse weekly stats URL
 STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/player_stats/player_stats_{season}.csv"
 
-# Scoring keys that map nflverse stats to fantasy points
+# Scoring keys that map nflverse stats to fantasy points (standard PPR)
 SCORING = {
     "passing_yards": 0.04,
-    "passing_tds": 4.0,
+    "passing_tds": 5.0,
     "passing_interceptions": -2.0,
     "rushing_yards": 0.1,
     "rushing_tds": 6.0,
@@ -31,8 +31,9 @@ SCORING = {
     "fumbles_lost": -2.0,
     "two_point_conversion": 2.0,
     "extra_points": 1.0,
-    "field_goals": 3.0,  # simplified: all FGs = 3
-    "field_goals_50_plus": 2.0,  # bonus for 50+
+    "field_goals_0_39": 3.0,
+    "field_goals_40_49": 4.0,
+    "field_goals_50_plus": 5.0,
 }
 
 # Position width factors for confidence intervals
@@ -198,7 +199,6 @@ def main():
 
     print(f"Wrote {len(projections)} projections to {outfile}")
 
-    # Also write a "latest" symlink
     latest = out_dir / "latest.json"
     with open(latest, "w") as f:
         json.dump(data, f, indent=2)

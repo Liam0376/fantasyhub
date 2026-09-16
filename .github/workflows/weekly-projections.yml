@@ -28,14 +28,9 @@ jobs:
 
       - name: Compute projections
         run: |
-          ARGS=""
-          if [ "${{ github.event.inputs.week }}" != "" ]; then
-            ARGS="$ARGS --week ${{ github.event.inputs.week }}"
-          fi
-          if [ "${{ github.event.inputs.season }}" != "" ]; then
-            ARGS="$ARGS --season ${{ github.event.inputs.season }}"
-          fi
-          python scripts/compute_week.py $ARGS
+          python scripts/compute_week.py \
+            ${{ github.event.inputs.week && format('--week {0}', github.event.inputs.week) || '' }} \
+            ${{ github.event.inputs.season && format('--season {0}', github.event.inputs.season) || '' }}
 
       - name: Commit projections
         run: |

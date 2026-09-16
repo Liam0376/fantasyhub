@@ -1,5 +1,5 @@
 // Fantasy Hub — main app
-import { fetchLeague, fetchProjections, fetchAnalytics } from '/lib/api.js';
+import { fetchLeague, fetchAnalytics } from '/lib/api.js';
 import { renderTable, sortTable } from '/lib/table.js';
 
 // State
@@ -84,7 +84,7 @@ window.changeWeek = function(delta) {
     showLoading('Loading projections...');
     fetchAnalytics(league.league_id, currentWeek, currentSeason)
       .then(data => { analytics = data; render(); hideLoading(); })
-      .catch(() => hideLoading());
+      .catch(e => { hideLoading(); showError(`Failed to load week ${currentWeek}: ${e.message}`); });
   }
 };
 
@@ -141,7 +141,7 @@ function render() {
   // Update header
   if (league) {
     document.getElementById('leagueName').textContent = league.name;
-    document.getElementById('leagueMeta').textContent = `${league.settings.num_teams}-team · $${league.settings.budget} budget · ${league.settings.roster_positions.filter(p => p !== 'BN' && p !== 'IR').length} starters`;
+    document.getElementById('leagueMeta').textContent = `${league.settings.num_teams}-team · $${league.settings.budget} budget · ${(league.settings.roster_positions || []).filter(p => p !== 'BN' && p !== 'IR').length} starters`;
   }
 
   // Update auction KPIs

@@ -8,22 +8,18 @@ def fetch_league(league_id: str) -> dict:
     """Fetch league settings, rosters, and users from Sleeper."""
     league_id = str(league_id).strip()
 
-    # League settings
     r = requests.get(f"{BASE}/league/{league_id}", timeout=10)
     r.raise_for_status()
     league = r.json()
 
-    # Rosters
     r = requests.get(f"{BASE}/league/{league_id}/rosters", timeout=10)
     r.raise_for_status()
     rosters = r.json()
 
-    # Users
     r = requests.get(f"{BASE}/league/{league_id}/users", timeout=10)
     r.raise_for_status()
     users = r.json()
 
-    # Build user map: user_id -> display info
     user_map = {}
     for u in users:
         user_map[u["user_id"]] = {
@@ -32,7 +28,6 @@ def fetch_league(league_id: str) -> dict:
             "avatar": u.get("avatar"),
         }
 
-    # Build roster list
     teams = []
     for rost in rosters:
         rid = str(rost.get("roster_id", ""))
@@ -52,12 +47,10 @@ def fetch_league(league_id: str) -> dict:
             "fpts_against": rost.get("fpts_against", 0),
         })
 
-    # Extract scoring and roster settings
     scoring = league.get("scoring_settings", {})
     roster_positions = league.get("roster_positions", [])
 
-    # Determine budget from draft or settings
-    budget = 200  # default
+    budget = 200
     try:
         drafts = league.get("drafts") or []
         for d in drafts:

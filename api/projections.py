@@ -9,7 +9,6 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "projections")
 
 def get_projections(week: str | None = None, season: str | None = None) -> dict:
     """Read precomputed projections for a given week/season."""
-    # Determine current NFL week if not specified
     if not season:
         season = str(_current_nfl_season())
     if not week:
@@ -33,6 +32,7 @@ def get_projections(week: str | None = None, season: str | None = None) -> dict:
         "season": int(season),
         "updated_at": data.get("updated_at", ""),
         "players": data.get("players", []),
+        "stale": False,
     }
 
 
@@ -51,6 +51,7 @@ def _fallback_projections(season: str, week: str) -> dict:
                     "updated_at": data.get("updated_at", ""),
                     "players": data.get("players", []),
                     "note": f"Using projections from {f}",
+                    "stale": True,
                 }
 
     return {
@@ -59,6 +60,7 @@ def _fallback_projections(season: str, week: str) -> dict:
         "updated_at": "",
         "players": [],
         "note": "No projections available. Run compute_week.py to generate.",
+        "stale": True,
     }
 
 

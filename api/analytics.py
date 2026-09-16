@@ -65,22 +65,28 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
             "ros_points": p.get("ros_points", 0),
             "remaining_games": p.get("remaining_games", 0),
             "injury_status": p.get("injury_status"),
-            "tier": 0,  # computed below
+            "tier": 0,
+            "auction_value": 0,
+            "auction_value_dollars": "$0",
             "edge": "FAIR",
         })
 
     # Sort by VOR descending for tier assignment
     results.sort(key=lambda x: x["vor"], reverse=True)
 
-    # Assign tiers (top 12 = tier 1, next 24 = tier 2, etc.)
+    # Dynamic tier thresholds based on league size
+    t1 = num_teams  # tier 1 = one per team
+    t2 = t1 * 3     # tier 2 = 3x starters
+    t3 = t1 * 5     # tier 3 = 5x starters
+    t4 = t1 * 8     # tier 4 = 8x starters
     for i, p in enumerate(results):
-        if i < 12:
+        if i < t1:
             p["tier"] = 1
-        elif i < 36:
+        elif i < t2:
             p["tier"] = 2
-        elif i < 60:
+        elif i < t3:
             p["tier"] = 3
-        elif i < 96:
+        elif i < t4:
             p["tier"] = 4
         else:
             p["tier"] = 5
@@ -88,14 +94,24 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
     # Compute auction values
     auction = _compute_auction_values(results, roster_positions, num_teams, budget)
 
-    # Merge auction values into results
+    # Merge auction values and compute edge (BUY/SELL/FAIR)
     vor_map = {p["player_id"]: p for p in results}
-    for av in auction:
-        pid = av["player_id"]
-        if pid in vor_map:
-            vor_map[pid]["auction_value"] = av["auction_value"]
-            vor_map[pid]["auction_value_dollars"] = f"${av['auction_value']}"
-            vor_map[pid]["edge"] = av.get("edge", "FAIR")
+    if auction:
+        avg_dollar_per_vor = sum(a["auction_value"] for a in auction) / max(1, len(auction))
+        for av in auction:
+            pid = av["player_id"]
+            if pid in vor_map:
+                vor_map[pid]["auction_value"] = av["auction_value"]
+                vor_map[pid]["auction_value_dollars"] = f"${av['auction_value']}"
+                # Edge: compare $/VOR to position average
+                if av["vor"] > 0:
+                    dpv = av["auction_value"] / av["vor"]
+                    if dpv < avg_dollar_per_vor * 0.85:
+                        vor_map[pid]["edge"] = "BUY"
+                    elif dpv > avg_dollar_per_vor * 1.15:
+                        vor_map[pid]["edge"] = "SELL"
+                    else:
+                        vor_map[pid]["edge"] = "FAIR"
 
     # Sort by projected points for default view
     results.sort(key=lambda x: x["projected_points"], reverse=True)
@@ -116,42 +132,54 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
 
 
 def _score_player(player: dict, scoring: dict) -> float:
-    """Score a player using league scoring settings."""
-    if not scoring:
-        return player.get("projected_points", 0) or 0
+    """Score a player using league scoring settings.
 
-    # The projections JSON already has projected_points computed
-    # using the right scoring. For league-specific, we'd need raw stats.
-    # For now, return the projected_points as-is.
-    # TODO: if we store raw stats in projections, score here.
-    return player.get("projected_points", 0) or 0
+    Projections JSON stores projected_points computed with default scoring.
+    When league scoring differs from default, we adjust proportionally.
+    """
+    base_pts = player.get("projected_points", 0) or 0
+    if not scoring:
+        return base_pts
+
+    # If league uses default scoring, return as-is
+    if scoring.get("pass_td", 0) == 5.0 and scoring.get("rec", 0) == 1.0:
+        return base_pts
+
+    # Rough adjustment: scale by passing TD and reception scoring deltas
+    # (full raw-stat scoring would require storing per-stat projections)
+    td_scale = scoring.get("pass_td", 5.0) / 5.0
+    rec_scale = scoring.get("rec", 1.0) / 1.0
+    pos = (player.get("position") or "").upper()
+    if pos == "QB":
+        return base_pts * td_scale
+    if pos in ("WR", "TE"):
+        return base_pts * rec_scale
+    return base_pts
 
 
 def _replacement_levels(players: list, roster_positions: list, num_teams: int) -> dict:
     """Compute replacement level per position."""
-    # Parse roster positions into counts
     pos_counts = {}
-    flex_positions = []
+    flex_count = 0
     for pos in roster_positions:
         pos = pos.upper()
-        if pos == "BN" or pos == "IR":
+        if pos in ("BN", "IR"):
             continue
         if pos == "FLEX":
-            flex_positions.append(pos)
+            flex_count += 1
             continue
         pos_counts[pos] = pos_counts.get(pos, 0) + 1
 
-    # Split flex slots among RB/WR/TE
-    flex_count = len(flex_positions)
+    # Split flex slots among RB/WR/TE proportionally to their starter counts
     if flex_count > 0:
         rb_base = pos_counts.get("RB", 2)
         wr_base = pos_counts.get("WR", 2)
         te_base = pos_counts.get("TE", 1)
-        total_starter = rb_base + wr_base + te_base
-        if total_starter > 0:
-            pos_counts["RB"] = pos_counts.get("RB", 0) + round(flex_count * rb_base / total_starter)
-            pos_counts["WR"] = pos_counts.get("WR", 0) + round(flex_count * wr_base / total_starter)
-            pos_counts["TE"] = pos_counts.get("TE", 0) + flex_count - round(flex_count * rb_base / total_starter) - round(flex_count * wr_base / total_starter)
+        total = rb_base + wr_base + te_base
+        if total > 0:
+            pos_counts["RB"] = pos_counts.get("RB", 0) + round(flex_count * rb_base / total)
+            pos_counts["WR"] = pos_counts.get("WR", 0) + round(flex_count * wr_base / total)
+            pos_counts["TE"] = pos_counts.get("TE", 0) + flex_count - round(flex_count * rb_base / total) - round(flex_count * wr_base / total)
 
     # Sort players by position and projected points
     by_pos = {}
@@ -214,7 +242,6 @@ def _compute_auction_values(players: list, roster_positions: list, num_teams: in
             "position": p["position"],
             "auction_value": auction_value,
             "vor": p["vor"],
-            "edge": "FAIR",
         })
 
     return results
