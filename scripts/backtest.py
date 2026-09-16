@@ -21,7 +21,7 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
 from conformal import qhat, POS_RESIDUALS
-from scoring import score_avg_stats, AVG_STAT_KEYS, normalize_row_stats
+from scoring import score_avg_stats, normalize_row_stats
 from stat_projector import project_player_stats, COVERED_STATS
 
 STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"

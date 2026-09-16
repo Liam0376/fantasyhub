@@ -5,7 +5,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from weather import STADIUM_COORDS, get_forecast
 
 
-def test_stadium_coords_covers_all_32_teams():
+def test_stadium_coords_coverage():
+    # All 32 NFL teams plus LA alias (nflverse schedule uses "LA" for Rams)
     expected_teams = {
         "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE", "DAL", "DEN",
         "DET", "GB", "HOU", "IND", "JAX", "KC", "LA", "LAC", "LAR", "LV", "MIA",
@@ -23,6 +24,6 @@ def test_get_forecast_bad_request_returns_none():
 
 
 if __name__ == "__main__":
-    test_stadium_coords_covers_all_32_teams()
+    test_stadium_coords_coverage()
     test_get_forecast_bad_request_returns_none()
     print("OK")
