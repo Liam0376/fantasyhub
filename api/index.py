@@ -91,7 +91,9 @@ class handler(BaseHTTPRequestHandler):
             else:
                 status, body = 404, {"error": "Not found"}
         except Exception as e:
-            status, body = 500, {"error": str(e)}
+            import sys
+            print(f"hub-api error: {e}", file=sys.stderr)
+            status, body = 500, {"error": "internal_error"}
         self._send(status, body)
 
     def do_POST(self):

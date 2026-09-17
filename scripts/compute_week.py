@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
 from conformal import qhat, POS_RESIDUALS, interval_width
-from scoring import AVG_STAT_KEYS, normalize_row_stats, score_avg_stats, score_team_def, REF_SCORING
+from scoring import AVG_STAT_KEYS, normalize_row_stats, score_avg_stats, score_team_def, REF_SCORING, safe_float, NFLVERSE_STATS_URL
 from stat_projector import project_player_stats, build_game_context, COVERED_STATS
 from weather import STADIUM_COORDS, get_forecast
 
@@ -26,7 +26,7 @@ except ImportError:
     get_nfl_state = None
 
 # nflverse weekly stats URL
-STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"
+STATS_URL = NFLVERSE_STATS_URL
 TEAM_STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_{season}.csv"
 SCHEDULE_URL = "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv"
 
@@ -279,11 +279,7 @@ def compute_team_def(team_rows: list[dict], sched_rows: list[dict],
     return out
 
 
-def _num(v) -> float:
-    try:
-        return float(v or 0)
-    except (ValueError, TypeError):
-        return 0.0
+_num = safe_float
 
 
 def _num_or_none(v):

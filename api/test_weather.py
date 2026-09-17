@@ -20,10 +20,20 @@ def test_get_forecast_bad_request_returns_none():
     # lat/lon nonsense + unreachable-ish game time still degrades to None,
     # never raises (soft-fail by design, matches father project's adapter).
     result = get_forecast(999.0, 999.0, "2020-01-01T00:00:00")
-    assert result is None or isinstance(result, dict)
+    # Nonsense coords should soft-fail to None, not raise
+    assert result is None
+
+
+def test_get_forecast_valid_returns_dict_or_none():
+    # Real coords (Arrowhead), past date — API may return data or fail gracefully
+    result = get_forecast(39.0489, -94.4839, "2025-09-08T13:00:00")
+    if result is not None:
+        assert "temp_f" in result
+        assert "wind_mph" in result
 
 
 if __name__ == "__main__":
     test_stadium_coords_coverage()
     test_get_forecast_bad_request_returns_none()
+    test_get_forecast_valid_returns_dict_or_none()
     print("OK")

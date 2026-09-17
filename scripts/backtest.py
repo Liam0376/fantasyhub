@@ -21,10 +21,10 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
 from conformal import qhat, POS_RESIDUALS, interval_width
-from scoring import score_avg_stats, normalize_row_stats, REF_SCORING
+from scoring import score_avg_stats, normalize_row_stats, REF_SCORING, safe_float, NFLVERSE_STATS_URL
 from stat_projector import project_player_stats, COVERED_STATS
 
-STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"
+STATS_URL = NFLVERSE_STATS_URL
 
 
 def _spearman(x: list[float], y: list[float]) -> float | None:
@@ -104,11 +104,7 @@ def _fetch(season: int) -> list[dict]:
     return list(csv.DictReader(io.StringIO(r.text)))
 
 
-def _num(v) -> float:
-    try:
-        return float(v or 0)
-    except (ValueError, TypeError):
-        return 0.0
+_num = safe_float
 
 
 

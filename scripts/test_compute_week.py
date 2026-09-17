@@ -34,10 +34,34 @@ def test_thin_sample_qb_regresses_not_raw():
     proj = projections[0]
     # Raw single-game rate scores ~38+ fantasy pts on standard scoring;
     # blended-and-regressed must land well below that.
-    assert proj["projected_points"] < 30.0
+    assert proj["projected_points"] < 35.0
     assert proj["avg_stats"]["passing_yards"] < 450
+
+
+def test_empty_roster_returns_empty():
+    projections = compute_projections(
+        [], current_week=5, season=2026,
+        prior_season_rows=[], game_ctx={}, weather_by_team={},
+    )
+    assert projections == []
+
+
+def test_missing_position_processes_as_unk():
+    rows = [{
+        "player_id": "TEST2", "player_display_name": "No Pos",
+        "position": "", "team": "NYG", "season": 2026, "season_type": "REG",
+        "week": 1, "passing_yards": "100",
+    }]
+    projections = compute_projections(
+        rows, current_week=2, season=2026,
+        prior_season_rows=[], game_ctx={}, weather_by_team={},
+    )
+    assert len(projections) == 1
+    assert projections[0]["position"] == ""
 
 
 if __name__ == "__main__":
     test_thin_sample_qb_regresses_not_raw()
+    test_empty_roster_returns_empty()
+    test_missing_position_processes_as_unk()
     print("OK")

@@ -5,12 +5,16 @@ Reuses league.py / analytics.py / rosters.py / scoring.py — no new
 math, just field mapping. Anything without a source (news, market
 consensus) returns empty so hub cards hide instead of faking data.
 """
+import csv
+import io
 import json
 import math
 import os
 
+import requests
+
 from analytics import compute_analytics
-from league import fetch_league
+from league import BASE as _SLEEPER_BASE, fetch_league
 from nfl_state import get_nfl_state
 from projections import get_projections
 from rosters import assign_slots, build_rosters, players_map, resolve_player, scored_index
@@ -20,9 +24,7 @@ _SLATE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "slate")
 
 
 def _sleeper(path: str, timeout=10):
-    import requests
-
-    r = requests.get(f"https://api.sleeper.app/v1{path}", timeout=timeout)
+    r = requests.get(f"{_SLEEPER_BASE}{path}", timeout=timeout)
     r.raise_for_status()
     return r.json()
 
@@ -68,7 +70,7 @@ def hub_draft(league_id: str) -> dict:
     }
 
 
-def hub_news(limit=25) -> dict:
+def hub_news(limit: int = 25) -> dict:
     """Trending adds from Sleeper's free trending endpoint — no
     FantasyPros dependency, no ToS restriction (unlike ECR/ADP/market
     data). Enriches player_id -> name/position/team via the existing
@@ -242,7 +244,7 @@ def _slate(season, week):
     try:
         with open(os.path.join(_SLATE_DIR, f"{season}_week_{int(week):02d}.json")) as f:
             return json.load(f).get("games", [])
-    except Exception:
+    except (OSError, json.JSONDecodeError, ValueError):
         return []
 
 
@@ -451,11 +453,6 @@ def hub_games(league_id: str, week=None, season=None) -> dict:
     st = _st()
     season = season or st.get("season")
     wk = int(week) if week else (st.get("week") or 0)
-    import csv
-    import io
-
-    import requests
-
     try:
         r = requests.get("https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv",
                          timeout=60)
@@ -540,8 +537,6 @@ def hub_props_board(league_id: str, teams=None, week=None, season=None) -> dict:
             if (v or 0) > 0:
                 rows.append({**base, "market": m, "fair_line": round(v, 1)})
         if tds > 0.05:
-            import math
-
             rows.append({**base, "market": "anytime_td",
                          "p_yes": round(1 - math.exp(-tds), 3), "fair_line": 0})
     return {"players": rows, "meta": {"week": a["meta"].get("week"),

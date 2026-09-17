@@ -26,7 +26,7 @@ def players_map() -> dict:
         try:
             with open(_PLAYERS_PATH) as f:
                 _players_map = json.load(f).get("players", {})
-        except Exception:
+        except (OSError, json.JSONDecodeError):
             _players_map = {}
     return _players_map
 

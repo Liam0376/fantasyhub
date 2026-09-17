@@ -10,7 +10,7 @@ values, not tunable knobs. Do not retune without a new backtest
 (scripts/backtest.py in this repo).
 """
 
-from typing import Dict, List, Optional
+from __future__ import annotations
 
 QB_STATS = [
     "passing_yards", "passing_tds", "passing_interceptions",
@@ -82,7 +82,7 @@ def _get_projection_stats(position: str) -> list:
     return SKILL_STATS
 
 
-def weighted_recent_avg(values: List[float], recent_n: int = RECENT_N,
+def weighted_recent_avg(values: list[float], recent_n: int = RECENT_N,
                         recent_weight: float = RECENT_WEIGHT) -> float:
     if not values:
         return 0.0
@@ -101,7 +101,7 @@ def _td_regression(base: float, position: str, stat_key: str) -> float:
     return base
 
 
-def _usage_trend_adjustment(base: float, history: List[Dict], stat_key: str) -> float:
+def _usage_trend_adjustment(base: float, history: list[dict], stat_key: str) -> float:
     if stat_key not in VOLUME_STATS or len(history) < 4:
         return base
     prior_vals = [g.get(stat_key, 0) or 0 for g in history[:-3]]
@@ -117,7 +117,7 @@ def _usage_trend_adjustment(base: float, history: List[Dict], stat_key: str) -> 
     return base
 
 
-def _vegas_adjustment(projected: Dict[str, float], implied_total: float) -> Dict[str, float]:
+def _vegas_adjustment(projected: dict[str, float], implied_total: float) -> dict[str, float]:
     if not implied_total or implied_total <= 0:
         return projected
     raw_scale = implied_total / LEAGUE_AVG_IMPLIED_TOTAL
@@ -134,8 +134,8 @@ def _vegas_adjustment(projected: Dict[str, float], implied_total: float) -> Dict
     return adjusted
 
 
-def _weather_adjustment(projected: Dict[str, float], position: str,
-                        wind_mph: float = 0, temp_f: float = None) -> Dict[str, float]:
+def _weather_adjustment(projected: dict[str, float], position: str,
+                        wind_mph: float = 0, temp_f: float = None) -> dict[str, float]:
     adjusted = dict(projected)
     if wind_mph > WIND_THRESHOLD_MPH and position in ("QB", "WR", "TE", "K"):
         wind_factor = max(1.0 - (wind_mph - WIND_THRESHOLD_MPH) * WIND_PENALTY_PER_MPH, 0.75)
@@ -153,13 +153,13 @@ def _weather_adjustment(projected: Dict[str, float], position: str,
 
 
 def project_player_stats(
-    player_history: List[Dict],
+    player_history: list[dict],
     position: str,
-    prior_season_stats: Optional[List[Dict]] = None,
+    prior_season_stats: list[dict] | None = None,
     implied_total: float = 0,
     wind_mph: float = 0,
     temp_f: float = None,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Project a player's raw per-game stat averages for an upcoming game.
 
     Pipeline: weighted-recent avg (or thin-sample blend with prior season)
@@ -210,7 +210,7 @@ def project_player_stats(
     return projected
 
 
-def build_game_context(schedule: List[Dict]) -> Dict:
+def build_game_context(schedule: list[dict]) -> dict:
     """Build lookup from schedule: (team, week) -> implied_total/wind/temp/opponent."""
     ctx = {}
     for g in schedule:
@@ -229,7 +229,7 @@ def build_game_context(schedule: List[Dict]) -> Dict:
                     return 0.0
                 fv = float(str(v).strip())
                 return 0.0 if fv != fv else fv
-            except Exception:
+            except (ValueError, TypeError):
                 return 0.0
 
         home = g.get("home_team", "")
@@ -241,13 +241,13 @@ def build_game_context(schedule: List[Dict]) -> Dict:
             temp = float(temp_raw) if temp_raw not in (None, "") else None
             if temp is not None and temp != temp:
                 temp = None
-        except Exception:
+        except (ValueError, TypeError):
             temp = None
         try:
             wind = float(g.get("wind")) if g.get("wind") not in (None, "") else 0.0
             if wind != wind:
                 wind = 0.0
-        except Exception:
+        except (ValueError, TypeError):
             wind = 0.0
         is_dome = g.get("roof", "") in ("dome", "closed")
 

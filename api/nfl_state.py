@@ -8,7 +8,7 @@ import time
 import requests
 
 STATE_URL = "https://api.sleeper.app/v1/state/nfl"
-_TTL = 300
+TTL = 300
 _cache = {"at": 0.0, "data": None}
 
 
@@ -16,7 +16,7 @@ def get_nfl_state() -> dict:
     """Return {season, week, season_type}. Falls back to date heuristic
     only if Sleeper is unreachable (flagged via source field)."""
     now = time.time()
-    if _cache["data"] and now - _cache["at"] < _TTL:
+    if _cache["data"] and now - _cache["at"] < TTL:
         return _cache["data"]
     try:
         r = requests.get(STATE_URL, timeout=10)

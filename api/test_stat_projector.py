@@ -9,9 +9,13 @@ from stat_projector import (
 )
 
 
+def test_weighted_recent_avg_empty():
+    assert weighted_recent_avg([]) == 0.0
+
+
 def test_weighted_recent_avg_short_history():
     # <= RECENT_N games: plain average
-    assert weighted_recent_avg([10.0, 20.0]) == 15.0
+    assert abs(weighted_recent_avg([10.0, 20.0]) - 15.0) < 0.01
 
 
 def test_weighted_recent_avg_long_history_weights_recent():
@@ -90,6 +94,7 @@ def test_build_game_context_computes_implied_totals():
 
 
 if __name__ == "__main__":
+    test_weighted_recent_avg_empty()
     test_weighted_recent_avg_short_history()
     test_weighted_recent_avg_long_history_weights_recent()
     test_td_regression_pulls_toward_position_mean()

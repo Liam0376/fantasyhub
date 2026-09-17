@@ -17,12 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
 
 import requests
-
-
-def _norm_name(n: str) -> str:
-    n = (n or "").lower()
-    n = re.sub(r"\b(jr\.?|sr\.?|ii|iii|iv|v)\b", "", n)
-    return re.sub(r"[^a-z0-9 ]", "", n).strip()
+from scoring import norm_name as _norm_name
 
 
 def main() -> None:

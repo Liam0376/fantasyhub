@@ -5,6 +5,8 @@ Single source of truth for stat mapping. Both scripts/compute_week.py
 those avgs per league) import from here. No hardcoded league scoring.
 """
 
+NFLVERSE_STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"
+
 # nflverse weekly columns to average per player. These are the raw inputs
 # for all league-specific scoring. Add a column here and it flows through.
 AVG_STAT_KEYS = [
@@ -64,11 +66,13 @@ IDP_POSITIONS = {"DL", "LB", "DB", "DE", "DT", "CB", "S", "SAF", "FS",
                  "SS", "MLB", "ILB", "OLB", "NT", "EDGE"}
 
 
-def _f(key, default=0.0):
+def safe_float(v, default=0.0):
     try:
-        return float(key or 0)
+        return float(v or 0)
     except (ValueError, TypeError):
         return default
+
+_f = safe_float
 
 
 def norm_name(n: str) -> str:

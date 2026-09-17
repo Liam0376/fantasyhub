@@ -2,7 +2,7 @@
 import json
 import os
 
-from conformal import qhat, POS_RESIDUALS, interval_width
+from conformal import interval_width
 from league import fetch_league
 from projections import get_projections
 from scoring import (FLEX_ELIGIBILITY, describe_scoring,
@@ -17,7 +17,7 @@ def _load_injuries() -> dict:
     try:
         with open(_INJURIES_PATH) as f:
             return json.load(f).get("players", {})
-    except Exception:
+    except (OSError, json.JSONDecodeError):
         return {}
 
 
@@ -144,7 +144,7 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
         pos = (p.get("position") or "UNK").upper()
         rep = replacement.get(_roster_group(pos), replacement.get(pos, 0.0))
         vor = pts - rep
-        width = _interval_width(pos, pts)
+        width = interval_width(pos, pts)
         # Bye-aware ROS: the bye week scores 0 and never counts toward
         # remaining games.
         bye_week = p.get("bye_week")
@@ -326,9 +326,6 @@ def _replacement_levels(players: list, roster_positions: list, num_teams: int) -
 
     return levels
 
-
-def _interval_width(pos: str, pts: float) -> float:
-    return interval_width(pos, pts)
 
 
 def _remaining_games(cur_week: int, bye_week: int) -> int:
