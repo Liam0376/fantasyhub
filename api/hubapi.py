@@ -40,7 +40,7 @@ def hub_meta(league_id: str) -> dict:
     st = _st()
     s = league["settings"]
     return {
-        "league_name": league["name"], "name": league["name"],
+        "league_name": league["name"], "name": league["name"], "leagueName": league["name"],
         "season": league.get("season"), "week": st.get("week"),
         "totalRosters": s.get("num_teams"), "total_rosters": s.get("num_teams"),
         "roster_positions": s.get("roster_positions", []),
@@ -64,6 +64,23 @@ def hub_draft(league_id: str) -> dict:
 
 # ------------------------------------------------------- projections/compare
 
+_sleeper_id_by_np = None
+
+
+def _sleeper_ids_by_name_pos() -> dict:
+    """(norm_name, POS) -> sleeper_id, reversed from players_map(). Lets
+    standalone (non-roster) projection rows carry a real sleeper_id for
+    headshots — analytics.py's players are keyed by nflverse GSIS id,
+    which the frontend's avatar renderer doesn't recognize."""
+    global _sleeper_id_by_np
+    if _sleeper_id_by_np is None:
+        _sleeper_id_by_np = {}
+        for sid, meta in players_map().items():
+            key = (norm_name(meta.get("n", "")), (meta.get("p") or "").upper())
+            _sleeper_id_by_np.setdefault(key, sid)
+    return _sleeper_id_by_np
+
+
 def _hub_player(p: dict) -> dict:
     edge = (p.get("edge") or "NEUTRAL").upper()
     if edge == "FAIR":
@@ -72,8 +89,10 @@ def _hub_player(p: dict) -> dict:
     mss = {k: round((avg.get(k) or 0) * 17, 1) for k in (
         "passing_yards", "rushing_yards", "receiving_yards", "receptions",
         "passing_tds", "rushing_tds", "receiving_tds")}
+    sleeper_id = p.get("sleeper_id") or _sleeper_ids_by_name_pos().get(
+        (norm_name(p.get("player_name", "")), (p.get("position") or "").upper()))
     return {
-        "player_id": p.get("player_id", ""), "sleeper_id": p.get("sleeper_id"),
+        "player_id": p.get("player_id", ""), "sleeper_id": sleeper_id,
         "player_name": p.get("player_name", ""),
         "position": p.get("position", ""), "position_group": p.get("position", ""),
         "team": p.get("team", ""), "opponent_team": p.get("opponent_team", ""),
