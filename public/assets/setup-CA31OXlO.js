@@ -34,7 +34,7 @@ import{f as q,D as C,i as k,e as i,v as B,L,M as w,N as I,k as H,O as R,P as _,Q
           <button class="btn btn-primary" id="setupSave">Use this league</button>
         </div>
         <div id="setupDataCheck"></div>
-      </div>`,e.querySelector("#setupSave").addEventListener("click",async()=>{const M=e.querySelector("#setupDraftType").value;_(M),w(a);const x=e.querySelector("#setupDataCheck");if(x.innerHTML='<div class="faint" style="margin-top:8px">Checking synced data…</div>',await T().catch(()=>null)){r(),o(!0);return}(l=>{x.innerHTML=`
+      </div>`,e.querySelector("#setupSave").addEventListener("click",async()=>{const M=e.querySelector("#setupDraftType").value;_(M),w(a,s.league_name,s.season);const x=e.querySelector("#setupDataCheck");if(x.innerHTML='<div class="faint" style="margin-top:8px">Checking synced data…</div>',await T().catch(()=>null)){r(),o(!0);return}(l=>{x.innerHTML=`
             <div class="alert alert-info" style="margin-top:12px">
               <div><strong>Sync League Data</strong></div>
               <div class="faint" style="margin-top:4px">This league is set up. Click below to pull settings, rosters, and matchups from Sleeper directly into your local database.</div>
