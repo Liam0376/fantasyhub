@@ -7,3 +7,4 @@ __pycache__/
 .vercel
 .worktrees/
 .claude/settings.local.json
+graphify-out/
