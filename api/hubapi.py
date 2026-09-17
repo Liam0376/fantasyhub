@@ -12,6 +12,7 @@ import os
 from analytics import compute_analytics
 from league import fetch_league
 from nfl_state import get_nfl_state
+from projections import get_projections
 from rosters import assign_slots, build_rosters, players_map, resolve_player, scored_index
 from scoring import norm_name
 
@@ -39,6 +40,10 @@ def hub_meta(league_id: str) -> dict:
     league = fetch_league(league_id)
     st = _st()
     s = league["settings"]
+    try:
+        updated_at = get_projections(week=st.get("week"), season=st.get("season")).get("updated_at") or None
+    except Exception:
+        updated_at = None
     return {
         "league_name": league["name"], "name": league["name"], "leagueName": league["name"],
         "season": league.get("season"), "week": st.get("week"),
@@ -46,6 +51,7 @@ def hub_meta(league_id: str) -> dict:
         "roster_positions": s.get("roster_positions", []),
         "scoring_settings": {"rec": (s.get("scoring") or {}).get("rec", 0)},
         "data_source": "live",
+        "lastUpdated": updated_at, "last_updated": updated_at,
     }
 
 
