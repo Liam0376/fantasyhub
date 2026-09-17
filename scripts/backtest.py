@@ -20,20 +20,11 @@ from pathlib import Path
 import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
-from conformal import qhat, POS_RESIDUALS
-from scoring import score_avg_stats, normalize_row_stats
+from conformal import qhat, POS_RESIDUALS, interval_width
+from scoring import score_avg_stats, normalize_row_stats, REF_SCORING
 from stat_projector import project_player_stats, COVERED_STATS
 
 STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"
-
-REF_SCORING = {
-    "pass_yd": 0.04, "pass_td": 4.0, "pass_int": -1.0,
-    "rush_yd": 0.1, "rush_td": 6.0,
-    "rec": 1.0, "rec_yd": 0.1, "rec_td": 6.0,
-    "fum_lost": -2.0, "xpm": 1.0, "xpmiss": -1.0,
-    "fgm_0_19": 3.0, "fgm_20_29": 3.0, "fgm_30_39": 3.0,
-    "fgm_40_49": 4.0, "fgm_50_59": 5.0, "fgm_60_": 6.0, "fgmiss": -1.0,
-}
 
 
 def _spearman(x: list[float], y: list[float]) -> float | None:
@@ -137,7 +128,6 @@ def run_backtest(season: int, weeks: list[int]) -> dict:
 
     old_pairs, new_pairs = [], []
     old_widths, new_widths = [], []
-    pos_width_factors = {"QB": 1.55, "RB": 1.07, "WR": 1.12, "TE": 0.88, "K": 0.85, "DEF": 0.75}
 
     for target_week in weeks:
         by_player: dict[str, list] = {}
@@ -182,14 +172,8 @@ def run_backtest(season: int, weeks: list[int]) -> dict:
             new_pairs.append((new_pts, actual_pts))
 
             # Compute widths using conformal base + heuristic scaling
-            def compute_width(pts):
-                base_width = qhat(POS_RESIDUALS.get(pos, POS_RESIDUALS["WR"]))
-                pf = pos_width_factors.get(pos, 1.0)
-                qf = 1.0 if pts <= 12 else min(1.60, 1.0 + (pts - 12) * 0.022)
-                return max(3.0, min(14.0, base_width * pf * qf))
-
-            old_widths.append(compute_width(old_pts))
-            new_widths.append(compute_width(new_pts))
+            old_widths.append(interval_width(pos, old_pts))
+            new_widths.append(interval_width(pos, new_pts))
 
     return {
         "old": compute_metrics(old_pairs, old_widths),

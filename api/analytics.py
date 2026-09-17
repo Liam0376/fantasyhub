@@ -2,16 +2,12 @@
 import json
 import os
 
-from conformal import qhat, POS_RESIDUALS
+from conformal import qhat, POS_RESIDUALS, interval_width
 from league import fetch_league
 from projections import get_projections
 from scoring import (FLEX_ELIGIBILITY, describe_scoring,
                      norm_name as _norm_name, roster_group as _roster_group,
                      score_avg_stats, score_team_def)
-
-
-# Width factors for confidence intervals (matches projection.py v2)
-POS_WIDTH_FACTORS = {"QB": 1.55, "RB": 1.07, "WR": 1.12, "TE": 0.88, "K": 0.85, "DEF": 0.75}
 
 _INJURIES_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "injuries", "latest.json")
 
@@ -332,11 +328,7 @@ def _replacement_levels(players: list, roster_positions: list, num_teams: int) -
 
 
 def _interval_width(pos: str, pts: float) -> float:
-    """Compute confidence interval half-width using split-conformal base."""
-    base_width = qhat(POS_RESIDUALS.get(pos, POS_RESIDUALS["WR"]))
-    pf = POS_WIDTH_FACTORS.get(pos, 1.0)
-    qf = 1.0 if pts <= 12 else min(1.60, 1.0 + (pts - 12) * 0.022)
-    return max(3.0, min(14.0, base_width * pf * qf))
+    return interval_width(pos, pts)
 
 
 def _remaining_games(cur_week: int, bye_week: int) -> int:

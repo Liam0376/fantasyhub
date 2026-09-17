@@ -15,8 +15,8 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
-from conformal import qhat, POS_RESIDUALS
-from scoring import AVG_STAT_KEYS, normalize_row_stats, score_avg_stats, score_team_def
+from conformal import qhat, POS_RESIDUALS, interval_width
+from scoring import AVG_STAT_KEYS, normalize_row_stats, score_avg_stats, score_team_def, REF_SCORING
 from stat_projector import project_player_stats, build_game_context, COVERED_STATS
 from weather import STADIUM_COORDS, get_forecast
 
@@ -30,18 +30,6 @@ STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_p
 TEAM_STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_{season}.csv"
 SCHEDULE_URL = "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv"
 
-# Reference scoring for the stored projected_points field only (lets the
-# JSON stand alone). League-specific scoring happens in api/analytics.py
-# from avg_stats — never from this reference number.
-REF_SCORING = {
-    "pass_yd": 0.04, "pass_td": 4.0, "pass_int": -1.0, "pass_2pt": 2.0,
-    "rush_yd": 0.1, "rush_td": 6.0, "rush_2pt": 2.0,
-    "rec": 1.0, "rec_yd": 0.1, "rec_td": 6.0, "rec_2pt": 2.0,
-    "fum_lost": -2.0, "xpm": 1.0, "xpmiss": -1.0,
-    "fgm_0_19": 3.0, "fgm_20_29": 3.0, "fgm_30_39": 3.0,
-    "fgm_40_49": 4.0, "fgm_50_59": 5.0, "fgm_60_": 6.0, "fgmiss": -1.0,
-}
-
 # Reference DEF scoring (standard brackets) for standalone readability.
 REF_DEF_SCORING = {
     "sack": 1.0, "int": 2.0, "fum_rec": 2.0, "ff": 1.0,
@@ -50,9 +38,6 @@ REF_DEF_SCORING = {
     "pts_allow_14_20": 1.0, "pts_allow_21_27": 0.0,
     "pts_allow_28_34": -1.0, "pts_allow_35p": -4.0,
 }
-
-# Position width factors for confidence intervals
-POS_WIDTH = {"QB": 1.55, "RB": 1.07, "WR": 1.12, "TE": 0.88, "K": 0.85, "DEF": 0.75}
 
 
 def fetch_weekly_stats(season: int) -> list[dict]:
@@ -413,10 +398,7 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                         - (1 if bye_week and bye_week > current_week else 0))
         ros_pts = avg_pts * remaining
 
-        base_width = qhat(POS_RESIDUALS.get(pos, POS_RESIDUALS["WR"]))
-        pf = POS_WIDTH.get(pos, 1.0)
-        qf = 1.0 if avg_pts <= 12 else min(1.60, 1.0 + (avg_pts - 12) * 0.022)
-        width = max(3.0, min(14.0, base_width * pf * qf))
+        width = interval_width(pos, avg_pts)
 
         projections.append({
             "player_id": pid,

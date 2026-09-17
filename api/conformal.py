@@ -21,6 +21,22 @@ POS_RESIDUALS = {
     "K": [0.5, 1.1, 2.1, 3.2, 4.2, 5.5, 6.8, 8.0, 9.5],
 }
 
+# Position width-scaling factors, applied on top of the real conformal
+# base width. Single source — api/analytics.py, scripts/compute_week.py,
+# and scripts/backtest.py all import this instead of each keeping their
+# own copy (found duplicated 3x via ponytail-audit this session).
+POS_WIDTH_FACTORS = {"QB": 1.55, "RB": 1.07, "WR": 1.12, "TE": 0.88, "K": 0.85, "DEF": 0.75}
+
+
+def interval_width(pos: str, pts: float) -> float:
+    """Confidence interval half-width: real conformal base (qhat) scaled
+    by position and point-magnitude factors, clamped to [3.0, 14.0].
+    Single implementation — see POS_WIDTH_FACTORS docstring."""
+    base = qhat(POS_RESIDUALS.get(pos, POS_RESIDUALS["WR"]))
+    pf = POS_WIDTH_FACTORS.get(pos, 1.0)
+    qf = 1.0 if pts <= 12 else min(1.60, 1.0 + (pts - 12) * 0.022)
+    return max(3.0, min(14.0, base * pf * qf))
+
 
 def qhat(residuals: list[float], alpha: float = 0.2) -> float:
     if not residuals:

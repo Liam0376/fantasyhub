@@ -31,6 +31,21 @@ AVG_STAT_KEYS = [
     "def_fg_blocks", "def_pat_blocks", "def_punt_blocks",
 ]
 
+# Reference scoring for standalone reference-points computation (the
+# scripts/compute_week.py "projected_points" field before per-league
+# rescoring, and scripts/backtest.py's old-method comparison). Real
+# per-league scoring always uses score_avg_stats() with the league's
+# actual Sleeper scoring_settings — this is never that. Single source —
+# found duplicated across compute_week.py and backtest.py.
+REF_SCORING = {
+    "pass_yd": 0.04, "pass_td": 4.0, "pass_int": -1.0, "pass_2pt": 2.0,
+    "rush_yd": 0.1, "rush_td": 6.0, "rush_2pt": 2.0,
+    "rec": 1.0, "rec_yd": 0.1, "rec_td": 6.0, "rec_2pt": 2.0,
+    "fum_lost": -2.0, "xpm": 1.0, "xpmiss": -1.0,
+    "fgm_0_19": 3.0, "fgm_20_29": 3.0, "fgm_30_39": 3.0,
+    "fgm_40_49": 4.0, "fgm_50_59": 5.0, "fgm_60_": 6.0, "fgmiss": -1.0,
+}
+
 # Sleeper roster slots that can be filled by multiple positions.
 # Used for replacement-level math and for filtering projections to the
 # league's own eligible positions. No hardcoded FLEX-only assumption.
