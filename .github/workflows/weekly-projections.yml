@@ -1,9 +1,9 @@
-name: Weekly Projections
+name: Daily Projections
 
 on:
   schedule:
-    # Tuesday 6:00 UTC — after Monday Night Football
-    - cron: '0 6 * * 2'
+    # 6:00 UTC every day — keeps projections fresh
+    - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
       week:
