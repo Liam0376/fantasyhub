@@ -1,6 +1,6 @@
 {
-  "name": "Gridiron Hub",
-  "short_name": "Gridiron",
+  "name": "Fantasy Hub",
+  "short_name": "Fantasy Hub",
   "description": "Fantasy football analytics — projections, matchups, auction draft",
   "start_url": "/",
   "display": "standalone",
