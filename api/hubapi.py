@@ -68,6 +68,49 @@ def hub_draft(league_id: str) -> dict:
     }
 
 
+def hub_news(limit=25) -> dict:
+    """Trending adds from Sleeper's free trending endpoint — no
+    FantasyPros dependency, no ToS restriction (unlike ECR/ADP/market
+    data). Enriches player_id -> name/position/team via the existing
+    local snapshot (players_map()) instead of a live 5MB player-dump
+    fetch. fantasypros_news stays empty — out of scope, ToS-gated."""
+    try:
+        limit = int(limit or 25)
+    except (ValueError, TypeError):
+        limit = 25
+    try:
+        raw = _sleeper(f"/players/nfl/trending/add?limit={limit}")
+    except Exception:
+        return {"trending_adds": [], "fantasypros_news": []}
+
+    pmap = players_map()
+    out = []
+    for r in raw or []:
+        pid = str(r.get("player_id") or "")
+        if not pid:
+            continue
+        try:
+            count = int(r.get("count") or 0)
+        except (ValueError, TypeError):
+            count = 0
+        # Team defenses: Sleeper trending returns the team abbreviation
+        # as player_id (e.g. "TB"), never in players_map()'s snapshot
+        # (snapshot_players.py's KEEP set excludes "DEF").
+        if pid.isalpha() and pid.isupper() and len(pid) <= 3:
+            out.append({"player_id": pid, "player_name": pid,
+                       "position": "DEF", "team": pid, "count": count})
+            continue
+        meta = pmap.get(pid, {})
+        out.append({
+            "player_id": pid,
+            "player_name": meta.get("n", f"Player {pid}"),
+            "position": meta.get("p", ""),
+            "team": meta.get("t") or "",
+            "count": count,
+        })
+    return {"trending_adds": out, "fantasypros_news": []}
+
+
 # ------------------------------------------------------- projections/compare
 
 _sleeper_id_by_np = None

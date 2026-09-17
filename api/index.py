@@ -79,7 +79,7 @@ class handler(BaseHTTPRequestHandler):
                 status, body = 200, hubapi.hub_trade(
                     g("league_id"), team_a_id=g("team_a_id"), team_b_id=g("team_b_id"))
             elif path == "/hub-api/news":
-                status, body = 200, {"trending_adds": [], "fantasypros_news": []}
+                status, body = 200, hubapi.hub_news(limit=g("limit", 25))
             elif path == "/hub-api/refresh-log":
                 status, body = 200, {"entries": []}
             elif path == "/hub-api/games/predictions":
