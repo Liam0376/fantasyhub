@@ -4,6 +4,7 @@ fantasyhub was stubbing out despite having no ToS restriction on it
 (unlike ECR/ADP/market data, which stays correctly dropped)."""
 import sys
 import os
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -43,7 +44,17 @@ def test_hub_news_handles_def_team_ids():
         assert len(p["player_id"]) <= 3 and p["player_id"].isalpha()
 
 
+def test_hub_news_soft_fails_on_sleeper_error():
+    """Verify the soft-fail error-handling path: when Sleeper API is
+    unreachable or raises an exception, hub_news() returns gracefully
+    with empty arrays instead of crashing."""
+    with patch("hubapi._sleeper", side_effect=Exception("simulated network failure")):
+        result = hub_news(limit=5)
+    assert result == {"trending_adds": [], "fantasypros_news": []}
+
+
 if __name__ == "__main__":
     test_hub_news_returns_real_trending_data()
     test_hub_news_handles_def_team_ids()
+    test_hub_news_soft_fails_on_sleeper_error()
     print("OK")
