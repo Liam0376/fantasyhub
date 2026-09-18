@@ -1,4 +1,4 @@
-import{B as g,e as c,i as m,t as f,v as b,C as x,m as _,p as w,j as $,q as k}from"./index-DOdT1orj.js";import{s as P}from"./relevance-C3SYLMeE.js";function h(e,o){return e==null?'<span class="mono" style="background:var(--surface-raised); color:var(--text-faint); border-radius:6px; padding:2px 6px; font-weight:700">—</span>':`<span class="mono" style="background:${o?"var(--emerald-dim)":"var(--surface-raised)"}; color:${o?"var(--emerald)":"var(--text-muted)"}; border-radius:6px; padding:2px 6px; font-weight:700">${Math.round(e*100)}%</span>`}function A(e){return`<span class="badge" style="background:${e?"var(--surface-raised)":"var(--sky-dim, var(--surface-raised))"}; color:${e?"var(--text-muted)":"var(--sky, var(--text))"}; border:1px solid var(--border)">${e?"FINAL":"UPCOMING"}</span>`}const S={passing_yards:"Pass Yds",passing_tds:"Pass TD",rushing_yards:"Rush Yds",receiving_yards:"Rec Yds",receptions:"Rec",carries:"Carries",anytime_td:"Any TD"};function L(e){const o=S[e.market]||e.market,s=e.market==="anytime_td",r=s?`${(Number(e.p_yes)*100).toFixed(0)}%`:Number(e.fair_line).toFixed(1),t=s?e.actual_p_yes==null?null:e.actual_p_yes>0?"YES":"NO":e.actual==null?null:Number(e.actual).toFixed(1),i=!s&&e.sigma!=null?` <span style="color:var(--text-faint); font-weight:400">±${Number(e.sigma).toFixed(1)}</span>`:"",d=t==null?"":`
+import{B as b,e as c,i as m,t as f,v as x,C as g,m as _,p as w,j as $,q as k}from"./index-DYoWtgWQ.js";import{s as P}from"./relevance-C3SYLMeE.js";function h(e,o){return e==null?'<span class="mono" style="background:var(--surface-raised); color:var(--text-faint); border-radius:6px; padding:2px 6px; font-weight:700">—</span>':`<span class="mono" style="background:${o?"var(--emerald-dim)":"var(--surface-raised)"}; color:${o?"var(--emerald)":"var(--text-muted)"}; border-radius:6px; padding:2px 6px; font-weight:700">${Math.round(e*100)}%</span>`}function A(e){return`<span class="badge" style="background:${e?"var(--surface-raised)":"var(--sky-dim, var(--surface-raised))"}; color:${e?"var(--text-muted)":"var(--sky, var(--text))"}; border:1px solid var(--border)">${e?"FINAL":"UPCOMING"}</span>`}const S={passing_yards:"Pass Yds",passing_tds:"Pass TD",rushing_yards:"Rush Yds",receiving_yards:"Rec Yds",receptions:"Rec",carries:"Carries",anytime_td:"Any TD"};function L(e){const o=S[e.market]||e.market,s=e.market==="anytime_td",r=s?e.p_yes!=null?`${(Number(e.p_yes)*100).toFixed(0)}%`:"—":Number(e.fair_line).toFixed(1),t=s?e.actual_p_yes==null?null:e.actual_p_yes>0?"YES":"NO":e.actual==null?null:Number(e.actual).toFixed(1),i=!s&&e.sigma!=null?` <span style="color:var(--text-faint); font-weight:400">±${Number(e.sigma).toFixed(1)}</span>`:"",d=t==null?"":`
         <div style="margin-top:3px; padding-top:3px; border-top:1px dashed var(--border)">
           <span style="font-size:9px; color:var(--text-faint); text-transform:uppercase">Actual</span>
           <span class="mono" style="font-weight:700; font-size:13px; color:var(--emerald); margin-left:4px">${t}</span>
@@ -28,14 +28,14 @@ import{B as g,e as c,i as m,t as f,v as b,C as x,m as _,p as w,j as $,q as k}fro
         <h3 style="margin:0 0 12px">${c(t)}</h3>
         <div id="gamePropsBody" style="font-size:13px; color:var(--text-muted)">Loading…</div>
       </div>
-    </div>`;const i=l.querySelector("#gamePropsBackdrop"),d=l.querySelector(".player-modal-card");requestAnimationFrame(()=>requestAnimationFrame(()=>{i.classList.add("show"),d.classList.add("show")}));let a=()=>{};const p=()=>{try{a()}catch{}F()};a=b(d,e,p),l.querySelector("#gamePropsCloseBtn").addEventListener("click",p),i.addEventListener("click",v=>{v.target===i&&p()});let n;try{n=await x({teams:o,week:s})}catch{n={players:[],meta:{cold:!0}}}const u=N(n&&n.players||[],r),y=l.querySelector("#gamePropsBody");y&&(y.innerHTML=u.length?`
+    </div>`;const i=l.querySelector("#gamePropsBackdrop"),d=l.querySelector(".player-modal-card");requestAnimationFrame(()=>requestAnimationFrame(()=>{i.classList.add("show"),d.classList.add("show")}));let a=()=>{};const p=()=>{try{a()}catch{}F()};a=x(d,e,p),l.querySelector("#gamePropsCloseBtn").addEventListener("click",p),i.addEventListener("click",v=>{v.target===i&&p()});let n;try{n=await g({teams:o,week:s})}catch{n={players:[],meta:{cold:!0}}}const u=N(n&&n.players||[],r),y=l.querySelector("#gamePropsBody");y&&(y.innerHTML=u.length?`
     <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr)); gap:10px">
       ${u.map(C).join("")}
     </div>
     <div style="margin-top:10px; font-size:11px; color:var(--text-faint)">
       ${r?"Final game — cards ordered by actual box-score production.":`Fair = model projection median for this stat. "Actual" appears once that week's real box score has posted.`}
       Injury status is fetched live — a flagged player's projection may not reflect their real availability.
-    </div>`:'<div style="padding:8px 0">No projected players found for this game/week.</div>')}async function R(e){const o=new URLSearchParams(location.hash.split("?")[1]||""),s=o.get("week")?Number(o.get("week")):null;let r;try{r=await g({week:s})}catch{r={games:[],meta:{cold:!0}}}const t=r&&r.games||[],i=!!(r&&r.meta&&r.meta.cold),d=r.meta&&r.meta.week||s||"";e.innerHTML=`
+    </div>`:'<div style="padding:8px 0">No projected players found for this game/week.</div>')}async function R(e){const o=new URLSearchParams(location.hash.split("?")[1]||""),s=o.get("week")?Number(o.get("week")):null;let r;try{r=await b({week:s})}catch{r={games:[],meta:{cold:!0}}}const t=r&&r.games||[],i=!!(r&&r.meta&&r.meta.cold),d=r.meta&&r.meta.week||s||"";e.innerHTML=`
     <div class="hero reveal in">
       <h1>Props</h1>
       <p>Market-consensus game predictions. Click a game for player props.</p>
@@ -81,8 +81,8 @@ import{B as g,e as c,i as m,t as f,v as b,C as x,m as _,p as w,j as $,q as k}fro
                       <div style="margin-top:4px">${h(a.home_win_prob,n)}</div>
                     </td>
                     <td class="mono">
-                      ${a.final?`<span style="font-weight:700">${a.actual_away_score}</span>`:a.predicted_away_score!=null?`${Number(a.predicted_away_score).toFixed(1)}`:"—"}<br>
-                      ${a.final?`<span style="font-weight:700">${a.actual_home_score}</span>`:a.predicted_home_score!=null?`${Number(a.predicted_home_score).toFixed(1)}`:"—"}
+                      ${a.final&&a.actual_away_score!=null?`<span style="font-weight:700">${a.actual_away_score}</span><br><span class="faint" style="font-size:11px">pred ${a.predicted_away_score!=null?Number(a.predicted_away_score).toFixed(1):"—"}</span>`:a.predicted_away_score!=null?`${Number(a.predicted_away_score).toFixed(1)}`:"—"}<br>
+                      ${a.final&&a.actual_home_score!=null?`<span style="font-weight:700">${a.actual_home_score}</span><br><span class="faint" style="font-size:11px">pred ${a.predicted_home_score!=null?Number(a.predicted_home_score).toFixed(1):"—"}</span>`:a.predicted_home_score!=null?`${Number(a.predicted_home_score).toFixed(1)}`:"—"}
                     </td>
                     <td>${A(a.final)}${y}</td>
                   </tr>`}).join("")}
@@ -91,10 +91,10 @@ import{B as g,e as c,i as m,t as f,v as b,C as x,m as _,p as w,j as $,q as k}fro
           </div>
           <div style="padding:10px 16px; font-size:11px; color:var(--text-faint)">
             Win% and predicted score are real market consensus (spread/total/moneyline, devigged) — not this app's own model.
-            Final games show the actual score in place of the prediction. Games whose books haven't posted lines yet show — but stay clickable for props.
+            Final games show the actual score alongside the prediction for comparison. Games whose books haven't posted lines yet show — but stay clickable for props.
           </div>`:`
           <div style="padding:20px; font-size:13px; color:var(--text-muted)">
             No schedule loaded for this week yet.
           </div>`}
       </div>
-    </div>`,j(e),B(e,d)}function j(e,o){e.querySelectorAll("[data-week]").forEach(s=>{s.addEventListener("click",()=>{const r=s.getAttribute("data-week");location.hash=`props${r?`?week=${r}`:""}`})})}function B(e,o){e.querySelectorAll(".props-game-row").forEach(s=>{const r=()=>M(s,s.getAttribute("data-teams"),o,s.getAttribute("data-final")==="1");s.addEventListener("click",r),s.addEventListener("keydown",t=>{(t.key==="Enter"||t.key===" ")&&(t.preventDefault(),r())})})}export{R as renderProps};
+    </div>`,j(e),z(e,d)}function j(e,o){e.querySelectorAll("[data-week]").forEach(s=>{s.addEventListener("click",()=>{const r=s.getAttribute("data-week");location.hash=`props${r?`?week=${r}`:""}`})})}function z(e,o){e.querySelectorAll(".props-game-row").forEach(s=>{const r=()=>M(s,s.getAttribute("data-teams"),o,s.getAttribute("data-final")==="1");s.addEventListener("click",r),s.addEventListener("keydown",t=>{(t.key==="Enter"||t.key===" ")&&(t.preventDefault(),r())})})}export{R as renderProps};
