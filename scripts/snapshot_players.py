@@ -4,7 +4,11 @@
 Rosters reference players by Sleeper ID; projections use nflverse GSIS
 IDs. The full /players/nfl dump (~15MB) is too big for serverless, so
 the weekly cron snapshots a compact map (fantasy positions only) to
-data/players/latest.json: {sleeper_id: {n, p, t}}.
+data/players/latest.json: {sleeper_id: {n, p, t, r?, do?, dp?}} where
+r = search_rank (Sleeper popularity order, NOT draft ADP),
+do/dp = depth_chart_order/position (Sleeper's own depth chart).
+Nulls are omitted to keep the file small. There is no ECR/ADP in
+Sleeper's API — those stay honestly empty downstream.
 
 Usage:
     python scripts/snapshot_players.py
@@ -41,7 +45,26 @@ def main() -> None:
         if not name:
             continue
         team = (p.get("team") or "").upper() or None
-        out[str(pid)] = {"n": name, "p": pos or (fps[0].upper() if fps else None), "t": team}
+        entry = {"n": name, "p": pos or (fps[0].upper() if fps else None), "t": team}
+        # Honest consensus-adjacent signals (see docstring). Omit nulls.
+        try:
+            rank = p.get("search_rank")
+            rank = int(rank) if rank is not None else None
+        except (ValueError, TypeError):
+            rank = None
+        if rank is not None:
+            entry["r"] = rank
+        try:
+            dco = p.get("depth_chart_order")
+            dco = int(dco) if dco is not None else None
+        except (ValueError, TypeError):
+            dco = None
+        if dco is not None:
+            entry["do"] = dco
+        dcp = (p.get("depth_chart_position") or "").upper() or None
+        if dcp:
+            entry["dp"] = dcp
+        out[str(pid)] = entry
 
     out_dir = Path(__file__).parent.parent / "data" / "players"
     out_dir.mkdir(parents=True, exist_ok=True)

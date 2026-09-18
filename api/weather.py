@@ -36,7 +36,7 @@ def get_forecast(lat: float, lon: float, game_time_iso: str, session=None) -> di
     http = session or requests
     try:
         url = (f"{BASE_URL}?latitude={lat}&longitude={lon}"
-               "&hourly=temperature_2m,wind_speed_10m"
+               "&hourly=temperature_2m,wind_speed_10m,precipitation_probability"
                "&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=16")
         resp = http.get(url, timeout=10)
         resp.raise_for_status()
@@ -48,6 +48,7 @@ def get_forecast(lat: float, lon: float, game_time_iso: str, session=None) -> di
         return {
             "temp_f": data["hourly"]["temperature_2m"][closest_idx],
             "wind_mph": data["hourly"]["wind_speed_10m"][closest_idx],
+            "precip_prob": (data["hourly"].get("precipitation_probability") or [None])[closest_idx],
         }
     except Exception:
         return None

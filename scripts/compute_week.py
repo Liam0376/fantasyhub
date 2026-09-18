@@ -11,7 +11,7 @@ Usage:
 import argparse
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
@@ -493,8 +493,10 @@ def main():
         td["opponent_team"] = opponents.get(td.get("team", ""), "BYE")
 
     # Slate snapshots for every week (matchups view + game predictions).
-    # Compact: teams, stadium, time, Vegas lines. Wind/precip stay null
-    # (no source) so wind chips simply never match.
+    # Compact: teams, stadium, time, Vegas lines. Wind/temp ride along for
+    # the target week only — Open-Meteo's 16-day window can't cover future
+    # weeks, and those honestly stay null (wind chips show —). Dome games
+    # get neutral indoor values (no wind exists inside).
     slate_dir = Path(__file__).parent.parent / "data" / "slate"
     slate_dir.mkdir(parents=True, exist_ok=True)
     by_week: dict[int, list] = {}
@@ -507,12 +509,26 @@ def main():
             continue
         if not 1 <= wk <= 18:
             continue
+        wind_mph, temp_f, precip_prob = None, None, None
+        if wk == week:
+            if g.get("roof", "") in ("dome", "closed"):
+                wind_mph, temp_f, precip_prob = 0, 72, 0
+            else:
+                w = weather_by_team.get(g.get("home_team") or "") or {}
+                try:
+                    wind_mph = round(float(w["wind_mph"]), 1) if w.get("wind_mph") is not None else None
+                    temp_f = round(float(w["temp_f"]), 1) if w.get("temp_f") is not None else None
+                    precip_prob = round(float(w["precip_prob"]), 0) if w.get("precip_prob") is not None else None
+                except (ValueError, TypeError):
+                    wind_mph, temp_f, precip_prob = None, None, None
         by_week.setdefault(wk, []).append({
             "home_team": g.get("home_team"), "away_team": g.get("away_team"),
             "stadium": g.get("stadium"), "gameday": g.get("gameday"),
             "gametime": g.get("gametime"),
             "spread_line": _num_or_none(g.get("spread_line")),
             "total_line": _num_or_none(g.get("total_line")),
+            "wind_mph": wind_mph, "temp_f": temp_f,
+            "precip_prob": precip_prob,
         })
     for wk, games in by_week.items():
         with open(slate_dir / f"{season}_week_{wk:02d}.json", "w") as f:
@@ -526,7 +542,10 @@ def main():
     data = {
         "week": week,
         "season": season,
-        "updated_at": datetime.now().isoformat() + "Z",
+        # Real UTC instant — naive local .now() mislabeled with Z skewed
+        # freshness by the machine offset (e.g. 6h on CST dev machines;
+        # GitHub runners happen to be UTC so never noticed).
+        "updated_at": datetime.now(timezone.utc).isoformat(),
         "players": projections,
         "team_def": team_def,
         "byes": byes,

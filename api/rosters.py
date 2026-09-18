@@ -20,7 +20,7 @@ _players_map = None
 
 
 def players_map() -> dict:
-    """Sleeper ID -> {n, p, t}. Cached per instance."""
+    """Sleeper ID -> {n, p, t, r?, do?, dp?}. Cached per instance."""
     global _players_map
     if _players_map is None:
         try:
@@ -42,6 +42,14 @@ def scored_index(league_id: str, week=None, season=None):
     return a, by_np, by_n
 
 
+def _sleeper_extra(meta: dict) -> dict:
+    """Honest Sleeper-native signals from the snapshot (rank/depth).
+    Missing keys stay None — never fabricated, never ECR/ADP."""
+    return {"search_rank": meta.get("r"),
+            "depth_order": meta.get("do"),
+            "depth_position": meta.get("dp")}
+
+
 def resolve_player(sid: str, pmap: dict, by_np: dict, by_n: dict) -> dict:
     """Enriched player for a Sleeper roster entry. Unknown IDs still
     render (honest zeros from the snapshot, never dropped)."""
@@ -55,7 +63,8 @@ def resolve_player(sid: str, pmap: dict, by_np: dict, by_n: dict) -> dict:
                 "weekly": 0.0, "ros": 0.0, "vor": 0.0, "auction_value": 0,
                 "injury_status": None, "bye_week": None, "width": 0,
                 "lower": 0, "upper": 0, "tier": 0, "edge": "FAIR",
-                "amount_paid": None}
+                "amount_paid": None, "search_rank": None,
+                "depth_order": None, "depth_position": None}
     meta = pmap.get(str(sid), {})
     name = meta.get("n", f"Player {sid}")
     pos = (meta.get("p") or "UNK").upper()
@@ -64,13 +73,13 @@ def resolve_player(sid: str, pmap: dict, by_np: dict, by_n: dict) -> dict:
         cands = by_n.get(_norm_name(name), [])
         hit = cands[0] if cands else None
     if hit:
-        return _enriched(hit, sid, pos)
+        return {**_enriched(hit, sid, pos), **_sleeper_extra(meta)}
     return {"player_id": str(sid), "sleeper_id": str(sid), "player_name": name,
             "position": pos, "team": meta.get("t") or "", "opponent_team": "",
             "weekly": 0.0, "ros": 0.0, "vor": 0.0, "auction_value": 0,
             "injury_status": None, "bye_week": None, "width": 0,
             "lower": 0, "upper": 0, "tier": 0, "edge": "FAIR",
-            "amount_paid": None}
+            "amount_paid": None, **_sleeper_extra(meta)}
 
 
 def _enriched(hit: dict, sid: str, pos: str) -> dict:

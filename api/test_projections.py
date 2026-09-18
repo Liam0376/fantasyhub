@@ -28,8 +28,20 @@ def test_get_projections_nonexistent_week():
     assert result["stale"] is True
 
 
+def test_fallback_names_source_file():
+    # The UI banner names the file actually served; a missing note would
+    # render every week identically with no explanation (user-caught bug:
+    # weeks 1/3 silently showed week-2 numbers). Pinned to a file pattern,
+    # not a specific week, so future backfills don't break it.
+    result = _fallback_projections("2026", "3")
+    assert result["stale"] is True
+    assert "note" in result and "2026_week_" in result["note"] and result["note"].endswith(".json")
+    assert result["week"] == 3
+
+
 if __name__ == "__main__":
     test_fallback_returns_empty()
     test_get_projections_structure()
     test_get_projections_nonexistent_week()
+    test_fallback_names_source_file()
     print("OK")

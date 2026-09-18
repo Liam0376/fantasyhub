@@ -18,7 +18,7 @@ from league import BASE as _SLEEPER_BASE, fetch_league
 from nfl_state import get_nfl_state
 from projections import get_projections
 from rosters import assign_slots, build_rosters, players_map, resolve_player, scored_index
-from scoring import norm_name
+from scoring import NFLVERSE_STATS_URL, norm_name
 
 _SLATE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "slate")
 
@@ -118,6 +118,38 @@ def hub_news(limit: int = 25) -> dict:
 _sleeper_id_by_np = None
 
 
+_actuals_cache: dict = {}
+
+
+def _weekly_actuals(season, week: int) -> dict:
+    """GSIS player_id -> nflverse stat row for a completed week.
+
+    Powers props-board actuals (fair line vs reality). Cached per
+    instance; any fetch/parse failure yields {} so dependent fields
+    stay honestly null instead of breaking the endpoint.
+    """
+    key = (str(season), int(week))
+    if key not in _actuals_cache:
+        out = {}
+        try:
+            url = NFLVERSE_STATS_URL.format(season=season)
+            r = requests.get(url, timeout=60)
+            r.raise_for_status()
+            for row in csv.DictReader(io.StringIO(r.text)):
+                try:
+                    if int(row.get("week") or 0) != int(week):
+                        continue
+                except (ValueError, TypeError):
+                    continue
+                pid = row.get("player_id") or ""
+                if pid:
+                    out[str(pid)] = row
+        except Exception:
+            out = {}
+        _actuals_cache[key] = out
+    return _actuals_cache[key]
+
+
 def _sleeper_ids_by_name_pos() -> dict:
     """(norm_name, POS) -> sleeper_id, reversed from players_map(). Lets
     standalone (non-roster) projection rows carry a real sleeper_id for
@@ -142,8 +174,13 @@ def _hub_player(p: dict) -> dict:
         "passing_tds", "rushing_tds", "receiving_tds")}
     sleeper_id = p.get("sleeper_id") or _sleeper_ids_by_name_pos().get(
         (norm_name(p.get("player_name", "")), (p.get("position") or "").upper()))
+    # Honest Sleeper-native signals (popularity rank + depth chart) for the
+    # resolved player. No ECR/ADP exists in Sleeper's API — those stay empty.
+    smeta = players_map().get(str(sleeper_id), {}) if sleeper_id else {}
     return {
         "player_id": p.get("player_id", ""), "sleeper_id": sleeper_id,
+        "search_rank": smeta.get("r"), "depth_order": smeta.get("do"),
+        "depth_position": smeta.get("dp"),
         "player_name": p.get("player_name", ""),
         "position": p.get("position", ""), "position_group": p.get("position", ""),
         "team": p.get("team", ""), "opponent_team": p.get("opponent_team", ""),
@@ -306,7 +343,10 @@ def hub_matchups(league_id: str, week=None) -> dict:
         "stadium": g.get("stadium") or "Stadium",
         "gameday": g.get("gameday") or "", "gametime": g.get("gametime") or "",
         "spread_line": g.get("spread_line"), "total_line": g.get("total_line"),
-        "wind_mph": None, "precip_prob": None,
+        # Wind/temp ride the slate files (compute_week writes forecasts for
+        # the target week; other weeks stay null → chips show — honestly).
+        "wind_mph": g.get("wind_mph"), "temp_f": g.get("temp_f"),
+        "precip_prob": g.get("precip_prob"),
     } for g in slate]
     return {"week": wk, "leagueMatchups": slim, "pairs": out, "nflSlate": nfl_slate,
             "nfl_slate": nfl_slate}
@@ -428,10 +468,14 @@ def hub_trade(league_id: str, team_a_id=None, team_b_id=None) -> dict:
         winner, rec = (ta.get("team_name") or "Team A"), "Leans Team A on rest-of-season value."
     else:
         winner, rec = "Even", "Fair trade — rest-of-season value is close."
-    return {"trade_evaluation": {"winner": winner, "recommendation": rec,
-                                "value_difference": diff,
-                                "team_a_ros": round(a_r, 1), "team_b_ros": round(b_r, 1),
-                                "team_a_weekly": round(a_w, 1), "team_b_weekly": round(b_w, 1)}}
+    # Flat shape (not nested): matches father backend's handle_trade
+    # contract {winner, value_difference, recommendation} that trade.js
+    # reads at top level. fetchTrade unwraps only the model-backend
+    # response, so a nested hub fallback silently blanks the eval.
+    return {"winner": winner, "recommendation": rec,
+            "value_difference": diff,
+            "team_a_ros": round(a_r, 1), "team_b_ros": round(b_r, 1),
+            "team_a_weekly": round(a_w, 1), "team_b_weekly": round(b_w, 1)}
 
 
 # ------------------------------------------------------------- games + props
@@ -489,6 +533,11 @@ def hub_games(league_id: str, week=None, season=None) -> dict:
             "stadium": g.get("stadium"), "gameday": g.get("gameday"),
             "gametime": g.get("gametime"), "week": wk,
             "spread_line": spread, "total_line": total,
+            # The frontend shows a "lines pending" chip unless the game is
+            # sourced from market consensus. nflverse spread/total ARE
+            # book lines, so flag accordingly — otherwise every game
+            # misleadingly shows pending despite having real lines.
+            "source": "market_consensus" if (spread is not None and total is not None) else None,
             "home_moneyline": g.get("home_moneyline"), "away_moneyline": g.get("away_moneyline"),
             "home_win_prob": round(ph, 3) if ph is not None else None,
             "away_win_prob": round(pa, 3) if pa is not None else None,
@@ -498,12 +547,35 @@ def hub_games(league_id: str, week=None, season=None) -> dict:
             "actual_home_score": hs, "actual_away_score": aws,
             "wind_mph": None, "temp_f": None, "precip_prob": None,
         })
+    # Wind/temp join from the slate snapshots (compute_week writes target-
+    # week forecasts there; other weeks honestly stay null).
+    try:
+        slate_wx = {(g.get("home_team") or "").upper(): g
+                    for g in _slate(season, wk)}
+    except Exception:
+        slate_wx = {}
+    for gm in games:
+        sw = slate_wx.get((gm.get("home_team") or "").upper(), {})
+        if sw.get("wind_mph") is not None:
+            gm["wind_mph"] = sw["wind_mph"]
+        if sw.get("temp_f") is not None:
+            gm["temp_f"] = sw["temp_f"]
+        if sw.get("precip_prob") is not None:
+            gm["precip_prob"] = sw["precip_prob"]
     return {"games": games, "meta": {"week": wk, "season": int(season or 0),
                                      "cold": not games}}
 
 
 def hub_props_board(league_id: str, teams=None, week=None, season=None) -> dict:
     a = compute_analytics(league_id, week=week, season=season)
+    # Actuals for completed weeks: per-player box scores from the nflverse
+    # weekly CSV, so finished games grade fair lines against reality.
+    # Weeks with no posted stats stay null (hidden honestly downstream).
+    try:
+        act_week = int(week) if week not in (None, "") else int(a["meta"].get("week") or 0)
+    except (ValueError, TypeError):
+        act_week = 0
+    actuals = _weekly_actuals(a["meta"].get("season"), act_week) if act_week else {}
     wanted = {t.strip().upper() for t in (teams or "").split(",") if t.strip()} if teams else set()
     rows = []
     for p in a["players"]:
@@ -515,7 +587,18 @@ def hub_props_board(league_id: str, teams=None, week=None, season=None) -> dict:
         avg = p.get("avg_stats") or {}
         inj = (p.get("injury_status") or "").lower()
         available = inj not in ("out", "ir", "suspended")
-        base = {"player_id": p.get("player_id", ""), "sleeper_id": p.get("sleeper_id"),
+        # Sleeper-ID join (same reverse index as _hub_player): analytics
+        # players are keyed by nflverse GSIS id, which the avatar renderer
+        # doesn't recognize — without this, props cards show initials.
+        sid = p.get("sleeper_id") or _sleeper_ids_by_name_pos().get(
+            (norm_name(p.get("player_name", "")), (p.get("position") or "").upper()))
+        actual_row = actuals.get(p.get("player_id", "")) or {}
+        def _actual(key):
+            try:
+                return float(actual_row[key]) if actual_row.get(key) not in (None, "") else None
+            except (ValueError, TypeError):
+                return None
+        base = {"player_id": p.get("player_id", ""), "sleeper_id": sid,
                 "player_name": p.get("player_name", ""), "position": pos,
                 "team": p.get("team", ""), "injury_status": p.get("injury_status"),
                 "available": available, "sigma": None, "actual": None,
@@ -535,9 +618,13 @@ def hub_props_board(league_id: str, teams=None, week=None, season=None) -> dict:
                + avg.get("receiving_tds", 0))
         for m, v in markets:
             if (v or 0) > 0:
-                rows.append({**base, "market": m, "fair_line": round(v, 1)})
+                rows.append({**base, "market": m, "fair_line": round(v, 1),
+                             "actual": _actual(m)})
         if tds > 0.05:
+            td_vals = [_actual(k) for k in ("passing_tds", "rushing_tds", "receiving_tds")]
+            td_hit = None if all(v is None for v in td_vals) else (1 if sum(v or 0 for v in td_vals) > 0 else 0)
             rows.append({**base, "market": "anytime_td",
-                         "p_yes": round(1 - math.exp(-tds), 3), "fair_line": 0})
+                         "p_yes": round(1 - math.exp(-tds), 3), "fair_line": 0,
+                         "actual_p_yes": td_hit})
     return {"players": rows, "meta": {"week": a["meta"].get("week"),
                                       "season": a["meta"].get("season")}}

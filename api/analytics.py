@@ -239,6 +239,7 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
             "season": projections.get("season"),
             "updated_at": projections.get("updated_at"),
             "stale": projections.get("stale", False),
+            "note": projections.get("note"),
             "budget": budget,
             "budget_source": settings.get("budget_source", "none"),
             "draft_type": draft_type,

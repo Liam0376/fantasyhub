@@ -12,6 +12,7 @@ Usage:
 import json
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
@@ -44,7 +45,9 @@ def main() -> None:
     out_dir = Path(__file__).parent.parent / "data" / "injuries"
     out_dir.mkdir(parents=True, exist_ok=True)
     out = {
-        "updated_at": __import__("datetime").datetime.now().isoformat() + "Z",
+        # Real UTC instant (naive local .now() + "Z" skewed freshness;
+        # see compute_week.py).
+        "updated_at": datetime.now(timezone.utc).isoformat(),
         "count": len(injured),
         "players": injured,
     }
