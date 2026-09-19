@@ -13,6 +13,9 @@ on:
         description: 'NFL season year'
         required: false
 
+permissions:
+  contents: write
+
 jobs:
   compute:
     runs-on: ubuntu-latest
@@ -24,7 +27,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install deps
-        run: pip install requests
+        run: pip install requests xgboost numpy
 
       - name: Compute projections
         run: |

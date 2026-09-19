@@ -11,6 +11,7 @@ Usage:
 import argparse
 import json
 import sys
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,6 +20,21 @@ from conformal import qhat, POS_RESIDUALS, interval_width
 from scoring import AVG_STAT_KEYS, normalize_row_stats, score_avg_stats, score_team_def, REF_SCORING, safe_float, NFLVERSE_STATS_URL
 from stat_projector import project_player_stats, build_game_context, COVERED_STATS
 from weather import STADIUM_COORDS, get_forecast
+
+try:
+    from ml_projector import ml_predict
+except ImportError:
+    ml_predict = None
+
+try:
+    from pbp_features import fetch_pbp_csv, aggregate_pbp
+except ImportError:
+    fetch_pbp_csv = aggregate_pbp = None
+
+try:
+    from opp_features import compute_opp_defense
+except ImportError:
+    compute_opp_defense = None
 
 try:
     from nfl_state import get_nfl_state
@@ -293,7 +309,11 @@ def _num_or_none(v):
 
 def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                         byes: dict | None = None, prior_season_rows: list[dict] | None = None,
-                        game_ctx: dict | None = None, weather_by_team: dict | None = None) -> list[dict]:
+                        game_ctx: dict | None = None, weather_by_team: dict | None = None,
+                        pbp_data: dict | None = None, opp_defense: dict | None = None,
+                        prior_pbp_data: dict | None = None,
+                        home_map: dict | None = None, spread_map: dict | None = None,
+                        roster_info: dict | None = None, snap_data: dict | None = None) -> list[dict]:
     """Project per-game avg raw stats for the CURRENT target week only.
 
     For stat keys the father project's backtested pipeline covers
@@ -388,6 +408,104 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
 
         avg_pts = score_avg_stats(avg_stats, REF_SCORING, pos)
 
+        # ML residual: if model available, predict correction to heuristic
+        if ml_predict and pbp_data is not None:
+            sp = (spread_map or {}).get((p["team"], current_week), {})
+            ri = (roster_info or {}).get(pid, {})
+            ml_features = {
+                "games_played": len(history), "week": current_week,
+                "curr_ppg_wavg": avg_pts, "heuristic_pts": avg_pts,
+                "prior_ppg": 0, "prior_games": 0,
+                "implied_total": implied_total,
+                "spread": sp.get("spread", 0),
+                "over_under": sp.get("over_under", 0),
+                "wind_mph": wind_mph or 0,
+                "temp_f": temp_f if temp_f is not None else 72.0,
+                "is_home": (home_map or {}).get((p["team"], current_week), 0.5),
+                "opp_pts_allowed": 0,
+                "snap_pct_wavg": 0,  # populated below from snap_data
+                "years_exp": ri.get("years_exp", 0),
+                "draft_number": ri.get("draft_number", 0),
+                "ppg_std": 0, "ppg_trend": 0, "ppg_max": 0, "ppg_min": 0,
+            }
+            # PBP usage (weighted avg of history weeks)
+            pbp_lists: dict[str, list[float]] = defaultdict(list)
+            for h in history:
+                hw = int(h.get("week", 0))
+                pf = (pbp_data or {}).get((pid, hw))
+                if pf:
+                    for k in ("target_share", "rush_share", "air_yards_share",
+                              "snap_share", "redzone_targets", "redzone_carries"):
+                        pbp_lists[k].append(pf.get(k, 0))
+            for k in ("target_share", "rush_share", "air_yards_share",
+                      "snap_share", "redzone_targets", "redzone_carries"):
+                vals = pbp_lists.get(k, [])
+                ml_features[f"pbp_{k}_wavg"] = (sum(vals) / len(vals)) if vals else 0
+            # Prior PBP
+            for k in ("target_share", "rush_share", "snap_share"):
+                ml_features[f"prior_pbp_{k}"] = 0
+            if prior_pbp_data:
+                prior_pbp_lists: dict[str, list[float]] = defaultdict(list)
+                for pg in prior_games:
+                    pw = int(pg.get("week", 0))
+                    ppf = prior_pbp_data.get((pid, pw))
+                    if ppf:
+                        for k in ("target_share", "rush_share", "snap_share"):
+                            prior_pbp_lists[k].append(ppf.get(k, 0))
+                for k in ("target_share", "rush_share", "snap_share"):
+                    vals = prior_pbp_lists.get(k, [])
+                    ml_features[f"prior_pbp_{k}"] = (sum(vals) / len(vals)) if vals else 0
+            # Snap counts (weighted avg over history weeks)
+            if snap_data:
+                player_name_lower = p.get("player_name", "").strip().lower()
+                player_team = p.get("team", "")
+                snap_vals = []
+                for h in history:
+                    hw = int(h.get("week", 0))
+                    sc = snap_data.get((player_name_lower, player_team, hw))
+                    if sc is not None:
+                        snap_vals.append(sc)
+                if snap_vals:
+                    ml_features["snap_pct_wavg"] = sum(snap_vals) / len(snap_vals)
+            # Prior season PPG
+            if prior_games:
+                prior_ppgs = [score_avg_stats(normalize_row_stats(g), REF_SCORING, pos) for g in prior_games]
+                ml_features["prior_ppg"] = sum(prior_ppgs) / len(prior_ppgs) if prior_ppgs else 0
+                ml_features["prior_games"] = len(prior_games)
+            # Opponent defense
+            opp_team = ctx.get("opponent", "")
+            if opp_defense and opp_team:
+                opp_entry = opp_defense.get(opp_team, {})
+                ml_features["opp_pts_allowed"] = opp_entry.get(f"{pos.lower()}_pts_allowed", 0)
+            # Current stat averages
+            for stat in ("passing_yards", "rushing_yards", "receiving_yards",
+                         "receptions", "carries", "passing_tds", "rushing_tds",
+                         "receiving_tds", "targets", "receiving_air_yards",
+                         "passing_epa", "passing_cpoe", "wopr", "sacks_suffered",
+                         "passing_interceptions", "fumbles_lost_total"):
+                vals = [safe_float(g.get(stat, 0)) for g in history]
+                ml_features[f"curr_{stat}_wavg"] = (sum(vals) / len(vals)) if vals else 0
+            # PPG variance/trend
+            if history:
+                ppgs = [score_avg_stats(normalize_row_stats(g), REF_SCORING, pos) for g in history]
+                mean_ppg = sum(ppgs) / len(ppgs)
+                ml_features["ppg_std"] = (sum((p - mean_ppg)**2 for p in ppgs) / len(ppgs)) ** 0.5 if len(ppgs) > 1 else 0.0
+                ml_features["ppg_max"] = max(ppgs)
+                ml_features["ppg_min"] = min(ppgs)
+                # Trend: slope of last 5 weeks
+                recent = ppgs[-5:]
+                if len(recent) >= 3:
+                    n = len(recent)
+                    x_mean = (n - 1) / 2.0
+                    y_mean = sum(recent) / n
+                    num = sum((i - x_mean) * (v - y_mean) for i, v in enumerate(recent))
+                    den = sum((i - x_mean) ** 2 for i in range(n))
+                    ml_features["ppg_trend"] = num / den if den else 0.0
+
+            residual = ml_predict(ml_features, pos)
+            if residual is not None:
+                avg_pts = avg_pts + residual
+
         played = len(history)
         bye_week = (byes or {}).get(p.get("team", ""))
         remaining = max(0, total_weeks - current_week
@@ -396,7 +514,7 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
 
         width = interval_width(pos, avg_pts)
 
-        projections.append({
+        entry = {
             "player_id": pid,
             "player_name": p["player_name"],
             "position": p["position"],
@@ -410,7 +528,21 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
             "games_played": played,
             "bye_week": bye_week,
             "avg_stats": avg_stats,
-        })
+        }
+        if pos == "QB":
+            entry["projected_pass_yards"] = round(avg_stats.get("passing_yards", 0), 1)
+            entry["projected_pass_tds"] = round(avg_stats.get("passing_tds", 0), 2)
+            entry["projected_rush_yards"] = round(avg_stats.get("rushing_yards", 0), 1)
+            entry["projected_rush_tds"] = round(avg_stats.get("rushing_tds", 0), 2)
+            entry["projected_carries"] = round(avg_stats.get("carries", 0), 1)
+        season_games = played + remaining
+        entry["market_season_stats"] = {
+            k: round(v * season_games, 1)
+            for k, v in avg_stats.items()
+            if k in ("passing_yards", "rushing_yards", "receiving_yards",
+                      "receptions", "passing_tds", "rushing_tds", "receiving_tds")
+        }
+        projections.append(entry)
 
     projections.sort(key=lambda x: x["projected_points"], reverse=True)
     return projections
@@ -461,59 +593,166 @@ def main():
         except Exception as e:
             print(f"  Team stats fetch failed ({e}) — skipping team defense")
 
-    # Vegas/weather context for the target week (built from the same
-    # schedule rows already fetched above for byes/team_def).
+    # Vegas context for all weeks (schedule already has lines per game).
     game_ctx = build_game_context(sched_rows) if sched_rows else {}
-    weather_by_team = fetch_week_weather(sched_rows, week, season) if sched_rows else {}
-    print(f"  Weather forecast for {len(weather_by_team)} teams this week")
 
-    # Compute projections
-    projections = compute_projections(stats_rows, week, season, byes,
-                                      prior_season_rows, game_ctx, weather_by_team)
-    for td in team_def:
-        td["bye_week"] = byes.get(td["team"])
-    # Current-week opponents from the schedule (player-week rows carry
-    # last game's opponent, which is stale for a forward projection).
-    opponents: dict[str, str] = {}
-    for g in sched_rows:
-        if str(g.get("season")) != str(season) or g.get("game_type") != "REG":
-            continue
+    # PBP features (for ML model)
+    pbp_data = None
+    prior_pbp_data = None
+    opp_defense = None
+    if fetch_pbp_csv and aggregate_pbp:
         try:
-            if int(g.get("week") or 0) != week:
+            print("Fetching PBP data...")
+            pbp_rows = fetch_pbp_csv(season)
+            pbp_data = aggregate_pbp(pbp_rows, season)
+            print(f"  {len(pbp_data)} PBP player-weeks")
+        except Exception as e:
+            print(f"  PBP fetch failed ({e}) — ML features unavailable")
+        try:
+            prior_pbp_rows = fetch_pbp_csv(season - 1)
+            prior_pbp_data = aggregate_pbp(prior_pbp_rows, season - 1)
+        except Exception:
+            pass
+
+    # Home/away + spread maps for ML features
+    home_map = {}
+    spread_map = {}
+    roster_info = {}
+    if sched_rows:
+        for g in sched_rows:
+            if str(g.get("season")) != str(season) or g.get("game_type") != "REG":
                 continue
-        except (ValueError, TypeError):
-            continue
-        home, away = g.get("home_team"), g.get("away_team")
-        if home and away:
-            opponents[home] = away
-            opponents[away] = home
-    for p in projections:
-        p["opponent_team"] = opponents.get(p.get("team", ""), "BYE")
-    for td in team_def:
-        td["opponent_team"] = opponents.get(td.get("team", ""), "BYE")
+            try:
+                wk = int(g.get("week", 0))
+            except (ValueError, TypeError):
+                continue
+            home = g.get("home_team", "")
+            away = g.get("away_team", "")
+            spread = safe_float(g.get("spread_line", 0))
+            ou = safe_float(g.get("total_line", 0))
+            if home:
+                home_map[(home, wk)] = 1.0
+                spread_map[(home, wk)] = {"spread": spread, "over_under": ou}
+            if away:
+                home_map[(away, wk)] = 0.0
+                spread_map[(away, wk)] = {"spread": -spread, "over_under": ou}
+
+    # Roster info (years_exp, draft_number)
+    try:
+        import csv as _csv
+        import io as _io
+        roster_url = f"https://github.com/nflverse/nflverse-data/releases/download/weekly_rosters/roster_weekly_{season}.csv"
+        import requests as _req
+        resp = _req.get(roster_url, timeout=30)
+        if resp.status_code == 200:
+            for r in _csv.DictReader(_io.StringIO(resp.text)):
+                pid = r.get("gsis_id") or ""
+                if pid:
+                    roster_info[pid] = {
+                        "years_exp": safe_float(r.get("years_exp", 0)),
+                        "draft_number": safe_float(r.get("draft_number", 0)),
+                    }
+            print(f"  Roster info for {len(roster_info)} players")
+    except Exception:
+        pass
+
+    # Snap counts for ML features
+    snap_data = {}
+    try:
+        import csv as _csv2
+        import io as _io2
+        snap_url = f"https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_{season}.csv"
+        import requests as _req2
+        resp2 = _req2.get(snap_url, timeout=30)
+        if resp2.status_code == 200:
+            for r in _csv2.DictReader(_io2.StringIO(resp2.text)):
+                name = (r.get("player") or "").strip().lower()
+                team = r.get("team", "")
+                try:
+                    wk = int(r.get("week", 0))
+                except (ValueError, TypeError):
+                    continue
+                pct = safe_float(r.get("offense_pct", 0))
+                if name and team and wk:
+                    snap_data[(name, team, wk)] = pct
+            print(f"  Snap counts for {len(snap_data)} player-weeks")
+    except Exception:
+        pass
+
+    if compute_opp_defense and sched_rows:
+        try:
+            opp_defense = compute_opp_defense(stats_rows, sched_rows, REF_SCORING, up_to_week=week)
+            print(f"  Opponent defense for {len(opp_defense)} teams")
+        except Exception as e:
+            print(f"  Opponent defense failed ({e})")
+
+    # Opponent lookup per week from schedule.
+    def week_opponents(target_week):
+        opp = {}
+        for g in sched_rows:
+            if str(g.get("season")) != str(season) or g.get("game_type") != "REG":
+                continue
+            try:
+                if int(g.get("week") or 0) != target_week:
+                    continue
+            except (ValueError, TypeError):
+                continue
+            home, away = g.get("home_team"), g.get("away_team")
+            if home and away:
+                opp[home] = away
+                opp[away] = home
+        return opp
 
     # Slate snapshots for every week (matchups view + game predictions).
-    # Compact: teams, stadium, time, Vegas lines. Wind/temp ride along for
-    # the target week only — Open-Meteo's 16-day window can't cover future
-    # weeks, and those honestly stay null (wind chips show —). Dome games
-    # get neutral indoor values (no wind exists inside).
     slate_dir = Path(__file__).parent.parent / "data" / "slate"
     slate_dir.mkdir(parents=True, exist_ok=True)
-    by_week: dict[int, list] = {}
-    for g in sched_rows:
-        if str(g.get("season")) != str(season) or g.get("game_type") != "REG":
-            continue
-        try:
-            wk = int(g.get("week") or 0)
-        except (ValueError, TypeError):
-            continue
-        if not 1 <= wk <= 18:
-            continue
-        wind_mph, temp_f, precip_prob = None, None, None
-        if wk == week:
+
+    out_dir = Path(__file__).parent.parent / "data" / "projections"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    now_utc = datetime.now(timezone.utc).isoformat()
+    total_weeks = 18
+
+    # Generate projections for current week through week 18.
+    # Same stats history, different opponent/Vegas/weather context per week.
+    # Weather only available for current week (Open-Meteo 16-day limit);
+    # future weeks stay weather-neutral (honest nulls).
+    for target_week in range(week, total_weeks + 1):
+        weather_by_team = fetch_week_weather(sched_rows, target_week, season) if sched_rows else {}
+        if target_week == week:
+            print(f"  Weather forecast for {len(weather_by_team)} teams (week {target_week})")
+
+        projections = compute_projections(stats_rows, target_week, season, byes,
+                                          prior_season_rows, game_ctx, weather_by_team,
+                                          pbp_data, opp_defense, prior_pbp_data,
+                                          home_map, spread_map, roster_info, snap_data)
+        # Team DEF: copy and set per-week opponents/byes.
+        week_td = []
+        for td in team_def:
+            td_copy = {**td, "bye_week": byes.get(td["team"])}
+            week_td.append(td_copy)
+
+        opponents = week_opponents(target_week)
+        for p in projections:
+            p["opponent_team"] = opponents.get(p.get("team", ""), "BYE")
+        for td in week_td:
+            td["opponent_team"] = opponents.get(td.get("team", ""), "BYE")
+
+        # Slate for this week (weather only for near-term).
+        slate_games = []
+        for g in sched_rows:
+            if str(g.get("season")) != str(season) or g.get("game_type") != "REG":
+                continue
+            try:
+                wk = int(g.get("week") or 0)
+            except (ValueError, TypeError):
+                continue
+            if wk != target_week:
+                continue
+            wind_mph, temp_f, precip_prob = None, None, None
             if g.get("roof", "") in ("dome", "closed"):
                 wind_mph, temp_f, precip_prob = 0, 72, 0
-            else:
+            elif target_week == week:
                 w = weather_by_team.get(g.get("home_team") or "") or {}
                 try:
                     wind_mph = round(float(w["wind_mph"]), 1) if w.get("wind_mph") is not None else None
@@ -521,44 +760,39 @@ def main():
                     precip_prob = round(float(w["precip_prob"]), 0) if w.get("precip_prob") is not None else None
                 except (ValueError, TypeError):
                     wind_mph, temp_f, precip_prob = None, None, None
-        by_week.setdefault(wk, []).append({
-            "home_team": g.get("home_team"), "away_team": g.get("away_team"),
-            "stadium": g.get("stadium"), "gameday": g.get("gameday"),
-            "gametime": g.get("gametime"),
-            "spread_line": _num_or_none(g.get("spread_line")),
-            "total_line": _num_or_none(g.get("total_line")),
-            "wind_mph": wind_mph, "temp_f": temp_f,
-            "precip_prob": precip_prob,
-        })
-    for wk, games in by_week.items():
-        with open(slate_dir / f"{season}_week_{wk:02d}.json", "w") as f:
-            json.dump({"week": wk, "season": season, "games": games}, f)
+            slate_games.append({
+                "home_team": g.get("home_team"), "away_team": g.get("away_team"),
+                "stadium": g.get("stadium"), "gameday": g.get("gameday"),
+                "gametime": g.get("gametime"),
+                "spread_line": _num_or_none(g.get("spread_line")),
+                "total_line": _num_or_none(g.get("total_line")),
+                "wind_mph": wind_mph, "temp_f": temp_f,
+                "precip_prob": precip_prob,
+            })
+        with open(slate_dir / f"{season}_week_{target_week:02d}.json", "w") as f:
+            json.dump({"week": target_week, "season": season, "games": slate_games}, f)
 
-    # Write output
-    out_dir = Path(__file__).parent.parent / "data" / "projections"
-    out_dir.mkdir(parents=True, exist_ok=True)
+        data = {
+            "week": target_week,
+            "season": season,
+            "updated_at": now_utc,
+            "players": projections,
+            "team_def": week_td,
+            "byes": byes,
+        }
 
-    outfile = out_dir / f"{season}_week_{week:02d}.json"
-    data = {
-        "week": week,
-        "season": season,
-        # Real UTC instant — naive local .now() mislabeled with Z skewed
-        # freshness by the machine offset (e.g. 6h on CST dev machines;
-        # GitHub runners happen to be UTC so never noticed).
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-        "players": projections,
-        "team_def": team_def,
-        "byes": byes,
-    }
+        outfile = out_dir / f"{season}_week_{target_week:02d}.json"
+        with open(outfile, "w") as f:
+            json.dump(data, f, indent=2)
+        print(f"Wrote {len(projections)} projections to {outfile}")
 
-    with open(outfile, "w") as f:
-        json.dump(data, f, indent=2)
-
-    print(f"Wrote {len(projections)} projections to {outfile}")
-
+    # latest.json always points to current week
+    latest_file = out_dir / f"{season}_week_{week:02d}.json"
     latest = out_dir / "latest.json"
+    with open(latest_file) as src:
+        latest_data = json.load(src)
     with open(latest, "w") as f:
-        json.dump(data, f, indent=2)
+        json.dump(latest_data, f, indent=2)
 
 
 if __name__ == "__main__":

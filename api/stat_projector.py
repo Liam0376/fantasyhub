@@ -14,7 +14,7 @@ from __future__ import annotations
 
 QB_STATS = [
     "passing_yards", "passing_tds", "passing_interceptions",
-    "rushing_yards", "rushing_tds", "fumbles_lost_total",
+    "rushing_yards", "rushing_tds", "carries", "fumbles_lost_total",
 ]
 SKILL_STATS = [
     "carries", "rushing_yards", "rushing_tds", "receiving_yards", "receiving_tds",
@@ -40,11 +40,25 @@ TD_STATS = {
     "passing_tds", "rushing_tds", "receiving_tds",
 }
 
-MIN_GAMES_FOR_SEASON = 3
+MIN_GAMES_FOR_FULL_WEIGHT = 5
 RECENT_N = 5
 RECENT_WEIGHT = 2.0
 TD_REGRESSION_WEIGHT = 0.30
 USAGE_TREND_WEIGHT = 0.15
+
+# Per-game starter-level priors (median of 8+ game starters, 2024-2025 nflverse).
+# Anchor for thin-sample shrinkage — dampens boom/bust when games_played < 5.
+POS_STARTER_PRIORS = {
+    "QB": {"passing_yards": 219.2, "passing_tds": 1.24, "passing_interceptions": 0.65,
+           "rushing_yards": 14.1, "rushing_tds": 0.18, "carries": 3.1, "fumbles_lost_total": 0.15},
+    "RB": {"rushing_yards": 30.6, "rushing_tds": 0.29, "carries": 7.4,
+           "receiving_yards": 11.4, "receiving_tds": 0.11, "receptions": 1.4, "fumbles_lost_total": 0.10},
+    "WR": {"receiving_yards": 36.5, "receiving_tds": 0.25, "receptions": 2.9,
+           "rushing_yards": 1.3, "rushing_tds": 0.07, "fumbles_lost_total": 0.05},
+    "TE": {"receiving_yards": 24.1, "receiving_tds": 0.15, "receptions": 2.5, "fumbles_lost_total": 0.03},
+    "K":  {"fg_made_0_19": 0.03, "fg_made_20_29": 0.20, "fg_made_30_39": 0.25,
+           "fg_made_40_49": 0.25, "fg_made_50_59": 0.12, "fg_missed": 0.10, "pat_made": 2.3},
+}
 
 VEGAS_TD_DAMPING = 0.50
 VEGAS_YARD_DAMPING = 0.25
@@ -137,7 +151,7 @@ def _vegas_adjustment(projected: dict[str, float], implied_total: float) -> dict
 def _weather_adjustment(projected: dict[str, float], position: str,
                         wind_mph: float = 0, temp_f: float = None) -> dict[str, float]:
     adjusted = dict(projected)
-    if wind_mph > WIND_THRESHOLD_MPH and position in ("QB", "WR", "TE", "K"):
+    if wind_mph and wind_mph > WIND_THRESHOLD_MPH and position in ("QB", "WR", "TE", "K"):
         wind_factor = max(1.0 - (wind_mph - WIND_THRESHOLD_MPH) * WIND_PENALTY_PER_MPH, 0.75)
         for stat in adjusted:
             if stat in PASSING_RECEIVING_STATS:
@@ -169,29 +183,26 @@ def project_player_stats(
     stat_keys = _get_projection_stats(position)
     projected = {}
 
+    pop_prior = POS_STARTER_PRIORS.get(position, {})
+
     for stat_key in stat_keys:
         values = [g.get(stat_key, 0) or 0 for g in player_history]
+        prior_vals = [g.get(stat_key, 0) or 0 for g in (prior_season_stats or [])
+                     if g.get("season_type", "REG") == "REG"]
+        prior_avg = (sum(prior_vals) / len(prior_vals)) if prior_vals else None
+        pop = pop_prior.get(stat_key, 0.0)
 
-        if len(values) >= MIN_GAMES_FOR_SEASON:
+        if len(values) >= MIN_GAMES_FOR_FULL_WEIGHT:
             base = weighted_recent_avg(values)
-        elif values and prior_season_stats:
-            prior_vals = [g.get(stat_key, 0) or 0 for g in prior_season_stats
-                         if g.get("season_type", "REG") == "REG"]
-            if prior_vals:
-                current_avg = sum(values) / len(values)
-                prior_avg = sum(prior_vals) / len(prior_vals)
-                blend = len(values) / MIN_GAMES_FOR_SEASON
-                base = blend * current_avg + (1 - blend) * prior_avg
-            else:
-                base = sum(values) / len(values)
         elif values:
-            base = sum(values) / len(values)
-        elif prior_season_stats:
-            prior_vals = [g.get(stat_key, 0) or 0 for g in prior_season_stats
-                         if g.get("season_type", "REG") == "REG"]
-            base = (sum(prior_vals) / len(prior_vals)) if prior_vals else 0.0
+            current_avg = sum(values) / len(values)
+            w_current = len(values) / MIN_GAMES_FOR_FULL_WEIGHT
+            anchor = prior_avg if prior_avg is not None else pop
+            base = w_current * current_avg + (1 - w_current) * anchor
+        elif prior_avg is not None:
+            base = 0.7 * prior_avg + 0.3 * pop
         else:
-            base = 0.0
+            base = pop
 
         base = _td_regression(base, position, stat_key)
         base = _usage_trend_adjustment(base, player_history, stat_key)
