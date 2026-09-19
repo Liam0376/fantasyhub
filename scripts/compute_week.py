@@ -131,6 +131,10 @@ def fetch_current_and_prior_season_history(stats_rows: list[dict], prior_rows: l
 
     prior: dict[str, list] = {}
     for row in prior_rows:
+        # Training filters postseason here too (build_training_data.py:233);
+        # without it playoff games leak into the thin-sample prior blend.
+        if row.get("season_type", "REG") != "REG":
+            continue
         pid = row.get("player_id") or row.get("player_name", "")
         if pid:
             prior.setdefault(pid, []).append(row)

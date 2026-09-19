@@ -112,9 +112,22 @@ def test_c2_pbp_and_snap_are_weighted():
     assert abs(feats["snap_pct_wavg"] - weighted_avg(pcts)) < 1e-9
 
 
+def test_c3_postseason_excluded_from_prior_history():
+    cur = [dict(_qb_rows()[0], week=1)]
+    prior = [
+        dict(_qb_rows()[0], week=5, season=2025, season_type="REG"),
+        dict(_qb_rows()[0], week=20, season=2025, season_type="POST"),
+    ]
+    _, prior_hist = compute_week.fetch_current_and_prior_season_history(
+        cur, prior, current_week=4, season=2026)
+    weeks = [int(g["week"]) for g in prior_hist["QB1"]]
+    assert weeks == [5], f"postseason leaked: {weeks}"
+
+
 if __name__ == "__main__":
     test_c1_curr_ppg_is_weighted_history_not_heuristic()
     test_c2_stat_avgs_are_weighted()
     test_c2_ppg_block_matches_training()
     test_c2_pbp_and_snap_are_weighted()
+    test_c3_postseason_excluded_from_prior_history()
     print("OK")
