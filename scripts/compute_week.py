@@ -446,11 +446,16 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                 "draft_number": ri.get("draft_number", 0),
                 "ppg_std": 0, "ppg_trend": 0, "ppg_max": 0, "ppg_min": 0,
             }
-            # PBP usage (weighted avg of history weeks)
+            # PBP usage (weighted avg of history weeks). Rows are grouped
+            # by player_id-or-name; rows carrying an id look it up
+            # directly (training: build_training_data.py:314), while
+            # purely name-keyed groups cannot match GSIS-keyed PBP rows
+            # and honestly resolve to zero usage features.
             pbp_lists: dict[str, list[float]] = defaultdict(list)
             for h in history:
                 hw = int(h.get("week", 0))
-                pf = (pbp_data or {}).get((pid, hw))
+                hpid = h.get("player_id") or pid
+                pf = (pbp_data or {}).get((hpid, hw))
                 if pf:
                     for k in ("target_share", "rush_share", "air_yards_share",
                               "snap_share", "redzone_targets", "redzone_carries"):
@@ -466,7 +471,8 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                 prior_pbp_lists: dict[str, list[float]] = defaultdict(list)
                 for pg in prior_games:
                     pw = int(pg.get("week", 0))
-                    ppf = prior_pbp_data.get((pid, pw))
+                    pgpid = pg.get("player_id") or pid
+                    ppf = prior_pbp_data.get((pgpid, pw))
                     if ppf:
                         for k in ("target_share", "rush_share", "snap_share"):
                             prior_pbp_lists[k].append(ppf.get(k, 0))

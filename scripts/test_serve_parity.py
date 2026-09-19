@@ -144,6 +144,28 @@ def test_c4_snap_uses_per_week_team():
     assert abs(weighted_avg(all_vals) - weighted_avg(bbb_only)) > 1e-9
 
 
+def test_c5_pbp_keyed_by_row_id_and_name_gap_pinned():
+    # Rows carrying GSIS ids match PBP rows keyed by (gsis_id, week)
+    rows = _qb_rows_7(pid="QBP")
+    pbp = {("QBP", w): {
+        "target_share": 0.1 * w, "rush_share": 0.0, "air_yards_share": 0.0,
+        "snap_share": 0.0, "redzone_targets": 0, "redzone_carries": 0,
+    } for w in range(1, 8)}
+    _, feats = _run_with_recorder(rows, current_week=8, pbp_data=pbp)
+    assert abs(feats["pbp_target_share_wavg"]
+               - weighted_avg([0.1 * w for w in range(1, 8)])) < 1e-9
+    # Purely name-keyed groups (no ids) cannot match GSIS-keyed PBP:
+    # honestly zero, matching training which excludes such players.
+    nameless = []
+    for g in _qb_rows_7(pid=""):
+        g = dict(g)
+        g.pop("player_id", None)
+        g["player_name"] = "Nick Name"
+        nameless.append(g)
+    _, feats2 = _run_with_recorder(nameless, current_week=8, pbp_data=pbp)
+    assert feats2["pbp_target_share_wavg"] == 0.0
+
+
 if __name__ == "__main__":
     test_c1_curr_ppg_is_weighted_history_not_heuristic()
     test_c2_stat_avgs_are_weighted()
@@ -151,4 +173,5 @@ if __name__ == "__main__":
     test_c2_pbp_and_snap_are_weighted()
     test_c3_postseason_excluded_from_prior_history()
     test_c4_snap_uses_per_week_team()
+    test_c5_pbp_keyed_by_row_id_and_name_gap_pinned()
     print("OK")
