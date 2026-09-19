@@ -13,3 +13,8 @@ graphify-out/
 *.pem
 *.key
 data/models/training_data.jsonl
+
+# vercel build artifacts (regenerated locally, never commit)
+uv.lock
+.python-version
+pyproject.toml
