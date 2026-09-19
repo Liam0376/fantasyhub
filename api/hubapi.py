@@ -182,6 +182,14 @@ def _sleeper_ids_by_name_pos() -> dict:
     return _sleeper_id_by_np
 
 
+def _sleeper_id_for(p: dict):
+    """Sleeper ID for an analytics row (GSIS-keyed): explicit field wins,
+    else the (norm_name, POS) reverse index. Single home for the join
+    both _hub_player and the props board rely on."""
+    return p.get("sleeper_id") or _sleeper_ids_by_name_pos().get(
+        (norm_name(p.get("player_name", "")), (p.get("position") or "").upper()))
+
+
 def _hub_player(p: dict) -> dict:
     edge = (p.get("edge") or "NEUTRAL").upper()
     if edge == "FAIR":
@@ -194,8 +202,7 @@ def _hub_player(p: dict) -> dict:
     mss = {k: stored_mss.get(k, round((avg.get(k) or 0) * 17, 1)) for k in (
         "passing_yards", "rushing_yards", "receiving_yards", "receptions",
         "passing_tds", "rushing_tds", "receiving_tds")}
-    sleeper_id = p.get("sleeper_id") or _sleeper_ids_by_name_pos().get(
-        (norm_name(p.get("player_name", "")), (p.get("position") or "").upper()))
+    sleeper_id = _sleeper_id_for(p)
     # Honest Sleeper-native signals (popularity rank + depth chart) for the
     # resolved player. No ECR/ADP exists in Sleeper's API — those stay empty.
     smeta = players_map().get(str(sleeper_id), {}) if sleeper_id else {}
@@ -680,8 +687,7 @@ def hub_props_board(league_id: str, teams=None, week=None, season=None) -> dict:
         # Sleeper-ID join (same reverse index as _hub_player): analytics
         # players are keyed by nflverse GSIS id, which the avatar renderer
         # doesn't recognize — without this, props cards show initials.
-        sid = p.get("sleeper_id") or _sleeper_ids_by_name_pos().get(
-            (norm_name(p.get("player_name", "")), (p.get("position") or "").upper()))
+        sid = _sleeper_id_for(p)
         actual_row = actuals.get(p.get("player_id", "")) or {}
         def _actual(key):
             try:

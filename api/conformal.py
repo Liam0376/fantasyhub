@@ -1,7 +1,8 @@
 """Split-conformal interval half-width. Ported from the father project
 (football-sports-analytics/src/ffanalytics/conformal.py) — backtested,
-frozen constants. See stat_projector.py's header for the coverage numbers
-these residual tables were measured against (v2, 2026-09-15: overall 84.2%).
+frozen constants. Coverage provenance (82.1% father backtest vs 84.2%
+displayed-widths v2 2026-09-15) lives in docs/ACCURACY.md — the two
+numbers measure different scopes, not a contradiction.
 
 The raw qhat gives a formally calibrated interval (Vovk et al. 2005), but
 api/analytics.py and scripts/compute_week.py scale it by position/point-magnitude

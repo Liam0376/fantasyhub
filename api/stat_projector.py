@@ -4,6 +4,8 @@ evidence-gated (see that file's header for the full methodology and
 rejected-alternatives log; this port keeps only the SHIPPED production
 path). Frozen production numbers as of the port: MAE=4.563, corr=0.648,
 pairwise=74.1%, coverage=82.1% (n=10,351, weeks 4-18, true scoring).
+Provenance for this and every other accuracy number lives in
+docs/ACCURACY.md — read the Scope column before comparing numbers.
 
 Constants and function bodies copied verbatim — these are measured
 values, not tunable knobs. Do not retune without a new backtest
@@ -33,7 +35,12 @@ KICKER_STATS = [
 COVERED_STATS = {"QB": QB_STATS, "RB": SKILL_STATS, "WR": SKILL_STATS,
                  "TE": SKILL_STATS, "K": KICKER_STATS}
 
-VOLUME_STATS = {
+# Yardage/count stats eligible for usage-trend adjustment and Vegas
+# yardage damping. Deliberately NOT the same as
+# scripts/build_training_data.py's VOLUME_STATS (the 8-stat ML training
+# list): different contents, different purpose, different runtime
+# (api/ ships to Vercel, scripts/ runs in cron — they cannot share).
+YARDAGE_STATS = {
     "rushing_yards", "receiving_yards", "receptions", "passing_yards",
 }
 TD_STATS = {
@@ -116,7 +123,7 @@ def _td_regression(base: float, position: str, stat_key: str) -> float:
 
 
 def _usage_trend_adjustment(base: float, history: list[dict], stat_key: str) -> float:
-    if stat_key not in VOLUME_STATS or len(history) < 4:
+    if stat_key not in YARDAGE_STATS or len(history) < 4:
         return base
     prior_vals = [g.get(stat_key, 0) or 0 for g in history[:-3]]
     if len(prior_vals) < 3:
@@ -141,7 +148,7 @@ def _vegas_adjustment(projected: dict[str, float], implied_total: float) -> dict
     for stat, val in projected.items():
         if stat in TD_STATS:
             adjusted[stat] = val * td_scale
-        elif stat in VOLUME_STATS:
+        elif stat in YARDAGE_STATS:
             adjusted[stat] = val * yd_scale
         else:
             adjusted[stat] = val
