@@ -1,16 +1,16 @@
 {
-  "builds": [
-    { "src": "api/index.py", "use": "@vercel/python" },
-    { "src": "public/**", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/hub-api/(.*)", "dest": "/api/index.py" },
-    { "src": "/recommendations/(.*)", "dest": "/api/index.py" },
-    { "src": "/health", "dest": "/api/index.py" },
-    { "src": "/refresh", "dest": "/api/index.py" },
-    { "src": "/draft", "dest": "/api/index.py" },
-    { "src": "/assets/(.*)", "dest": "/public/assets/$1" },
-    { "src": "/manifest.json", "dest": "/public/manifest.json" },
-    { "src": "/(.*)", "dest": "/public/index.html" }
+  "functions": {
+    "api/index.py": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    { "source": "/hub-api/(.*)", "destination": "/api/index.py" },
+    { "source": "/recommendations/(.*)", "destination": "/api/index.py" },
+    { "source": "/health", "destination": "/api/index.py" },
+    { "source": "/refresh", "destination": "/api/index.py" },
+    { "source": "/draft", "destination": "/api/index.py" },
+    { "source": "/(.*)", "destination": "/public/index.html" }
   ]
 }
