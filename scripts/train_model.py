@@ -21,9 +21,14 @@ from pathlib import Path
 try:
     import numpy as np
     import xgboost as xgb
-except ImportError:
-    print("Install: pip install xgboost numpy")
-    sys.exit(1)
+    _IMPORT_ERROR = None
+except ImportError as e:
+    # Keep module importable without deps so pure helpers (to_arrays,
+    # mae, pairwise_accuracy) stay unit-testable; training entry points
+    # raise honestly when deps are missing.
+    np = None
+    xgb = None
+    _IMPORT_ERROR = e
 
 DATA_PATH = Path(__file__).parent.parent / "data" / "models" / "training_data.jsonl"
 MODEL_DIR = Path(__file__).parent.parent / "data" / "models"
@@ -114,6 +119,9 @@ def pairwise_accuracy(y_true, y_pred):
 
 def train_position_model(pos: str, train: list[dict], val: list[dict]) -> tuple:
     """Train residual model for one position. Returns (model, feature_cols)."""
+    if _IMPORT_ERROR is not None:
+        raise RuntimeError(
+            f"train_position_model needs numpy+xgboost: {_IMPORT_ERROR}")
     feature_cols = POS_FEATURES.get(pos, BASE_FEATURES)
 
     X_train, y_train = to_arrays(train, feature_cols, target="residual")
@@ -144,6 +152,10 @@ def train_position_model(pos: str, train: list[dict], val: list[dict]) -> tuple:
 
 
 def main():
+    if _IMPORT_ERROR is not None:
+        raise RuntimeError(
+            f"train_model needs numpy+xgboost: {_IMPORT_ERROR} "
+            "(pip install -r requirements-ml.txt)")
     print("Loading training data...")
     all_rows = load_data()
     print(f"  {len(all_rows)} total rows")

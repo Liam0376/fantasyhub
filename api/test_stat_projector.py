@@ -6,6 +6,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from stat_projector import (
     weighted_recent_avg, _td_regression, _usage_trend_adjustment,
     _vegas_adjustment, project_player_stats, build_game_context,
+    POS_TD_MEANS,
 )
 
 
@@ -28,9 +29,12 @@ def test_weighted_recent_avg_long_history_weights_recent():
 
 
 def test_td_regression_pulls_toward_position_mean():
-    # QB passing_tds prior is 0.83; a raw base of 3.0 regresses 30% toward it
+    # 30% regression toward the position prior. The prior VALUE comes
+    # from the POS_TD_MEANS table (not a literal here) so a retune
+    # updates one place; this test pins the 30% FORMULA, not the number.
+    prior = POS_TD_MEANS["QB"]["passing_tds"]
     result = _td_regression(3.0, "QB", "passing_tds")
-    expected = 3.0 * 0.7 + 0.83 * 0.3
+    expected = 3.0 * 0.7 + prior * 0.3
     assert abs(result - expected) < 0.001
 
 
