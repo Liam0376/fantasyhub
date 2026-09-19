@@ -4,7 +4,7 @@ Fantasy football analytics. Paste your Sleeper league link, get instant projecti
 
 ## Quick start
 
-1. Paste your Sleeper league link at [fantasyhub.vercel.app](https://fantasyhub.vercel.app)
+1. Paste your Sleeper league link at [fantasyhub-five.vercel.app](https://fantasyhub-five.vercel.app)
 2. See projections and auction values
 3. Done. No sign-up required.
 
