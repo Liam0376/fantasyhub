@@ -46,6 +46,22 @@ def _is_eligible(pos: str, eligible: set) -> bool:
     return p in eligible or _roster_group(p) in eligible
 
 
+def rescore_player(avg: dict, scoring: dict, pos: str, ml_adjustment=0.0) -> float:
+    """League-score per-game avg stats, then apply the stored ML residual.
+
+    The residual was trained in REF-scoring points space (heuristic +
+    residual = actual), so under leagues with exotic scoring it is
+    approximate — but dropping it zeroes the entire ML pipeline at
+    serve time (the pre-fix behavior). Additive in points space is the
+    honest carry-through until per-stat residual folding exists.
+    """
+    try:
+        adj = float(ml_adjustment or 0.0)
+    except (ValueError, TypeError):
+        adj = 0.0
+    return score_avg_stats(avg or {}, scoring, pos) + adj
+
+
 def _paid_map(draft_picks: list) -> dict:
     """Sleeper draft picks -> {(norm_name, POS): amount} for model-vs-paid."""
     out = {}
@@ -127,7 +143,8 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
         avg = p.get("avg_stats") or {}
         pos = (p.get("position") or "UNK").upper()
         if avg:
-            p["_fantasy_points"] = score_avg_stats(avg, scoring, pos)
+            p["_fantasy_points"] = rescore_player(
+                avg, scoring, pos, p.get("ml_adjustment", 0.0))
         else:
             # Legacy JSON without avg_stats (pre-rescore): fall back to
             # stored reference points so old files still render.

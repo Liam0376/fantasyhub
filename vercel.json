@@ -5,6 +5,7 @@
   ],
   "routes": [
     { "src": "/hub-api/(.*)", "dest": "/api/index.py" },
+    { "src": "/recommendations/(.*)", "dest": "/api/index.py" },
     { "src": "/health", "dest": "/api/index.py" },
     { "src": "/refresh", "dest": "/api/index.py" },
     { "src": "/draft", "dest": "/api/index.py" },

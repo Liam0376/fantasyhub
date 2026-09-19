@@ -32,6 +32,10 @@ class handler(BaseHTTPRequestHandler):
         path = parsed.path
         qs = parse_qs(parsed.query)
         g = lambda k, d=None: (qs.get(k, [d])[0])
+        # Father-style compat paths hit /recommendations/* same-origin
+        # (see vercel.json); fold them onto the /hub-api handlers.
+        if path == "/recommendations" or path.startswith("/recommendations/"):
+            path = "/hub-api" + path
 
         try:
             if path == "/health":
@@ -40,10 +44,13 @@ class handler(BaseHTTPRequestHandler):
                 status, body = 200, {"ready": True}
             elif path in ("/hub-api/meta", "/hub-api/draft", "/hub-api/roster",
                            "/draft",
-                          "/hub-api/rosters-full", "/hub-api/projections",
-                          "/hub-api/projections/ros", "/hub-api/comparison",
-                          "/hub-api/matchups", "/hub-api/waiver", "/hub-api/trade",
-                          "/hub-api/games/predictions", "/hub-api/props/board") \
+                           "/hub-api/rosters-full", "/hub-api/projections",
+                           "/hub-api/projections/ros", "/hub-api/comparison",
+                           "/hub-api/matchups", "/hub-api/waiver", "/hub-api/trade",
+                           "/hub-api/recommendations/waiver",
+                           "/hub-api/recommendations/trade",
+                           "/hub-api/recommendations/start-sit",
+                           "/hub-api/games/predictions", "/hub-api/props/board") \
                     and not g("league_id") and path not in ("/hub-api/games/predictions",):
                 # Boot calls with no stored league yet: graceful empty,
                 # matching the client's documented fallbacks, never a 500.
@@ -88,6 +95,14 @@ class handler(BaseHTTPRequestHandler):
             elif path == "/hub-api/props/board":
                 status, body = 200, hubapi.hub_props_board(
                     g("league_id"), teams=g("teams"), week=g("week"), season=g("season"))
+            elif path == "/hub-api/recommendations/waiver":
+                status, body = 200, hubapi.hub_rec_waiver(
+                    g("league_id"), owner_id=g("owner_id"))
+            elif path == "/hub-api/recommendations/trade":
+                status, body = 200, hubapi.hub_rec_trade(
+                    g("league_id"), team_a_id=g("team_a_id"), team_b_id=g("team_b_id"))
+            elif path == "/hub-api/recommendations/start-sit":
+                status, body = 200, hubapi.hub_start_sit(g("league_id"))
             else:
                 status, body = 404, {"error": "Not found"}
         except Exception as e:

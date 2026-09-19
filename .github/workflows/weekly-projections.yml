@@ -19,6 +19,9 @@ permissions:
 jobs:
   compute:
     runs-on: ubuntu-latest
+    # compute_week.py has hung silently with no output before; cap the
+    # whole job instead of burning the 6h default in minutes.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -27,7 +30,10 @@ jobs:
           python-version: '3.12'
 
       - name: Install deps
-        run: pip install requests xgboost numpy
+        # Major-version caps: the ML gate (ml_meta.json) was validated on
+        # xgboost 2.x / numpy 1.x-2.x; an uncapped major bump between cron
+        # runs would silently change predictions.
+        run: pip install "requests>=2.31,<3" "xgboost>=2.0,<3" "numpy>=1.24,<3"
 
       - name: Compute projections
         run: |
@@ -40,6 +46,20 @@ jobs:
 
       - name: Snapshot players
         run: python scripts/snapshot_players.py
+
+      - name: Guard freshness
+        # compute_week.py has exited 0 with stale/empty output before.
+        # Fail loudly so the cron alert fires instead of committing rot.
+        run: |
+          python -c "
+          import json, sys
+          from datetime import datetime, timezone, timedelta
+          d = json.load(open('data/projections/latest.json'))
+          ts = datetime.fromisoformat(d['updated_at'])
+          assert datetime.now(timezone.utc) - ts < timedelta(hours=30), f\"stale: {d['updated_at']}\"
+          assert len(d.get('players', [])) > 500, f\"too few players: {len(d.get('players', []))}\"
+          print(f\"fresh: week {d['week']} season {d['season']} n={len(d['players'])}\")
+          "
 
       - name: Commit data
         run: |

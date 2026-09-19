@@ -409,6 +409,7 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
         avg_pts = score_avg_stats(avg_stats, REF_SCORING, pos)
 
         # ML residual: if model available, predict correction to heuristic
+        ml_adj = 0.0
         if ml_predict and pbp_data is not None:
             sp = (spread_map or {}).get((p["team"], current_week), {})
             ri = (roster_info or {}).get(pid, {})
@@ -503,8 +504,11 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                     ml_features["ppg_trend"] = num / den if den else 0.0
 
             residual = ml_predict(ml_features, pos)
-            if residual is not None:
-                avg_pts = avg_pts + residual
+            # Carry the residual through to the JSON output: serve-time
+            # league rescoring (analytics.rescore_player) re-applies it,
+            # otherwise the ML pipeline would be a silent no-op.
+            ml_adj = residual if residual is not None else 0.0
+            avg_pts = avg_pts + ml_adj
 
         played = len(history)
         bye_week = (byes or {}).get(p.get("team", ""))
@@ -520,6 +524,7 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
             "position": p["position"],
             "team": p["team"],
             "projected_points": round(avg_pts, 2),
+            "ml_adjustment": round(ml_adj, 2),
             "projection_lower": round(max(0, avg_pts - width), 2),
             "projection_upper": round(avg_pts + width, 2),
             "width": round(width, 2),

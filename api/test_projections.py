@@ -7,7 +7,7 @@ from projections import get_projections, _fallback_projections
 
 
 def test_fallback_returns_empty():
-    result = _fallback_projections("9999", "1")
+    result = _fallback_projections(9999, 1)
     assert result["players"] == []
     assert result["stale"] is True
     assert result["week"] == 1
@@ -24,8 +24,15 @@ def test_get_projections_structure():
 
 
 def test_get_projections_nonexistent_week():
-    result = get_projections(week="99", season="9999")
+    # Valid shape but no such file -> stale fallback, never a 500.
+    result = get_projections(week="22", season="2026")
     assert result["stale"] is True
+
+
+def test_get_projections_rejects_garbage():
+    # Traversal / out-of-range input falls back to state defaults.
+    result = get_projections(week="../../etc", season="99999")
+    assert isinstance(result, dict) and "players" in result
 
 
 def test_fallback_names_source_file():
@@ -33,7 +40,7 @@ def test_fallback_names_source_file():
     # render every week identically with no explanation (user-caught bug:
     # weeks 1/3 silently showed week-2 numbers). Pinned to a file pattern,
     # not a specific week, so future backfills don't break it.
-    result = _fallback_projections("2026", "3")
+    result = _fallback_projections(2026, 3)
     assert result["stale"] is True
     assert "note" in result and "2026_week_" in result["note"] and result["note"].endswith(".json")
     assert result["week"] == 3
@@ -43,5 +50,6 @@ if __name__ == "__main__":
     test_fallback_returns_empty()
     test_get_projections_structure()
     test_get_projections_nonexistent_week()
+    test_get_projections_rejects_garbage()
     test_fallback_names_source_file()
     print("OK")

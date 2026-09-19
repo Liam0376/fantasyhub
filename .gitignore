@@ -3,10 +3,13 @@ node_modules/
 __pycache__/
 *.pyc
 .env
+.env.*
 .DS_Store
 .vercel
 .worktrees/
 .claude/settings.local.json
 graphify-out/
 *.db
+*.pem
+*.key
 data/models/training_data.jsonl

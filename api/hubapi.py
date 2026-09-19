@@ -10,6 +10,7 @@ import io
 import json
 import math
 import os
+import time
 
 import requests
 
@@ -118,6 +119,23 @@ def hub_news(limit: int = 25) -> dict:
 _sleeper_id_by_np = None
 
 
+def _wi(v, default, lo=None, hi=None):
+    """Coerce untrusted query input to int, else default. Digits-only
+    check keeps garbage ('abc', '../..') out of filenames and int()."""
+    try:
+        s = str(v).strip()
+    except Exception:
+        return default
+    if not s.isdigit():
+        return default
+    n = int(s)
+    if lo is not None and n < lo:
+        return default
+    if hi is not None and n > hi:
+        return default
+    return n
+
+
 _actuals_cache: dict = {}
 
 
@@ -169,7 +187,11 @@ def _hub_player(p: dict) -> dict:
     if edge == "FAIR":
         edge = "NEUTRAL"
     avg = p.get("avg_stats") or {}
-    mss = {k: round((avg.get(k) or 0) * 17, 1) for k in (
+    stored_mss = p.get("market_season_stats") or {}
+    # Prefer the build-time stored field (per-game avg scaled by real
+    # played+remaining games). Fall back per-key to avg x 17 for legacy
+    # JSON predating the field, so old files still render.
+    mss = {k: stored_mss.get(k, round((avg.get(k) or 0) * 17, 1)) for k in (
         "passing_yards", "rushing_yards", "receiving_yards", "receptions",
         "passing_tds", "rushing_tds", "receiving_tds")}
     sleeper_id = p.get("sleeper_id") or _sleeper_ids_by_name_pos().get(
@@ -278,8 +300,12 @@ def _norm_cdf(x: float) -> float:
 
 
 def _slate(season, week):
+    s = _wi(season, None, 2000, 2100)
+    w = _wi(week, None, 1, 22)
+    if s is None or w is None:
+        return []
     try:
-        with open(os.path.join(_SLATE_DIR, f"{season}_week_{int(week):02d}.json")) as f:
+        with open(os.path.join(_SLATE_DIR, f"{s}_week_{w:02d}.json")) as f:
             return json.load(f).get("games", [])
     except (OSError, json.JSONDecodeError, ValueError):
         return []
@@ -289,7 +315,7 @@ def hub_matchups(league_id: str, week=None) -> dict:
     st = _st()
     season = st.get("season")
     cur_week = st.get("week") or 0
-    wk = int(week) if week else cur_week
+    wk = _wi(week, cur_week, 1, 22)
     raw = _sleeper(f"/league/{league_id}/matchups/{wk}")
     data = build_rosters(league_id)
     by_roster = {str(t["roster_id"]): t for t in data["teams"]}
@@ -478,6 +504,70 @@ def hub_trade(league_id: str, team_a_id=None, team_b_id=None) -> dict:
             "team_a_weekly": round(a_w, 1), "team_b_weekly": round(b_w, 1)}
 
 
+# --------------------------------------- recommendations compat shims
+# The shipped SPA bundle calls father-style /recommendations/* paths on
+# its O() helper (same-origin after the :8000 bundle patch). These shims
+# serve them from existing server logic so waiver/trade/start-sit resolve
+# in prod instead of 404ing to the SPA catch-all.
+
+def _utc_ts() -> int:
+    return int(time.time())
+
+
+def hub_rec_waiver(league_id: str, owner_id=None) -> dict:
+    try:
+        out = hub_waiver(league_id, owner_id)
+    except Exception:
+        return {"recommendations": [], "meta": {"timestamp": _utc_ts(), "cold": True}}
+    recs = out.get("recommendations", [])
+    return {"recommendations": recs, "count": len(recs),
+            "meta": {"timestamp": _utc_ts()}}
+
+
+def hub_rec_trade(league_id: str, team_a_id=None, team_b_id=None) -> dict:
+    try:
+        out = hub_trade(league_id, team_a_id, team_b_id)
+    except Exception:
+        return {"winner": "Even", "recommendation": "Trade data unavailable.",
+                "value_difference": 0, "timestamp": _utc_ts(), "cold": True}
+    out["timestamp"] = _utc_ts()
+    return out
+
+
+def hub_start_sit(league_id: str) -> dict:
+    """Start/sit from slot-assigned rosters: every rostered player with
+    its START/SIT decision. Cold (fetch failure) returns honestly empty."""
+    try:
+        data = build_rosters(league_id)
+    except Exception:
+        return {"recommendations": [], "count": 0,
+                "timestamp": _utc_ts(), "cold": True}
+    recs = []
+    for t in data["teams"]:
+        for s in (t.get("starters") or []):
+            recs.append(_sit_rec(s, t, "START"))
+        for s in (t.get("bench") or []):
+            recs.append(_sit_rec(s, t, "SIT"))
+    return {"recommendations": recs, "count": len(recs),
+            "timestamp": _utc_ts()}
+
+
+def _sit_rec(s: dict, t: dict, decision: str) -> dict:
+    return {
+        "player_id": s.get("player_id", ""),
+        "player_name": s.get("player_name", ""),
+        "position": (s.get("position") or "").upper(),
+        "team": s.get("team", ""),
+        "opponent_team": s.get("opponent_team", ""),
+        "projected_points": s.get("weekly", 0),
+        "injury_status": s.get("injury_status"),
+        "decision": decision,
+        "slot": s.get("slot", ""),
+        "roster_id": t.get("roster_id"),
+        "team_name": t.get("team_name", ""),
+    }
+
+
 # ------------------------------------------------------------- games + props
 
 def _devig(ml_home, ml_away):
@@ -495,8 +585,8 @@ def _devig(ml_home, ml_away):
 
 def hub_games(league_id: str, week=None, season=None) -> dict:
     st = _st()
-    season = season or st.get("season")
-    wk = int(week) if week else (st.get("week") or 0)
+    season = _wi(season, st.get("season"), 2000, 2100)
+    wk = _wi(week, (st.get("week") or 0), 1, 22)
     try:
         r = requests.get("https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv",
                          timeout=60)
