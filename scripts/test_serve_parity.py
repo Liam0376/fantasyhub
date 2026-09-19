@@ -124,10 +124,31 @@ def test_c3_postseason_excluded_from_prior_history():
     assert weeks == [5], f"postseason leaked: {weeks}"
 
 
+def test_c4_snap_uses_per_week_team():
+    rows = _qb_rows_7(pid="QBT")
+    for g in rows:
+        g["player_display_name"] = "Trade QB"
+    for g in rows[:2]:
+        g["team"] = "AAA"
+    for g in rows[2:]:
+        g["team"] = "BBB"
+    snap = {}
+    for w in (1, 2):
+        snap[("trade qb", "AAA", w)] = 50.0 + 10 * w  # 60, 70
+    for w in range(3, 8):
+        snap[("trade qb", "BBB", w)] = 50.0 + 10 * w  # 80..120
+    _, feats = _run_with_recorder(rows, current_week=8, snap_data=snap)
+    all_vals = [50.0 + 10 * w for w in range(1, 8)]
+    bbb_only = [50.0 + 10 * w for w in range(3, 8)]
+    assert abs(feats["snap_pct_wavg"] - weighted_avg(all_vals)) < 1e-9
+    assert abs(weighted_avg(all_vals) - weighted_avg(bbb_only)) > 1e-9
+
+
 if __name__ == "__main__":
     test_c1_curr_ppg_is_weighted_history_not_heuristic()
     test_c2_stat_avgs_are_weighted()
     test_c2_ppg_block_matches_training()
     test_c2_pbp_and_snap_are_weighted()
     test_c3_postseason_excluded_from_prior_history()
+    test_c4_snap_uses_per_week_team()
     print("OK")

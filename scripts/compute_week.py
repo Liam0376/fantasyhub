@@ -473,14 +473,17 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                 for k in ("target_share", "rush_share", "snap_share"):
                     vals = prior_pbp_lists.get(k, [])
                     ml_features[f"prior_pbp_{k}"] = (sum(vals) / len(vals)) if vals else 0
-            # Snap counts (weighted avg over history weeks)
+            # Snap counts (weighted avg over history weeks, joined by
+            # name+team+week exactly like training). Team is per-WEEK
+            # (recent_team or team on that row): traded players' early
+            # weeks belong to their old team in the snap CSV.
             if snap_data:
                 player_name_lower = p.get("player_name", "").strip().lower()
-                player_team = p.get("team", "")
                 snap_vals = []
                 for h in history:
                     hw = int(h.get("week", 0))
-                    sc = snap_data.get((player_name_lower, player_team, hw))
+                    h_team = h.get("recent_team") or h.get("team") or p.get("team", "")
+                    sc = snap_data.get((player_name_lower, h_team, hw))
                     if sc is not None:
                         snap_vals.append(sc)
                 if snap_vals:
