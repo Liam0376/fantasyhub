@@ -26,6 +26,12 @@ try:
 except ImportError:
     ml_predict = None
 
+# Shared with training (build_training_data.py): serve must build ML
+# features with the exact same formulas the model was trained on.
+# Same directory, always importable wherever this script runs
+# (cron runs it directly; tests put scripts/ on sys.path).
+from build_training_data import weighted_avg, linear_trend
+
 try:
     from pbp_features import fetch_pbp_csv, aggregate_pbp
 except ImportError:
@@ -415,7 +421,14 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
             ri = (roster_info or {}).get(pid, {})
             ml_features = {
                 "games_played": len(history), "week": current_week,
-                "curr_ppg_wavg": avg_pts, "heuristic_pts": avg_pts,
+                # Training (build_training_data.py:274-275) defines
+                # curr_ppg_wavg as the recency-weighted average of PAST
+                # actual PPG — not the heuristic point estimate. The
+                # heuristic lives in heuristic_pts (training :389).
+                # Scoring raw rows mirrors training exactly.
+                "curr_ppg_wavg": weighted_avg(
+                    [score_avg_stats(g, REF_SCORING, pos) for g in history]),
+                "heuristic_pts": avg_pts,
                 "prior_ppg": 0, "prior_games": 0,
                 "implied_total": implied_total,
                 "spread": sp.get("spread", 0),
