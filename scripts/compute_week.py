@@ -454,7 +454,7 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
             for k in ("target_share", "rush_share", "air_yards_share",
                       "snap_share", "redzone_targets", "redzone_carries"):
                 vals = pbp_lists.get(k, [])
-                ml_features[f"pbp_{k}_wavg"] = (sum(vals) / len(vals)) if vals else 0
+                ml_features[f"pbp_{k}_wavg"] = weighted_avg(vals)
             # Prior PBP
             for k in ("target_share", "rush_share", "snap_share"):
                 ml_features[f"prior_pbp_{k}"] = 0
@@ -480,7 +480,7 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                     if sc is not None:
                         snap_vals.append(sc)
                 if snap_vals:
-                    ml_features["snap_pct_wavg"] = sum(snap_vals) / len(snap_vals)
+                    ml_features["snap_pct_wavg"] = weighted_avg(snap_vals)
             # Prior season PPG
             if prior_games:
                 prior_ppgs = [score_avg_stats(normalize_row_stats(g), REF_SCORING, pos) for g in prior_games]
@@ -491,30 +491,22 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
             if opp_defense and opp_team:
                 opp_entry = opp_defense.get(opp_team, {})
                 ml_features["opp_pts_allowed"] = opp_entry.get(f"{pos.lower()}_pts_allowed", 0)
-            # Current stat averages
+            # Current stat averages (training: weighted_avg, same stat list)
             for stat in ("passing_yards", "rushing_yards", "receiving_yards",
                          "receptions", "carries", "passing_tds", "rushing_tds",
                          "receiving_tds", "targets", "receiving_air_yards",
                          "passing_epa", "passing_cpoe", "wopr", "sacks_suffered",
                          "passing_interceptions", "fumbles_lost_total"):
                 vals = [safe_float(g.get(stat, 0)) for g in history]
-                ml_features[f"curr_{stat}_wavg"] = (sum(vals) / len(vals)) if vals else 0
-            # PPG variance/trend
+                ml_features[f"curr_{stat}_wavg"] = weighted_avg(vals)
+            # PPG variance/trend (training: raw rows, std centered on the
+            # weighted curr_ppg_wavg, shared linear_trend helper)
             if history:
-                ppgs = [score_avg_stats(normalize_row_stats(g), REF_SCORING, pos) for g in history]
-                mean_ppg = sum(ppgs) / len(ppgs)
-                ml_features["ppg_std"] = (sum((p - mean_ppg)**2 for p in ppgs) / len(ppgs)) ** 0.5 if len(ppgs) > 1 else 0.0
+                ppgs = [score_avg_stats(g, REF_SCORING, pos) for g in history]
+                ml_features["ppg_std"] = (sum((p - ml_features["curr_ppg_wavg"])**2 for p in ppgs) / len(ppgs)) ** 0.5 if len(ppgs) > 1 else 0.0
                 ml_features["ppg_max"] = max(ppgs)
                 ml_features["ppg_min"] = min(ppgs)
-                # Trend: slope of last 5 weeks
-                recent = ppgs[-5:]
-                if len(recent) >= 3:
-                    n = len(recent)
-                    x_mean = (n - 1) / 2.0
-                    y_mean = sum(recent) / n
-                    num = sum((i - x_mean) * (v - y_mean) for i, v in enumerate(recent))
-                    den = sum((i - x_mean) ** 2 for i in range(n))
-                    ml_features["ppg_trend"] = num / den if den else 0.0
+                ml_features["ppg_trend"] = linear_trend(ppgs[-5:])
 
             residual = ml_predict(ml_features, pos)
             # Carry the residual through to the JSON output: serve-time
