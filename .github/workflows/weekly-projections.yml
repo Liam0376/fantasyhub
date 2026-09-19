@@ -30,10 +30,12 @@ jobs:
           python-version: '3.12'
 
       - name: Install deps
-        # Major-version caps: the ML gate (ml_meta.json) was validated on
-        # xgboost 2.x / numpy 1.x-2.x; an uncapped major bump between cron
-        # runs would silently change predictions.
-        run: pip install "requests>=2.31,<3" "xgboost>=2.0,<3" "numpy>=1.24,<3"
+        # Pipeline deps (xgboost/numpy) live in requirements-ml.txt, NOT
+        # requirements.txt: the serverless runtime must stay under Vercel's
+        # 500MB bundle cap, and xgboost's linux wheels pull nvidia-nccl-cu12.
+        # Major-version caps: the ML gate was validated on xgboost 2.x /
+        # numpy 1.x-2.x; an uncapped major bump would silently change predictions.
+        run: pip install -r requirements-ml.txt
 
       - name: Compute projections
         run: |

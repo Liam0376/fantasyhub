@@ -1,0 +1,7 @@
+# Pipeline/ML deps for scripts/* and the daily cron (NOT the serverless bundle).
+# The Vercel runtime (requirements.txt) serves precomputed JSON and must
+# stay light: xgboost's linux wheels pull nvidia-nccl-cu12 (~467MB) and
+# blow the 500MB function cap. Keep heavy deps here.
+requests>=2.31,<3
+xgboost>=2.0,<3
+numpy>=1.24,<3

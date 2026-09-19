@@ -1,3 +1,6 @@
+# Vercel serverless runtime ONLY. Serves precomputed JSON + live Sleeper
+# reads; no ML inference happens at request time (compute_week.py cron
+# applies residuals at build). Keep this minimal: xgboost/numpy live in
+# requirements-ml.txt (pipeline/cron) because xgboost's linux wheels pull
+# nvidia-nccl-cu12 and exceed Vercel's 500MB function bundle cap.
 requests>=2.31,<3
-xgboost>=2.0,<3
-numpy>=1.24,<3
