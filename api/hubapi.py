@@ -190,11 +190,47 @@ def _sleeper_id_for(p: dict):
         (norm_name(p.get("player_name", "")), (p.get("position") or "").upper()))
 
 
+def _proj_stat_fields(avg: dict, pos: str) -> dict:
+    """Flat per-stat weekly projections for the projections-tab columns.
+    Each position fills only its own set; everything else stays None
+    (renders as a dash, sorts last via the client's null handling).
+    Yards/rec round 1, TDs round 2, matching existing field precision."""
+    def y(k):
+        v = avg.get(k)
+        return round(v, 1) if v else None
+
+    def t(k):
+        v = avg.get(k)
+        return round(v, 2) if v else None
+
+    out = {"proj_pass_yd": None, "proj_pass_td": None,
+           "proj_rush_yd": None, "proj_rush_td": None,
+           "proj_rec": None, "proj_rec_yd": None, "proj_rec_td": None,
+           "proj_fgm": None, "proj_xpm": None}
+    if pos == "QB":
+        out.update(proj_pass_yd=y("passing_yards"), proj_pass_td=t("passing_tds"),
+                   proj_rush_yd=y("rushing_yards"), proj_rush_td=t("rushing_tds"))
+    elif pos == "RB":
+        out.update(proj_rush_yd=y("rushing_yards"), proj_rush_td=t("rushing_tds"),
+                   proj_rec=y("receptions"), proj_rec_yd=y("receiving_yards"))
+    elif pos in ("WR", "TE"):
+        out.update(proj_rec=y("receptions"), proj_rec_yd=y("receiving_yards"),
+                   proj_rec_td=t("receiving_tds"))
+    elif pos == "K":
+        fgm = sum(avg.get(k, 0) or 0 for k in (
+            "fg_made_0_19", "fg_made_20_29", "fg_made_30_39",
+            "fg_made_40_49", "fg_made_50_59", "fg_made_60_"))
+        out.update(proj_fgm=round(fgm, 1) if fgm else None,
+                   proj_xpm=y("pat_made"))
+    return out
+
+
 def _hub_player(p: dict) -> dict:
     edge = (p.get("edge") or "NEUTRAL").upper()
     if edge == "FAIR":
         edge = "NEUTRAL"
     avg = p.get("avg_stats") or {}
+    pos_u = (p.get("position") or "").upper()
     stored_mss = p.get("market_season_stats") or {}
     # Prefer the build-time stored field (per-game avg scaled by real
     # played+remaining games). Fall back per-key to avg x 17 for legacy
@@ -232,6 +268,7 @@ def _hub_player(p: dict) -> dict:
         "fp_ecr": None, "fp_ecr_pos": None, "fp_adp": None,
         "fp_tier": None, "tier": p.get("tier"),
         "edge": edge, "injury_status": p.get("injury_status"),
+        **_proj_stat_fields(avg, pos_u),
         "trending": False, "wind_mph": None,
         "bye_week": p.get("bye_week"), "remaining_games": p.get("remaining_games", 0),
     }
