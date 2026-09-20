@@ -702,7 +702,9 @@ def hub_props_board(league_id: str, teams=None, week=None, season=None) -> dict:
         markets = []
         if pos == "QB":
             markets = [("passing_yards", avg.get("passing_yards", 0)),
-                       ("passing_tds", avg.get("passing_tds", 0))]
+                       ("passing_tds", avg.get("passing_tds", 0)),
+                       ("rushing_yards", avg.get("rushing_yards", 0)),
+                       ("rushing_tds", avg.get("rushing_tds", 0))]
         elif pos == "RB":
             markets = [("rushing_yards", avg.get("rushing_yards", 0)),
                        ("receiving_yards", avg.get("receiving_yards", 0)),
