@@ -166,6 +166,34 @@ def test_c5_pbp_keyed_by_row_id_and_name_gap_pinned():
     assert feats2["pbp_target_share_wavg"] == 0.0
 
 
+def test_roster_universe_seeds_no_history_players():
+    # TreVeyon Henderson case: out week 1 (no stat rows at all) but
+    # rostered+active week 2 -> priors-based projection, not absence.
+    hist = _qb_rows(pid="QB1")
+    ros = [
+        {"week": 2, "season": 2026, "gsis_id": "HEN1", "position": "RB",
+         "team": "NE", "status": "ACT", "full_name": "TreVeyon Henderson"},
+        {"week": 2, "season": 2026, "gsis_id": "IR1", "position": "WR",
+         "team": "NE", "status": "IR", "full_name": "Hurt Player"},
+        {"week": 2, "season": 2026, "gsis_id": "BYE1", "position": "WR",
+         "team": "DAL", "status": "ACT", "full_name": "Bye Player"},
+        {"week": 2, "season": 2026, "gsis_id": "OL1", "position": "T",
+         "team": "NE", "status": "ACT", "full_name": "Tackle Player"},
+        {"week": 2, "season": 2026, "gsis_id": "QB1", "position": "QB",
+         "team": "BUF", "status": "ACT", "full_name": "Test QB"},
+    ]
+    out, _ = _run_with_recorder(hist, current_week=2, byes={"DAL": 2},
+                                roster_rows=ros)
+    by_id = {p["player_id"]: p for p in out}
+    assert "HEN1" in by_id, "active no-history player missing from output"
+    assert by_id["HEN1"]["projected_points"] > 0, "priors should score > 0"
+    assert by_id["HEN1"]["position"] == "RB"
+    assert "IR1" not in by_id, "IR player must not be projected"
+    assert "BYE1" not in by_id, "bye-week player must not be projected"
+    assert "OL1" not in by_id, "non-skill position must not be projected"
+    assert sum(1 for p in out if p["player_id"] == "QB1") == 1, "no dupes"
+
+
 if __name__ == "__main__":
     test_c1_curr_ppg_is_weighted_history_not_heuristic()
     test_c2_stat_avgs_are_weighted()
@@ -174,4 +202,5 @@ if __name__ == "__main__":
     test_c3_postseason_excluded_from_prior_history()
     test_c4_snap_uses_per_week_team()
     test_c5_pbp_keyed_by_row_id_and_name_gap_pinned()
+    test_roster_universe_seeds_no_history_players()
     print("OK")

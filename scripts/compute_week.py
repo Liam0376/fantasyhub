@@ -323,7 +323,8 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                         pbp_data: dict | None = None, opp_defense: dict | None = None,
                         prior_pbp_data: dict | None = None,
                         home_map: dict | None = None, spread_map: dict | None = None,
-                        roster_info: dict | None = None, snap_data: dict | None = None) -> list[dict]:
+                        roster_info: dict | None = None, snap_data: dict | None = None,
+                        roster_rows: list[dict] | None = None) -> list[dict]:
     """Project per-game avg raw stats for the CURRENT target week only.
 
     For stat keys the father project's backtested pipeline covers
@@ -379,6 +380,45 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
     weather_by_team = weather_by_team or {}
     total_weeks = 18
     projections = []
+
+    # Roster universe: players on an NFL roster this week but without any
+    # stat history (out/inactive early weeks, e.g. TreVeyon Henderson wk1).
+    # Without this they never enter players{} and vanish from output.
+    # They project from position priors (+ prior season when present).
+    # Excludes: bye-week teams (score 0), non-skill positions, and rows
+    # with an explicit non-active roster status (IR/PUP/inactive).
+    _OUT_STATUSES = {"INA", "IR", "PUP", "NFI", "SUS", "RES", "EXE", "DNP", "OUT"}
+    _n_seeded = 0
+    for r in roster_rows or []:
+        try:
+            if int(r.get("week", 0)) != current_week:
+                continue
+        except (ValueError, TypeError):
+            continue
+        if str(r.get("season", season)) != str(season):
+            continue
+        pid = r.get("gsis_id") or ""
+        if not pid or pid in players:
+            continue
+        pos = (r.get("position") or "").upper()
+        if pos not in ("QB", "RB", "WR", "TE", "K"):
+            continue
+        team = r.get("team", "")
+        if (byes or {}).get(team) == current_week:
+            continue
+        st = (r.get("status") or "").upper()
+        if st and st in _OUT_STATUSES:
+            continue
+        name = r.get("full_name") or (
+            f"{r.get('first_name', '')} {r.get('last_name', '')}".strip())
+        players[pid] = {
+            "player_id": pid, "player_name": name or pid,
+            "position": pos, "team": team, "opponent_team": "",
+            "games": [],
+        }
+        _n_seeded += 1
+    if roster_rows and _n_seeded:
+        print(f"  Seeded {_n_seeded} no-history roster players (week {current_week})")
 
     for pid, p in players.items():
         pos = (p["position"] or "UNK").upper()
@@ -660,7 +700,9 @@ def main():
                 home_map[(away, wk)] = 0.0
                 spread_map[(away, wk)] = {"spread": -spread, "over_under": ou}
 
-    # Roster info (years_exp, draft_number)
+    # Roster info (years_exp, draft_number) + full rows for universe
+    # seeding (compute_projections needs team/pos/status per week).
+    roster_rows = []
     try:
         import csv as _csv
         import io as _io
@@ -675,6 +717,7 @@ def main():
                         "years_exp": safe_float(r.get("years_exp", 0)),
                         "draft_number": safe_float(r.get("draft_number", 0)),
                     }
+                    roster_rows.append(r)
             print(f"  Roster info for {len(roster_info)} players")
     except Exception:
         pass
@@ -748,7 +791,8 @@ def main():
         projections = compute_projections(stats_rows, target_week, season, byes,
                                           prior_season_rows, game_ctx, weather_by_team,
                                           pbp_data, opp_defense, prior_pbp_data,
-                                          home_map, spread_map, roster_info, snap_data)
+                                          home_map, spread_map, roster_info, snap_data,
+                                          roster_rows)
         # Team DEF: copy and set per-week opponents/byes.
         week_td = []
         for td in team_def:
