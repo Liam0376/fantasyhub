@@ -591,6 +591,8 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
             "games_played": played,
             "bye_week": bye_week,
             "avg_stats": avg_stats,
+            "wind_mph": round(wind_mph, 1) if wind_mph else 0,
+            "temp_f": round(temp_f, 1) if temp_f is not None else 72.0,
         }
         if pos == "QB":
             entry["projected_pass_yards"] = round(avg_stats.get("passing_yards", 0), 1)
