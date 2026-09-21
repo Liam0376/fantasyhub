@@ -2,6 +2,11 @@
 # The Vercel runtime (requirements.txt) serves precomputed JSON and must
 # stay light: xgboost's linux wheels pull nvidia-nccl-cu12 (~467MB) and
 # blow the 500MB function cap. Keep heavy deps here.
+#
+# xgboost is pinned EXACT: data/models/xgb_*.json are 3.4.1 artifacts and
+# the 2.x loader fails them silently (ml_projector swallows the error),
+# which zeroed every residual production-wide. Loader major must match
+# the training version; update both together or not at all.
 requests>=2.31,<3
-xgboost>=2.0,<3
+xgboost==3.4.1
 numpy>=1.24,<3

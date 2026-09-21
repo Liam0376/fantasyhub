@@ -608,6 +608,9 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
         projections.append(entry)
 
     projections.sort(key=lambda x: x["projected_points"], reverse=True)
+    n_adj = sum(1 for e in projections if e.get("ml_adjustment"))
+    print(f"  Week {current_week}: {n_adj}/{len(projections)} ML-adjusted",
+          flush=True)
     return projections
 
 
