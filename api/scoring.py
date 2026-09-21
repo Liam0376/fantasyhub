@@ -7,6 +7,45 @@ those avgs per league) import from here. No hardcoded league scoring.
 
 NFLVERSE_STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"
 
+
+def proj_stat_fields(avg: dict, pos: str) -> dict:
+    """Flat per-stat weekly projections for UI stat displays.
+
+    Each position fills only its own set; everything else stays None
+    (renders as a dash, sorts last). Yards/rec round 1, TDs round 2.
+    Shared by hubapi (_hub_player) and rosters (_enriched) so cards,
+    modals and props read identical numbers. No local imports: safe
+    for both the Vercel runtime and the cron scripts.
+    """
+    def y(k):
+        v = avg.get(k)
+        return round(v, 1) if v else None
+
+    def t(k):
+        v = avg.get(k)
+        return round(v, 2) if v else None
+
+    out = {"proj_pass_yd": None, "proj_pass_td": None,
+           "proj_rush_yd": None, "proj_rush_td": None,
+           "proj_rec": None, "proj_rec_yd": None, "proj_rec_td": None,
+           "proj_fgm": None, "proj_xpm": None}
+    if pos == "QB":
+        out.update(proj_pass_yd=y("passing_yards"), proj_pass_td=t("passing_tds"),
+                   proj_rush_yd=y("rushing_yards"), proj_rush_td=t("rushing_tds"))
+    elif pos == "RB":
+        out.update(proj_rush_yd=y("rushing_yards"), proj_rush_td=t("rushing_tds"),
+                   proj_rec=y("receptions"), proj_rec_yd=y("receiving_yards"))
+    elif pos in ("WR", "TE"):
+        out.update(proj_rec=y("receptions"), proj_rec_yd=y("receiving_yards"),
+                   proj_rec_td=t("receiving_tds"))
+    elif pos == "K":
+        fgm = sum(avg.get(k, 0) or 0 for k in (
+            "fg_made_0_19", "fg_made_20_29", "fg_made_30_39",
+            "fg_made_40_49", "fg_made_50_59", "fg_made_60_"))
+        out.update(proj_fgm=round(fgm, 1) if fgm else None,
+                   proj_xpm=y("pat_made"))
+    return out
+
 # nflverse weekly columns to average per player. These are the raw inputs
 # for all league-specific scoring. Add a column here and it flows through.
 AVG_STAT_KEYS = [

@@ -78,11 +78,15 @@ def test_resolve_known_player_enriches():
            "vor": 6.0, "auction_value": 40, "injury_status": None,
            "bye_week": 10, "remaining_games": 14, "width": 4.0,
            "projection_lower": 15.5, "projection_upper": 23.5, "tier": 1,
-           "edge": "BUY", "amount_paid": None}
+           "edge": "BUY", "amount_paid": None,
+           "avg_stats": {"receptions": 4.4, "receiving_yards": 62.1,
+                         "receiving_tds": 0.38}}
     by_np = {(norm_name("Ja Marr"), "WR"): hit}
     out = resolve_player("101", pmap, by_np, {})
     assert out["weekly"] == 19.5 and out["search_rank"] == 5
     assert out["depth_order"] == 1 and out["sleeper_id"] == "101"
+    assert out["proj_rec"] == 4.4 and out["proj_rec_yd"] == 62.1
+    assert out["proj_rec_td"] == 0.38 and out["proj_pass_yd"] is None
 
 
 if __name__ == "__main__":

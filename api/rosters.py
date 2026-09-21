@@ -13,7 +13,7 @@ import os
 
 from analytics import _norm_name, _roster_group, compute_analytics
 from league import fetch_league
-from scoring import FLEX_ELIGIBILITY
+from scoring import FLEX_ELIGIBILITY, proj_stat_fields
 
 _PLAYERS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "players", "latest.json")
 _players_map = None
@@ -92,7 +92,8 @@ def _enriched(hit: dict, sid: str, pos: str) -> dict:
             "remaining_games": hit.get("remaining_games", 0),
             "width": hit.get("width", 0), "lower": hit.get("projection_lower", 0),
             "upper": hit.get("projection_upper", 0), "tier": hit.get("tier", 0),
-            "edge": hit.get("edge", "FAIR"), "amount_paid": hit.get("amount_paid")}
+            "edge": hit.get("edge", "FAIR"), "amount_paid": hit.get("amount_paid"),
+            **proj_stat_fields(hit.get("avg_stats") or {}, pos)}
 
 
 def _slot_eligible(pos: str, slot: str) -> bool:
