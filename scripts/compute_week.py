@@ -784,7 +784,12 @@ def main():
     # Weather only available for current week (Open-Meteo 16-day limit);
     # future weeks stay weather-neutral (honest nulls).
     for target_week in range(week, total_weeks + 1):
-        weather_by_team = fetch_week_weather(sched_rows, target_week, season) if sched_rows else {}
+        # Weather ONLY for the current week: Open-Meteo's 16-day window
+        # can't cover other weeks, and past weeks' games are over.
+        # Calling it per week fired ~200 doomed HTTP requests (~15 min).
+        print(f"  Week {target_week}...", flush=True)
+        weather_by_team = (fetch_week_weather(sched_rows, target_week, season)
+                           if sched_rows and target_week == week else {})
         if target_week == week:
             print(f"  Weather forecast for {len(weather_by_team)} teams (week {target_week})")
 

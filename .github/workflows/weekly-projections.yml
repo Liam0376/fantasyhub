@@ -19,9 +19,10 @@ permissions:
 jobs:
   compute:
     runs-on: ubuntu-latest
-    # compute_week.py has hung silently with no output before; cap the
-    # whole job instead of burning the 6h default in minutes.
-    timeout-minutes: 30
+    # compute_week.py downloads ~100MB of PBP CSVs and projects 17 weeks
+    # x 1000+ players; the 30-min cap killed a healthy run. 60 still
+    # bounds a real hang well under the 6h default.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -38,8 +39,10 @@ jobs:
         run: pip install -r requirements-ml.txt
 
       - name: Compute projections
+        # -u: unbuffered, so progress prints stream live. Buffered output
+        # on a cancelled run shows nothing and looks like a hang.
         run: |
-          python scripts/compute_week.py \
+          python -u scripts/compute_week.py \
             ${{ github.event.inputs.week && format('--week {0}', github.event.inputs.week) || '' }} \
             ${{ github.event.inputs.season && format('--season {0}', github.event.inputs.season) || '' }}
 
