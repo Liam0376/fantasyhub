@@ -38,9 +38,10 @@ except ImportError:
     fetch_pbp_csv = aggregate_pbp = None
 
 try:
-    from opp_features import compute_opp_defense
+    from opp_features import compute_opp_defense, matchup_ranks
 except ImportError:
     compute_opp_defense = None
+    matchup_ranks = None
 
 try:
     from nfl_state import get_nfl_state
@@ -344,6 +345,10 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
     current_hist, prior_hist = fetch_current_and_prior_season_history(
         stats_rows, prior_season_rows or [], current_week, season)
 
+    # Matchup difficulty ranks: same history for every target week, so
+    # rank once per call (32 teams x 4 positions, trivial cost).
+    opp_ranks = matchup_ranks(opp_defense) if (matchup_ranks and opp_defense) else {}
+
     players = {}
     for pid, games in current_hist.items():
         first = games[-1]
@@ -576,6 +581,11 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
 
         width = interval_width(pos, avg_pts)
 
+        # Matchup difficulty vs this week's opponent (positional
+        # points-allowed rank; None for K/DEF/bye — no positional data).
+        # NB: derived from ctx here, not the opp_team local — that only
+        # binds inside the ML block above and is unbound when ML is off.
+        matchup = (opp_ranks.get(ctx.get("opponent", ""), {}) or {}).get(pos) or {}
         entry = {
             "player_id": pid,
             "player_name": p["player_name"],
@@ -593,6 +603,10 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
             "avg_stats": avg_stats,
             "wind_mph": round(wind_mph, 1) if wind_mph else 0,
             "temp_f": round(temp_f, 1) if temp_f is not None else 72.0,
+            "matchup_rank": matchup.get("rank"),
+            "matchup_difficulty": matchup.get("difficulty"),
+            "matchup_pts_allowed": (round(matchup["pts_allowed"], 1)
+                                    if matchup.get("pts_allowed") is not None else None),
         }
         if pos == "QB":
             entry["projected_pass_yards"] = round(avg_stats.get("passing_yards", 0), 1)

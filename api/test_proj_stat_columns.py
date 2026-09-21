@@ -69,10 +69,29 @@ def test_empty_avg_gives_all_none():
         assert out[k] is None, k
 
 
+def test_matchup_fields_pass_through():
+    p = _base("WR", AVG_WR)
+    p.update({"opponent_team": "DET", "matchup_rank": 28,
+              "matchup_difficulty": "EASY", "matchup_pts_allowed": 24.1})
+    out = _hub_player(p)
+    assert out["matchup_rank"] == 28
+    assert out["matchup_difficulty"] == "EASY"
+    assert out["matchup_pts_allowed"] == 24.1
+
+
+def test_matchup_fields_default_none():
+    out = _hub_player(_base("K", AVG_K))
+    assert out["matchup_rank"] is None
+    assert out["matchup_difficulty"] is None
+    assert out["matchup_pts_allowed"] is None
+
+
 if __name__ == "__main__":
     test_qb_set()
     test_rb_set()
     test_wr_set()
     test_k_set_sums_fgm_brackets()
     test_empty_avg_gives_all_none()
+    test_matchup_fields_pass_through()
+    test_matchup_fields_default_none()
     print("OK")

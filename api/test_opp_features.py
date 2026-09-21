@@ -9,7 +9,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
-from opp_features import compute_opp_defense
+from opp_features import compute_opp_defense, matchup_ranks
 from scoring import REF_SCORING, score_avg_stats
 
 
@@ -62,9 +62,54 @@ def test_filters_kickers_zeropoint_and_unmatched():
     assert out == {}
 
 
+def test_sample_counts_ride_along():
+    rows = [_qb("KC", 1, 300, 2), _qb("KC", 2, 300, 2)]
+    out = compute_opp_defense(rows, _sched(), REF_SCORING)
+    # Both weeks map KC->BUF, window default keeps both
+    assert out["BUF"]["qb_n"] == 2
+    assert out["BUF"]["rb_n"] == 0
+
+
+def _mini_league(n_teams=12):
+    # Synthetic opp_defense: team T00 allows the most, T11 the least.
+    d = {}
+    for i in range(n_teams):
+        d[f"T{i:02d}"] = {"qb_pts_allowed": 30.0 - i, "qb_n": 4.0,
+                          "rb_pts_allowed": 0.0, "rb_n": 0.0,
+                          "wr_pts_allowed": 0.0, "wr_n": 0.0,
+                          "te_pts_allowed": 0.0, "te_n": 0.0}
+    return d
+
+
+def test_rank_polarity_and_difficulty():
+    ranks = matchup_ranks(_mini_league(), prior_weight=0.0)
+    # Rank 1 = fewest allowed = hardest defense; rank 12 = easiest.
+    assert ranks["T11"]["QB"]["rank"] == 1
+    assert ranks["T11"]["QB"]["difficulty"] == "HARD"
+    assert ranks["T00"]["QB"]["rank"] == 12
+    assert ranks["T00"]["QB"]["difficulty"] == "EASY"
+    # No samples -> no entry for that position.
+    assert "RB" not in ranks["T00"]
+
+
+def test_shrinkage_pulls_single_game_toward_mean():
+    d = _mini_league()
+    d["T00"]["qb_pts_allowed"] = 60.0  # one-game outlier
+    d["T00"]["qb_n"] = 1.0
+    ranks = matchup_ranks(d, prior_weight=3.0)
+    blended = ranks["T00"]["QB"]["pts_allowed"]
+    # (1*60 + 3*mean)/4 lands between the outlier and the mean.
+    mean = sum(30.0 - i for i in range(12)) / 12
+    assert mean < blended < 60.0
+    assert ranks["T00"]["QB"]["n"] == 1
+
+
 if __name__ == "__main__":
     test_points_allowed_uses_schedule_opponent()
     test_window_takes_most_recent()
     test_up_to_week_excludes_current_and_future()
     test_filters_kickers_zeropoint_and_unmatched()
+    test_sample_counts_ride_along()
+    test_rank_polarity_and_difficulty()
+    test_shrinkage_pulls_single_game_toward_mean()
     print("OK")

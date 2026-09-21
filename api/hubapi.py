@@ -235,6 +235,9 @@ def _hub_player(p: dict) -> dict:
         "edge": edge, "injury_status": p.get("injury_status"),
         **proj_stat_fields(avg, pos_u),
         "trending": False, "wind_mph": p.get("wind_mph"), "temp_f": p.get("temp_f"),
+        "matchup_rank": p.get("matchup_rank"),
+        "matchup_difficulty": p.get("matchup_difficulty"),
+        "matchup_pts_allowed": p.get("matchup_pts_allowed"),
         "bye_week": p.get("bye_week"), "remaining_games": p.get("remaining_games", 0),
     }
 
