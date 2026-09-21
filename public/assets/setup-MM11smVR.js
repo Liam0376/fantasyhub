@@ -1,4 +1,4 @@
-import{f as q,F as C,i as k,e as i,v as B,O as L,P as w,Q as I,k as H,R,S as _,T as U,U as T,V as A}from"./index-BItRuSWM.js";function j(n){return`<div class="player-modal-backdrop show" id="setupBackdrop" style="position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; padding:16px">
+import{f as q,F as C,i as k,e as i,v as B,O as L,P as w,Q as I,k as H,R,S as _,T as U,U as T,V as A}from"./index-B-4KdT_p.js";function j(n){return`<div class="player-modal-backdrop show" id="setupBackdrop" style="position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; padding:16px">
     <div class="card player-modal-card show" id="setupCard" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="setupTitle" style="max-width:520px; width:100%; max-height:90vh; overflow:auto; padding:20px">
       ${n}
     </div>
