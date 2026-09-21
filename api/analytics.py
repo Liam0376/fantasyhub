@@ -193,6 +193,8 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
             "injury_status": injury,
             "amount_paid": amount_paid,
             "avg_stats": p.get("avg_stats") or {},
+            "wind_mph": p.get("wind_mph"),
+            "temp_f": p.get("temp_f"),
             "tier": 0,
             "auction_value": 0,
             "auction_value_dollars": "$0",
