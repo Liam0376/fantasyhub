@@ -9,4 +9,5 @@
 # the training version; update both together or not at all.
 requests>=2.31,<3
 xgboost==3.4.1
+scikit-learn>=1.3,<2
 numpy>=1.24,<3
