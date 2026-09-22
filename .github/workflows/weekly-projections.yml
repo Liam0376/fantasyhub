@@ -52,6 +52,14 @@ jobs:
       - name: Snapshot players
         run: python scripts/snapshot_players.py
 
+      - name: Grade last week predictions
+        # Joins the latest final week's projections against nflverse actuals
+        # and appends to data/grades/weekly.json (2026 evidence base for the
+        # ML gate + star-miscalibration monitor). Auto-detects target, skips
+        # non-final weeks (MNF processes last), never fails the pipeline —
+        # a grading gap is a missing row, not a broken deploy.
+        run: python scripts/grade_weekly_predictions.py
+
       - name: Guard freshness
         # compute_week.py has exited 0 with stale/empty output before.
         # Fail loudly so the cron alert fires instead of committing rot.
@@ -70,6 +78,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/projections/ data/injuries/ data/players/ data/slate/
+          git add data/projections/ data/injuries/ data/players/ data/slate/ data/grades/
           git diff --cached --quiet || git commit -m "chore: update projections $(date -u +%Y-%m-%d)"
           git push

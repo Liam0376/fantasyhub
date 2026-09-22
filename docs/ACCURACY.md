@@ -18,6 +18,7 @@ the listed gate.
 | ML residual bias (early) | RB −1.71, QB −0.43, WR −0.44, TE −0.85 | 2025 holdout weeks ≤4, shipped models | 868 | Mean(predicted − actual residual); negative = model shaves points | `scripts/calibrate_residual_bias.py` + bias probe 2026-09-22 |
 | ML residual bias (late) | RB −1.22, QB +0.04, WR −0.83, TE −1.03 | 2025 holdout weeks 5+ | 3,776 | Same measure; QB calibrated, RB/TE systematically low | Same as above |
 | Bias-corrected ML | 4.777 (TE +0.115 regress) | Same 2025 holdout, constants fit on 2024 val only | 5,141 | Additive correction per pos/regime; FAILS no-regression gate → NOT shipped | `data/models/bias_correction.json` |
+| Live weekly grades | W1: MAE 1.74, bias +0.06 (n=1,117) | 2026 Week 1 actuals vs `2026_week_01.json` | 1,117 | Heuristic-only week (ML was off); RB bias −1.42, TOP +0.14 | `data/grades/weekly.json` via `scripts/grade_weekly_predictions.py` |
 
 ## Known gaps (not contradictions)
 
@@ -36,3 +37,8 @@ the listed gate.
   was tried and FAILED the no-regression gate (TE +0.115): the bias is
   load-bearing for the MAE win, so it stays. Do not "fix" bias without
   re-running all 3 gates on untouched holdout data.
+- Live weekly grades mix reference scoring (projections) with pure PPR
+  (actuals) — absolute MAE levels carry that offset (worst for QB/K/DEF).
+  Per-player ML-vs-heuristic deltas share the same base and are clean.
+  A week grades only when final (all scheduled teams have actuals);
+  partial weeks are skipped, never backfilled with projections.
