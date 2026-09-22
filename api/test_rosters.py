@@ -7,7 +7,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
-from rosters import assign_slots, resolve_player, _slot_eligible
+from rosters import assign_slots, set_lineup, resolve_player, _slot_eligible
 from scoring import norm_name
 
 
@@ -89,7 +89,26 @@ def test_resolve_known_player_enriches():
     assert out["proj_rec_td"] == 0.38 and out["proj_pass_yd"] is None
 
 
+def test_set_lineup_follows_sleeper_not_optimal():
+    # Owner starts low-proj WR "G" at FLEX over higher-proj TE "F":
+    # the saved lineup must win; optimal is assign_slots' job.
+    rp = ["QB", "WR", "TE", "FLEX", "FLEX", "BN", "BN"]
+    players = [_p("Q", "QB", 18), _p("W", "WR", 12), _p("K", "TE", 13),
+               _p("H", "RB", 9.7), _p("G", "WR", 6.2), _p("F", "TE", 10.2)]
+    starters, bench = set_lineup(players, ["Q", "W", "K", "H", "G"], rp)
+    assert [(s["slot"], s["player_name"]) for s in starters] == [
+        ("QB", "Q"), ("WR1", "W"), ("TE", "K"), ("FLEX1", "H"), ("FLEX2", "G")]
+    assert [(b["slot"], b["player_name"]) for b in bench] == [("BN1", "F")]
+    # "0" = empty slot: skipped, not crashed
+    starters, _ = set_lineup(players, ["Q", "0", "K", "H", "G"], rp)
+    assert [s["slot"] for s in starters] == ["QB", "TE", "FLEX1", "FLEX2"]
+    # No lineup saved -> None so caller falls back to optimal
+    assert set_lineup(players, [], rp) is None
+    assert set_lineup(players, ["0", "0"], rp) is None
+
+
 if __name__ == "__main__":
+    test_set_lineup_follows_sleeper_not_optimal()
     test_assign_slots_standard_lineup()
     test_assign_slots_empty_inputs()
     test_slot_eligibility()

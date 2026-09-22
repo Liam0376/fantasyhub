@@ -142,6 +142,33 @@ def assign_slots(players: list, roster_positions: list) -> tuple:
     return starters, bench
 
 
+def set_lineup(players: list, sleeper_starters: list, roster_positions: list):
+    """The lineup actually saved in Sleeper, slotted like assign_slots.
+
+    Sleeper's `starters` lines up with the non-bench roster_positions;
+    "0" marks an empty slot. Returns None when no lineup is set so
+    callers can fall back to the optimal assign_slots lineup.
+    """
+    ids = [str(s) for s in (sleeper_starters or [])]
+    if not any(s and s != "0" for s in ids):
+        return None
+    by_id = {str(p.get("sleeper_id")): p for p in players}
+    slots = [s.upper() for s in (roster_positions or []) if s and s.upper() not in ("BN", "IR", "TAXI")]
+    counters: dict[str, int] = {}
+    starters, used = [], set()
+    for slot, sid in zip(slots, ids):
+        counters[slot] = counters.get(slot, 0) + 1
+        label = slot if counters[slot] == 1 and slot in ("QB", "TE", "K", "DEF") else f"{slot}{counters[slot]}"
+        p = by_id.get(sid)
+        if p:
+            starters.append({**p, "slot": label})
+            used.add(sid)
+    rest = sorted((p for p in players if str(p.get("sleeper_id")) not in used),
+                  key=lambda p: -(p.get("weekly") or 0))
+    bench = [{**p, "slot": f"BN{i}"} for i, p in enumerate(rest, 1)]
+    return starters, bench
+
+
 def build_rosters(league_id: str, week=None, season=None) -> dict:
     """All teams with enriched, slot-assigned players + aggregates."""
     league = fetch_league(league_id)
@@ -160,6 +187,9 @@ def build_rosters(league_id: str, week=None, season=None) -> dict:
         stashed = [{**p, "slot": "IR"} for p in enriched if str(p.get("sleeper_id")) in stash]
         starters, bench = assign_slots(active, roster_positions)
         starter_pts = round(sum(s.get("weekly") or 0 for s in starters), 1)
+        # starters/bench = optimal (start-sit, rank); set_* = saved Sleeper lineup.
+        set_starters, set_bench = (set_lineup(active, t.get("starters"), roster_positions)
+                                   or (starters, bench))
         teams.append({
             "roster_id": t["roster_id"], "owner_id": t.get("owner_id"),
             "display_name": t.get("display_name"), "team_name": t.get("team_name"),
@@ -167,6 +197,7 @@ def build_rosters(league_id: str, week=None, season=None) -> dict:
             "wins": t.get("wins", 0), "losses": t.get("losses", 0),
             "ties": t.get("ties", 0), "fpts": t.get("fpts", 0),
             "starters": starters, "bench": bench, "reserve": stashed,
+            "set_starters": set_starters, "set_bench": set_bench,
             "starter_pts": starter_pts,
             "total_auction": sum((p.get("auction_value") or 0) for p in enriched),
         })

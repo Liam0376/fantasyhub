@@ -280,8 +280,8 @@ def hub_roster(league_id: str, roster_id=None) -> dict:
     all_teams = [{**_hub_team(t), "owner_id": t.get("owner_id"),
                   "players_count": len(t["starters"]) + len(t["bench"])} for t in teams]
     return {
-        "starters": target["starters"], "bench": target["bench"],
-        "reserve": target["reserve"], "myRoster": target["starters"],
+        "starters": target["set_starters"], "bench": target["set_bench"],
+        "reserve": target["reserve"], "myRoster": target["set_starters"],
         "team_info": _hub_team(target), "teamMeta": _hub_team(target),
         "allTeams": all_teams, "leagueRosters": all_teams,
         "meta": {"rosters": len(teams)},
@@ -293,7 +293,7 @@ def hub_rosters_full(league_id: str, week=None) -> dict:
     rosters = {}
     for t in data["teams"]:
         rosters[str(t["roster_id"])] = {
-            "starters": t["starters"], "bench": t["bench"],
+            "starters": t["set_starters"], "bench": t["set_bench"],
             "reserve": t["reserve"],
             "team_info": _hub_team(t), "teamMeta": _hub_team(t),
         }
@@ -302,13 +302,6 @@ def hub_rosters_full(league_id: str, week=None) -> dict:
 
 
 # ----------------------------------------------------------------- matchups
-
-def _norm_cdf(x: float) -> float:
-    # Abramowitz-Stegun approximation (mirrors hub client).
-    t = 1.0 / (1.0 + 0.2316419 * abs(x))
-    d = 0.3989423 * math.exp(-x * x / 2.0)
-    p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))))
-    return 1.0 - p if x > 0 else p
 
 
 def _slate(season, week):
