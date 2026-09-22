@@ -15,6 +15,9 @@ the listed gate.
 | This-repo backtest, old method | MAE 4.828, PICP 0.897 | Same run | 4,251 | Naive-average baseline | `data/models/backtest_2025.json` |
 | ML holdout gate, heuristic | 4.753 | 2025 holdout, training features | per-pos n in meta | Heuristic baseline for residual gate | `data/models/ml_meta.json` |
 | ML holdout gate, ML+heuristic | 4.541 | Same holdout | same | Shipped residual models (3/3 gates, ship:true) | `data/models/ml_meta.json` |
+| ML residual bias (early) | RB −1.71, QB −0.43, WR −0.44, TE −0.85 | 2025 holdout weeks ≤4, shipped models | 868 | Mean(predicted − actual residual); negative = model shaves points | `scripts/calibrate_residual_bias.py` + bias probe 2026-09-22 |
+| ML residual bias (late) | RB −1.22, QB +0.04, WR −0.83, TE −1.03 | 2025 holdout weeks 5+ | 3,776 | Same measure; QB calibrated, RB/TE systematically low | Same as above |
+| Bias-corrected ML | 4.777 (TE +0.115 regress) | Same 2025 holdout, constants fit on 2024 val only | 5,141 | Additive correction per pos/regime; FAILS no-regression gate → NOT shipped | `data/models/bias_correction.json` |
 
 ## Known gaps (not contradictions)
 
@@ -26,3 +29,10 @@ the listed gate.
   (train/serve parity, prod-audit-tier2) aligned serve to that
   distribution; the gate itself is unchanged (model + training data
   untouched).
+- The residual models are systematically negative-biased (table above) yet
+  win MAE via shrinkage — the 3 ship gates measure MAE/pairwise only, so
+  bias is invisible to them. Stars feel it most because residual magnitude
+  scales with projection level. A per-position/regime additive correction
+  was tried and FAILED the no-regression gate (TE +0.115): the bias is
+  load-bearing for the MAE win, so it stays. Do not "fix" bias without
+  re-running all 3 gates on untouched holdout data.

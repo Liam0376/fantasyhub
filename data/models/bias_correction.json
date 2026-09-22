@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "method": "corrected = predicted - bias[pos][regime], regime = week<=4 early else late",
+  "fitted_on": "2024 val (early-stopping split, never gate data)",
+  "constants": {
+    "QB": {
+      "early": {
+        "bias": -0.1156,
+        "n": 114
+      },
+      "late": {
+        "bias": -0.5321,
+        "n": 506
+      }
+    },
+    "RB": {
+      "early": {
+        "bias": -1.8159,
+        "n": 235
+      },
+      "late": {
+        "bias": -1.0371,
+        "n": 1034
+      }
+    },
+    "WR": {
+      "early": {
+        "bias": -1.1002,
+        "n": 342
+      },
+      "late": {
+        "bias": -1.3804,
+        "n": 1491
+      }
+    },
+    "TE": {
+      "early": {
+        "bias": -0.28,
+        "n": 162
+      },
+      "late": {
+        "bias": -1.2345,
+        "n": 742
+      }
+    }
+  },
+  "gate_rerun_2025": {
+    "overall_ml_mae": 4.777311607543941,
+    "overall_h_mae": 4.837075796855083,
+    "pairwise": 0.7164884207140559,
+    "heuristic_pairwise": 0.701169990350595,
+    "pos_delta": {
+      "QB": -0.7126169204711914,
+      "RB": 0.03879404067993164,
+      "WR": 3.5762786865234375e-05,
+      "TE": 0.11532711982727051
+    },
+    "gates": {
+      "overall_mae": true,
+      "no_regression": false,
+      "pairwise": true
+    },
+    "all_pass": false
+  }
+}

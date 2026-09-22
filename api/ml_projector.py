@@ -20,15 +20,27 @@ _ship = False
 _load_error: str | None = None
 
 
+def _fail(msg):
+    # why fail-closed (order-dependent test find, 2026-09-22): every load
+    # failure used to return WITHOUT clearing _models, so stale models from
+    # an earlier good load kept serving after the meta went missing or ship
+    # flipped false. A failed load must leave zero models behind — the
+    # contract is None (heuristic stands), never stale predictions.
+    global _load_error
+    _load_error = msg
+    _models.clear()
+    _feature_cols.clear()
+    print(f"[ml_projector] {_load_error}", file=sys.stderr)
+
+
 def _load_models():
-    global _loaded, _ship, _load_error
+    global _loaded, _ship
     if _loaded:
         return
     _loaded = True
 
     if not META_PATH.exists():
-        _load_error = f"meta missing: {META_PATH}"
-        print(f"[ml_projector] {_load_error}", file=sys.stderr)
+        _fail(f"meta missing: {META_PATH}")
         return
 
     try:
@@ -39,8 +51,7 @@ def _load_models():
 
         _ship = meta.get("ship", False)
         if not _ship:
-            _load_error = "ship=false, ML disabled by gate"
-            print(f"[ml_projector] {_load_error}", file=sys.stderr)
+            _fail("ship=false, ML disabled by gate")
             return
 
         cols_by_pos = meta.get("feature_cols_by_position", {})
@@ -52,13 +63,11 @@ def _load_models():
                 _models[pos] = m
                 _feature_cols[pos] = cols_by_pos[pos]
         if not _models:
-            _load_error = "no models loaded"
-            print(f"[ml_projector] {_load_error}", file=sys.stderr)
+            _fail("no models loaded")
     except Exception as e:
         # Loud, not silent: a swallowed load error once zeroed every
         # residual production-wide (xgboost 2.x loader vs 3.x artifacts).
-        _load_error = f"{type(e).__name__}: {e}"
-        print(f"[ml_projector] load failed: {_load_error}", file=sys.stderr)
+        _fail(f"{type(e).__name__}: {e}")
 
 
 def ml_predict(features: dict, position: str = None) -> float | None:
