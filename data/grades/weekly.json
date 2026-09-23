@@ -144,5 +144,224 @@
         "bias_h": 0.0
       }
     }
+  },
+  {
+    "season": 2026,
+    "week": 2,
+    "graded_at": "2026-09-23T11:16:58.009547+00:00",
+    "coverage": {
+      "matched": 1096,
+      "skipped": 448
+    },
+    "splits": {
+      "ALL": {
+        "n": 1096,
+        "mae_h": 1.808,
+        "bias_h": 0.539,
+        "n_ml": 1096,
+        "mae_ml": 1.688,
+        "bias_ml": 0.271
+      },
+      "QB": {
+        "n": 39,
+        "mae_h": 7.66,
+        "bias_h": 1.1,
+        "n_ml": 39,
+        "mae_ml": 7.413,
+        "bias_ml": 0.824
+      },
+      "TOP": {
+        "n": 21,
+        "mae_h": 8.42,
+        "bias_h": -0.008,
+        "n_ml": 21,
+        "mae_ml": 9.871,
+        "bias_ml": 0.292
+      },
+      "RB": {
+        "n": 95,
+        "mae_h": 3.953,
+        "bias_h": 1.883,
+        "n_ml": 95,
+        "mae_ml": 3.338,
+        "bias_ml": 0.245
+      },
+      "WR": {
+        "n": 152,
+        "mae_h": 4.975,
+        "bias_h": 0.602,
+        "n_ml": 152,
+        "mae_ml": 4.673,
+        "bias_ml": -0.029
+      },
+      "TE": {
+        "n": 73,
+        "mae_h": 3.883,
+        "bias_h": 0.468,
+        "n_ml": 73,
+        "mae_ml": 3.735,
+        "bias_ml": 0.133
+      },
+      "K": {
+        "n": 32,
+        "mae_h": 7.904,
+        "bias_h": 7.904,
+        "n_ml": 32,
+        "mae_ml": 7.704,
+        "bias_ml": 7.704
+      },
+      "CB": {
+        "n": 114,
+        "mae_h": 0.018,
+        "bias_h": 0.018,
+        "n_ml": 114,
+        "mae_ml": 0.018,
+        "bias_ml": 0.018
+      },
+      "FB": {
+        "n": 5,
+        "mae_h": 2.38,
+        "bias_h": -2.38,
+        "n_ml": 5,
+        "mae_ml": 2.38,
+        "bias_ml": -2.38
+      },
+      "DE": {
+        "n": 80,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 80,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "FS": {
+        "n": 6,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 6,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "OLB": {
+        "n": 8,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 8,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "P": {
+        "n": 32,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 32,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "LS": {
+        "n": 3,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 3,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "S": {
+        "n": 4,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 4,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "OT": {
+        "n": 32,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 32,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "MLB": {
+        "n": 4,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 4,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "LB": {
+        "n": 176,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 176,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "DT": {
+        "n": 97,
+        "mae_h": 0.003,
+        "bias_h": -0.003,
+        "n_ml": 97,
+        "mae_ml": 0.003,
+        "bias_ml": -0.003
+      },
+      "NT": {
+        "n": 2,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 2,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "SAF": {
+        "n": 94,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 94,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "DB": {
+        "n": 18,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 18,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "ILB": {
+        "n": 3,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 3,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "C": {
+        "n": 12,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 12,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "G": {
+        "n": 12,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 12,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      },
+      "DL": {
+        "n": 3,
+        "mae_h": 0.0,
+        "bias_h": 0.0,
+        "n_ml": 3,
+        "mae_ml": 0.0,
+        "bias_ml": 0.0
+      }
+    }
   }
 ]
