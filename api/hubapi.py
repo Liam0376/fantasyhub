@@ -297,8 +297,14 @@ def hub_rosters_full(league_id: str, week=None) -> dict:
             "reserve": t["reserve"],
             "team_info": _hub_team(t), "teamMeta": _hub_team(t),
         }
+    settings = (data.get("league") or {}).get("settings") or {}
     return {"rosters": rosters,
-            "leagueRosters": [{**_hub_team(t), "owner_id": t.get("owner_id")} for t in data["teams"]]}
+            "leagueRosters": [{**_hub_team(t), "owner_id": t.get("owner_id"),
+                               "wins": t.get("wins", 0), "losses": t.get("losses", 0),
+                               "ties": t.get("ties", 0), "fpts": t.get("fpts", 0),
+                               "starter_pts": t.get("starter_pts", 0)} for t in data["teams"]],
+            "playoff_teams": settings.get("playoff_teams", 6),
+            "week": data.get("week")}
 
 
 # ----------------------------------------------------------------- matchups
