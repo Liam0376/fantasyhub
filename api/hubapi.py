@@ -304,6 +304,7 @@ def hub_rosters_full(league_id: str, week=None) -> dict:
                                "ties": t.get("ties", 0), "fpts": t.get("fpts", 0),
                                "starter_pts": t.get("starter_pts", 0)} for t in data["teams"]],
             "playoff_teams": settings.get("playoff_teams", 6),
+            "playoff_week_start": settings.get("playoff_week_start", 15),
             "week": data.get("week")}
 
 
@@ -457,7 +458,8 @@ def hub_waiver(league_id: str, owner_id=None) -> dict:
             else:
                 continue
         recs.append({
-            "player_id": p.get("player_id", ""), "player_name": p.get("player_name", ""),
+            "player_id": p.get("player_id", ""), "sleeper_id": _sleeper_id_for(p),
+            "player_name": p.get("player_name", ""),
             "position": pos, "team": p.get("team", ""),
             "projected_points": pts, "improvement_over_roster": round(improvement, 2),
             "vbd": round(pts - replacement.get(pos, 0.0), 2),
