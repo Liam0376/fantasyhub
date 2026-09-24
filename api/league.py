@@ -35,6 +35,11 @@ def fetch_league(league_id: str) -> dict:
         rid = str(rost.get("roster_id", ""))
         owner_id = str(rost.get("owner_id", ""))
         user_info = user_map.get(owner_id, {})
+        # why nested settings: Sleeper nests W/L/FP under roster.settings,
+        # not top-level — top-level .get() silently yielded 0–0 forever.
+        rs = rost.get("settings") or {}
+        fpts = (rost.get("fpts") if rost.get("fpts") is not None else rs.get("fpts", 0)) or 0
+        fpts_dec = (rost.get("fpts_decimal") if rost.get("fpts_decimal") is not None else rs.get("fpts_decimal", 0)) or 0
         teams.append({
             "roster_id": rid,
             "owner_id": owner_id,
@@ -46,12 +51,12 @@ def fetch_league(league_id: str) -> dict:
             "starters": rost.get("starters") or [],
             "reserve": rost.get("reserve") or [],
             "taxi": rost.get("taxi") or [],
-            "wins": rost.get("wins", 0),
-            "losses": rost.get("losses", 0),
-            "ties": rost.get("ties", 0),
-            "fpts": rost.get("fpts", 0),
-            "fpts_against": rost.get("fpts_against", 0),
-            "fpts_decimal": rost.get("fpts_decimal", 0),
+            "wins": rost.get("wins") if rost.get("wins") is not None else rs.get("wins", 0),
+            "losses": rost.get("losses") if rost.get("losses") is not None else rs.get("losses", 0),
+            "ties": rost.get("ties") if rost.get("ties") is not None else rs.get("ties", 0),
+            "fpts": fpts + fpts_dec / 100.0,
+            "fpts_against": rost.get("fpts_against") or rs.get("fpts_against", 0),
+            "fpts_decimal": fpts_dec,
         })
 
     scoring = league.get("scoring_settings", {})
