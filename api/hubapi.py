@@ -506,6 +506,8 @@ def _pkg_entry(p, fc):
     m = fc.get(sid) or {}
     return {"player_id": p.get("player_id"), "sleeper_id": sid or None,
             "player_name": p.get("player_name"), "position": p.get("position"),
+            "team": p.get("team"),
+            "weekly": round(float(p.get("weekly") or 0), 1),
             "ros": round(float(p.get("vor") or 0) * (p.get("remaining_games") or 0)
                          * _injury_mult(p.get("injury_status")), 1),
             "market": m.get("v"), "trend30": m.get("t30")}
@@ -584,17 +586,23 @@ def hub_trade(league_id: str, team_a_id=None, team_b_id=None, traded_a=None, tra
                       "remaining_games": remaining},
         }
 
+    # diff = pkgB - pkgA. In package mode positive means B's package is
+    # worth more, i.e. Team A (who receives it) wins. In legacy full-roster
+    # mode there is no trade — diff just compares roster strength.
     diff = round(b_r - a_r, 1)
-    if diff >= 50:
-        winner, rec = (tb.get("team_name") or "Team B"), "Clear win for Team B on rest-of-season value."
-    elif diff >= 20:
-        winner, rec = (tb.get("team_name") or "Team B"), "Leans Team B on rest-of-season value."
-    elif diff <= -50:
-        winner, rec = (ta.get("team_name") or "Team A"), "Clear win for Team A on rest-of-season value."
-    elif diff <= -20:
-        winner, rec = (ta.get("team_name") or "Team A"), "Leans Team A on rest-of-season value."
-    else:
+    mag = abs(diff)
+    if mag < 20:
         winner, rec = "Even", "Fair trade — rest-of-season value is close."
+    else:
+        strong = "Clear win" if mag >= 50 else "Leans"
+        if "packages" in extra:
+            side = ta if diff > 0 else tb
+            winner = side.get("team_name") or ("Team A" if diff > 0 else "Team B")
+            rec = f"{strong} for {winner} on rest-of-season value."
+        else:
+            side = tb if diff > 0 else ta
+            winner = side.get("team_name") or ("Team B" if diff > 0 else "Team A")
+            rec = f"{side.get('team_name') or winner} has the stronger roster."
     # Flat shape (not nested): matches father backend's handle_trade
     # contract {winner, value_difference, recommendation} that trade.js
     # reads at top level. fetchTrade unwraps only the model-backend

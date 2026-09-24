@@ -59,7 +59,16 @@ def test_legacy_full_roster_no_packages(monkeypatch):
     assert out["team_b_ros"] == 110.0
 
 
-def test_market_sums_from_snapshot(monkeypatch):
+def test_winner_is_team_receiving_more(monkeypatch):
+    _rosters(monkeypatch)
+    monkeypatch.setattr(hubapi, "hub_waiver", lambda *a, **k: {"recommendations": []})
+    # A gives 10, gets 90 -> A wins big
+    out = hubapi.hub_trade("L", "1", "2", traded_a=["a3"], traded_b=["b1"])
+    assert out["value_difference"] == 80.0
+    assert out["winner"] == "Alpha"
+    # Mirror: B gives 110... A gives 150, gets 110 -> B wins
+    out = hubapi.hub_trade("L", "1", "2", traded_a=["a1", "a2", "a3"], traded_b=["b1", "b2"])
+    assert out["winner"] == "Beta"
     _rosters(monkeypatch)
     monkeypatch.setattr(hubapi, "hub_waiver", lambda *a, **k: {"recommendations": []})
     monkeypatch.setattr(hubapi, "_load_fc_market",
