@@ -83,8 +83,12 @@ class handler(BaseHTTPRequestHandler):
             elif path == "/hub-api/waiver":
                 status, body = 200, hubapi.hub_waiver(g("league_id"), owner_id=g("owner_id"))
             elif path == "/hub-api/trade":
+                traded_a = g("traded_a")
+                traded_b = g("traded_b")
                 status, body = 200, hubapi.hub_trade(
-                    g("league_id"), team_a_id=g("team_a_id"), team_b_id=g("team_b_id"))
+                    g("league_id"), team_a_id=g("team_a_id"), team_b_id=g("team_b_id"),
+                    traded_a=traded_a.split(",") if traded_a else None,
+                    traded_b=traded_b.split(",") if traded_b else None)
             elif path == "/hub-api/news":
                 status, body = 200, hubapi.hub_news(limit=g("limit", 25))
             elif path == "/hub-api/refresh-log":
@@ -99,8 +103,12 @@ class handler(BaseHTTPRequestHandler):
                 status, body = 200, hubapi.hub_rec_waiver(
                     g("league_id"), owner_id=g("owner_id"))
             elif path == "/hub-api/recommendations/trade":
+                traded_a = g("traded_a")
+                traded_b = g("traded_b")
                 status, body = 200, hubapi.hub_rec_trade(
-                    g("league_id"), team_a_id=g("team_a_id"), team_b_id=g("team_b_id"))
+                    g("league_id"), team_a_id=g("team_a_id"), team_b_id=g("team_b_id"),
+                    traded_a=traded_a.split(",") if traded_a else None,
+                    traded_b=traded_b.split(",") if traded_b else None)
             elif path == "/hub-api/recommendations/start-sit":
                 status, body = 200, hubapi.hub_start_sit(g("league_id"))
             else:

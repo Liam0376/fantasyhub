@@ -477,25 +477,113 @@ def hub_waiver(league_id: str, owner_id=None) -> dict:
 
 # -------------------------------------------------------------------- trade
 
-def hub_trade(league_id: str, team_a_id=None, team_b_id=None) -> dict:
+def _load_fc_market():
+    """FantasyCalc market values keyed by Sleeper ID (weekly snapshot).
+
+    Missing/stale file → {} and every market field degrades to None.
+    Never raise: market comparison is enrichment, not load-bearing.
+    """
+    try:
+        with open(os.path.join(os.path.dirname(__file__), "..", "data", "market", "fantasycalc.json")) as f:
+            d = json.load(f)
+        return d.get("players") or {}
+    except (OSError, ValueError, AttributeError):
+        return {}
+
+
+def _trade_pkg_value(players):
+    weekly, ros = 0.0, 0.0
+    for p in players:
+        vor = float(p.get("vor") or 0)
+        weekly += vor
+        rem = p.get("remaining_games") or 0
+        ros += vor * rem * _injury_mult(p.get("injury_status"))
+    return weekly, ros
+
+
+def _pkg_entry(p, fc):
+    sid = str(p.get("sleeper_id") or "")
+    m = fc.get(sid) or {}
+    return {"player_id": p.get("player_id"), "sleeper_id": sid or None,
+            "player_name": p.get("player_name"), "position": p.get("position"),
+            "ros": round(float(p.get("vor") or 0) * (p.get("remaining_games") or 0)
+                         * _injury_mult(p.get("injury_status")), 1),
+            "market": m.get("v"), "trend30": m.get("t30")}
+
+
+def _slot_fill(league_id, owner_id, slots, remaining):
+    """Best waiver fills for a team gaining open roster slots.
+
+    Returns (credit_ros, names): top-slots recs by weekly improvement,
+    scaled by remaining games into ROS points. Empty when no slots,
+    no owner, or no candidates — the verdict then stands on packages.
+    """
+    if slots <= 0 or not owner_id:
+        return 0.0, []
+    try:
+        recs = (hub_waiver(league_id, owner_id) or {}).get("recommendations") or []
+    except Exception:
+        return 0.0, []
+    top = recs[:slots]
+    credit = round(sum(float(r.get("improvement_over_roster") or 0) for r in top) * remaining, 1)
+    return credit, [r.get("player_name") for r in top if r.get("player_name")]
+
+
+def hub_trade(league_id: str, team_a_id=None, team_b_id=None, traded_a=None, traded_b=None) -> dict:
     data = build_rosters(league_id)
     by_id = {str(t["roster_id"]): t for t in data["teams"]}
     ta = by_id.get(str(team_a_id)) or {}
     tb = by_id.get(str(team_b_id)) or {}
+    fc = _load_fc_market()
+    week = data.get("week") or 1
+    try:
+        remaining = max(0, 17 - int(week))
+    except (TypeError, ValueError):
+        remaining = 10
 
-    def side_value(players):
-        weekly, ros = 0.0, 0.0
-        for p in players:
-            vor = float(p.get("vor") or 0)
-            weekly += vor
-            rem = p.get("remaining_games") or 0
-            ros += vor * rem * _injury_mult(p.get("injury_status"))
-        return weekly, ros
+    def match(roster_players, ids):
+        if not ids:
+            return None
+        want = {str(x) for x in ids}
+        return [p for p in (roster_players or [])
+                if str(p.get("player_id") or p.get("id")) in want
+                or str(p.get("sleeper_id") or "") in want]
 
     a_all = (ta.get("starters") or []) + (ta.get("bench") or [])
     b_all = (tb.get("starters") or []) + (tb.get("bench") or [])
-    a_w, a_r = side_value(a_all)
-    b_w, b_r = side_value(b_all)
+    pkg_a = match(a_all, traded_a)
+    pkg_b = match(b_all, traded_b)
+
+    if pkg_a is None and pkg_b is None:
+        # No packages passed (legacy callers): full-roster comparison.
+        a_w, a_r = _trade_pkg_value(a_all)
+        b_w, b_r = _trade_pkg_value(b_all)
+        extra = {}
+    else:
+        pkg_a = pkg_a or []
+        pkg_b = pkg_b or []
+        a_w, a_r = _trade_pkg_value(pkg_a)
+        b_w, b_r = _trade_pkg_value(pkg_b)
+        na, nb = len(pkg_a), len(pkg_b)
+        gain_a, gain_b = max(0, nb - na), max(0, na - nb)
+        credit_a, fill_a = _slot_fill(league_id, ta.get("owner_id"), gain_a, remaining)
+        credit_b, fill_b = _slot_fill(league_id, tb.get("owner_id"), gain_b, remaining)
+        a_r += credit_a
+        b_r += credit_b
+        market_a = sum((e["market"] or 0) for e in [_pkg_entry(p, fc) for p in pkg_a])
+        market_b = sum((e["market"] or 0) for e in [_pkg_entry(p, fc) for p in pkg_b])
+        extra = {
+            "packages": {"a": [_pkg_entry(p, fc) for p in pkg_a],
+                         "b": [_pkg_entry(p, fc) for p in pkg_b]},
+            "market_a": market_a or None, "market_b": market_b or None,
+            "market_coverage_a": sum(1 for p in pkg_a if (_pkg_entry(p, fc)["market"] is not None)),
+            "market_coverage_b": sum(1 for p in pkg_b if (_pkg_entry(p, fc)["market"] is not None)),
+            "slots": {"gained_a": gain_a, "gained_b": gain_b,
+                      "credit_a_ros": credit_a, "credit_b_ros": credit_b,
+                      "fill_a": fill_a, "fill_b": fill_b,
+                      "remaining_games": remaining},
+        }
+
     diff = round(b_r - a_r, 1)
     if diff >= 50:
         winner, rec = (tb.get("team_name") or "Team B"), "Clear win for Team B on rest-of-season value."
@@ -514,7 +602,8 @@ def hub_trade(league_id: str, team_a_id=None, team_b_id=None) -> dict:
     return {"winner": winner, "recommendation": rec,
             "value_difference": diff,
             "team_a_ros": round(a_r, 1), "team_b_ros": round(b_r, 1),
-            "team_a_weekly": round(a_w, 1), "team_b_weekly": round(b_w, 1)}
+            "team_a_weekly": round(a_w, 1), "team_b_weekly": round(b_w, 1),
+            **extra}
 
 
 # --------------------------------------- recommendations compat shims
@@ -537,9 +626,9 @@ def hub_rec_waiver(league_id: str, owner_id=None) -> dict:
             "meta": {"timestamp": _utc_ts()}}
 
 
-def hub_rec_trade(league_id: str, team_a_id=None, team_b_id=None) -> dict:
+def hub_rec_trade(league_id: str, team_a_id=None, team_b_id=None, traded_a=None, traded_b=None) -> dict:
     try:
-        out = hub_trade(league_id, team_a_id, team_b_id)
+        out = hub_trade(league_id, team_a_id, team_b_id, traded_a, traded_b)
     except Exception:
         return {"winner": "Even", "recommendation": "Trade data unavailable.",
                 "value_difference": 0, "timestamp": _utc_ts(), "cold": True}
