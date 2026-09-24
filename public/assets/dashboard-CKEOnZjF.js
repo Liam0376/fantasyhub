@@ -1,13 +1,13 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-C6_NqDZT.js","assets/index-Dd55ThMs.css"])))=>i.map(i=>d[i]);
-import{f as F,a as W,b as U,c as z,d as H,e as T,g as C,h as d,l as O,u as q,p as k,i as P,t as S,j as I,_ as V}from"./index-C6_NqDZT.js";async function K(a){var M,R;const[e,f,t,h,u,j,N]=await Promise.all([F(),W(),U().catch(()=>null),z().catch(()=>({trending_adds:[]})),H({}).catch(()=>({recommendations:[]})),T({edge:"BUY",limit:400}).catch(()=>({players:[]})),T({edge:"SELL",limit:400}).catch(()=>({players:[]}))]),y=C(e.lastUpdated||e.last_updated||((R=(M=f.entries)==null?void 0:M[0])==null?void 0:R.ran_at)),_=e.leagueName||"Dashboard",v=e.week??(t==null?void 0:t.week)??null,i=[...(t==null?void 0:t.leagueRosters)||[]].sort((s,n)=>(n.wins??0)-(s.wins??0)||(n.fpts??0)-(s.fpts??0)),l=(t==null?void 0:t.playoff_teams)??6,w=((t==null?void 0:t.playoff_week_start)??15)-1,r=Math.max(0,w-(v??1)),p=Y(i,l,r),c=[];for(const[s,n]of Object.entries((t==null?void 0:t.rosters)||{})){const o=n.teamMeta||n.team_info||{},m=o.display_name||o.team_name||`Team ${s}`;for(const b of[...n.starters||[],...n.bench||[]]){const $=b.injury_status;$&&$!=="Healthy"&&$!=="Active"&&c.push({...b,owner:m})}}c.sort((s,n)=>A(n.injury_status)-A(s.injury_status));const g=(h.trending_adds||[]).slice(0,4),L=[...u.recommendations||[]].sort((s,n)=>(n.improvement_over_roster??-99)-(s.improvement_over_roster??-99)).slice(0,5),B=e.scoring_settings||{},x=Number(B.rec??1),E=x===1?"Full PPR":x===.5?"Half PPR":x===0?"Non-PPR":`${x} PPR`;a.innerHTML=`
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-C2mMjaKG.js","assets/index-Dd55ThMs.css"])))=>i.map(i=>d[i]);
+import{f as E,a as W,b as z,c as U,d as H,e as T,g as C,h as d,l as O,u as q,p as k,i as P,t as S,j as I,_ as V}from"./index-C2mMjaKG.js";async function K(a){var M,R;const[e,h,t,u,g,j,N]=await Promise.all([E(),W(),z().catch(()=>null),U().catch(()=>({trending_adds:[]})),H({}).catch(()=>({recommendations:[]})),T({edge:"BUY",limit:400}).catch(()=>({players:[]})),T({edge:"SELL",limit:400}).catch(()=>({players:[]}))]),y=C(e.lastUpdated||e.last_updated||((R=(M=h.entries)==null?void 0:M[0])==null?void 0:R.ran_at)),w=e.leagueName||"Dashboard",p=e.week??(t==null?void 0:t.week)??null,i=[...(t==null?void 0:t.leagueRosters)||[]].sort((s,n)=>(n.wins??0)-(s.wins??0)||(n.fpts??0)-(s.fpts??0)),l=(t==null?void 0:t.playoff_teams)??6,x=((t==null?void 0:t.playoff_week_start)??15)-1,r=Math.max(0,x-(p??1)),v=Y(i,l,r),c=[];for(const[s,n]of Object.entries((t==null?void 0:t.rosters)||{})){const o=n.teamMeta||n.team_info||{},m=o.display_name||o.team_name||`Team ${s}`;for(const f of[...n.starters||[],...n.bench||[]]){const _=f.injury_status;_&&_!=="Healthy"&&_!=="Active"&&c.push({...f,owner:m})}}c.sort((s,n)=>A(n.injury_status)-A(s.injury_status));const $=(u.trending_adds||[]).slice(0,4),L=[...g.recommendations||[]].sort((s,n)=>(n.improvement_over_roster??-99)-(s.improvement_over_roster??-99)).slice(0,5),F=e.scoring_settings||{},b=Number(F.rec??1),B=b===1?"Full PPR":b===.5?"Half PPR":b===0?"Non-PPR":`${b} PPR`;a.innerHTML=`
     <div class="dash-band reveal in">
       <div class="dash-band-main">
-        <div class="kicker">${d([e.season?`${e.season} Season`:"",v!=null?`Week ${v}`:"",y.label].filter(Boolean).join(" · "))}</div>
-        <h1>${d(_)}</h1>
-        <p>${d(O(e))} · ${d(E)}</p>
+        <div class="kicker">${d([e.season?`${e.season} Season`:"",p!=null?`Week ${p}`:"",y.label].filter(Boolean).join(" · "))}</div>
+        <h1>${d(w)}</h1>
+        <p>${d(O(e))} · ${d(B)}</p>
       </div>
       <div class="dash-band-side">
-        <div class="dash-week">${v!=null?`W${v}`:"—"}</div>
+        <div class="dash-week">${p!=null?`W${p}`:"—"}</div>
         <div class="micro faint">${d(i.length?`${i.length} teams`:"league")}</div>
       </div>
     </div>
@@ -18,14 +18,15 @@ import{f as F,a as W,b as U,c as z,d as H,e as T,g as C,h as d,l as O,u as q,p a
       <div class="card dash-span-4">
         <div class="card-header"><h3>Playoff Race</h3><span class="kicker">sim odds · ${r} left</span></div>
         <div class="card-body" style="padding:6px 12px">
-          ${i.length?i.map((s,n)=>{const o=Math.round((p[n]??0)*100),m=o>=70?"var(--emerald)":o>=35?"var(--amber-strong)":"var(--text-faint)";return`
+          ${i.length?i.map((s,n)=>{const o=Math.round((v[n]??0)*100),m=o>=70?"var(--emerald)":o>=35?"var(--amber-strong)":"var(--text-faint)",f=s.wins==null&&s.losses==null?"–":`${s.wins??0}–${s.losses??0}${s.ties?`–${s.ties}`:""}`;return`
             ${n===l?'<div class="cut-line"><span>playoff cut</span></div>':""}
-            <div class="stand-row">
+            <div class="stand-row" title="Projected ${Number(s.starter_pts??0).toFixed(1)} pts this week">
               <span class="mono faint" style="width:16px">${n+1}</span>
               ${q(s,24)}
               <span class="stand-name">${d(s.team_name||s.display_name||`Team ${s.roster_id}`)}</span>
               <span class="spacer"></span>
-              <span class="mono" style="font-weight:700">${s.wins??0}–${s.losses??0}${s.ties?`–${s.ties}`:""}</span>
+              <span class="mono" style="font-weight:700">${f}</span>
+              <span class="mono faint" style="font-size:11px">${Number(s.starter_pts??0).toFixed(0)}/wk</span>
               <span class="odds mono" style="color:${m}; width:38px; text-align:right">${o}%</span>
               <span class="odds-bar"><span style="width:${o}%; background:${m}"></span></span>
             </div>`}).join(""):'<div class="empty">No standings yet</div>'}
@@ -45,9 +46,9 @@ import{f as F,a as W,b as U,c as z,d as H,e as T,g as C,h as d,l as O,u as q,p a
               ${I(s.injury_status)}
             </div>
           `).join(""):'<div class="empty">No injury tags on rosters</div>'}
-          ${g.length?`
+          ${$.length?`
             <div class="kicker" style="margin:10px 0 4px">Trending adds</div>
-            ${g.map(s=>`
+            ${$.map(s=>`
               <div class="mini-row">
                 ${s.player_id?k({player_id:s.player_id,player_name:s.player_name||"",position:s.position||"",team:s.team||""},26):""}
                 <div style="flex:1; min-width:0"><div class="mini-name">${d(s.player_name||s.player_id)}</div></div>
@@ -96,7 +97,7 @@ import{f as F,a as W,b as U,c as z,d as H,e as T,g as C,h as d,l as O,u as q,p a
         <div class="card-header"><h3>Sync</h3><span class="row" style="gap:5px"><span class="dot ${y.level==="fresh"?"fresh":y.level==="stale"?"stale":"cold"}"></span><span class="kicker">${d(y.label)}</span></span></div>
         <div class="card-body" style="padding:10px 12px">
           <div class="micro faint">${e.lastUpdated?`Updated ${new Date(e.lastUpdated).toLocaleString()}`:"Local DB Active"}</div>
-          ${(f.entries||[]).slice(0,3).map(s=>`
+          ${(h.entries||[]).slice(0,3).map(s=>`
             <div class="sync-row">
               <span class="dot ${s.success?"fresh":"stale"}" style="flex-shrink:0"></span>
               <span class="mono" style="font-size:11px">${d(s.source)}</span>
@@ -107,7 +108,7 @@ import{f as F,a as W,b as U,c as z,d as H,e as T,g as C,h as d,l as O,u as q,p a
         </div>
       </div>
     </div>
-  `,a.querySelectorAll("[data-pid]").forEach(s=>{s.addEventListener("click",async()=>{const n=s.getAttribute("data-pid"),o=[...u.recommendations||[],...c].find(m=>String(m.player_id)===String(n));if(o){const{openPlayerModal:m}=await V(async()=>{const{openPlayerModal:b}=await import("./index-C6_NqDZT.js").then($=>$.W);return{openPlayerModal:b}},__vite__mapDeps([0,1]));m(o,a)}})})}function D(a){return`
+  `,a.querySelectorAll("[data-pid]").forEach(s=>{s.addEventListener("click",async()=>{const n=s.getAttribute("data-pid"),o=[...g.recommendations||[],...c].find(m=>String(m.player_id)===String(n));if(o){const{openPlayerModal:m}=await V(async()=>{const{openPlayerModal:f}=await import("./index-C2mMjaKG.js").then(_=>_.W);return{openPlayerModal:f}},__vite__mapDeps([0,1]));m(o,a)}})})}function D(a){return`
     <div class="mini-row">
       ${k(a,26)}
       <div style="flex:1; min-width:0">
@@ -118,4 +119,4 @@ import{f as F,a as W,b as U,c as z,d as H,e as T,g as C,h as d,l as O,u as q,p a
         <div class="mono" style="font-weight:700; font-size:13px">${Number(a.weekly??a.projected_points??0).toFixed(1)}<span class="micro faint">/wk</span></div>
         <div class="micro faint">model $${Number(a.auction??0)}</div>
       </div>
-    </div>`}function Y(a,e,f,t=4e3){if(!a.length||e<=0)return a.map(()=>0);const h=a.map(i=>Number(i.starter_pts??0)),u=[...h].sort((i,l)=>i-l),j=u[Math.floor(u.length/2)]??0,N=h.map(i=>Math.min(.95,Math.max(.05,.5+(i-j)*.025))),y=a.map(i=>Number(i.wins??0)+Number(i.ties??0)*.5),_=a.map((i,l)=>Number(i.fpts??0)+f*h[l]),v=new Array(a.length).fill(0);for(let i=0;i<t;i++){const l=y.map((r,p)=>{let c=0;for(let g=0;g<f;g++)Math.random()<N[p]&&c++;return r+c}),w=a.map((r,p)=>p).sort((r,p)=>l[p]-l[r]||_[p]-_[r]);for(let r=0;r<Math.min(e,w.length);r++)v[w[r]]++}return v.map(i=>i/t)}function A(a){const e=String(a||"").toLowerCase();return/out|ir|injured reserve|pup/.test(e)?3:/doubtful/.test(e)?2:/questionable|limited|dnp/.test(e)?1:0}function G(a){const e=(a==null?void 0:a.data_source)??null;return typeof e=="string"&&e.toLowerCase()==="demo"}export{K as renderDashboard};
+    </div>`}function Y(a,e,h,t=4e3){if(!a.length||e<=0)return a.map(()=>0);const u=a.map(i=>Number(i.starter_pts??0)),g=[...u].sort((i,l)=>i-l),j=g[Math.floor(g.length/2)]??0,N=u.map(i=>Math.min(.95,Math.max(.05,.5+(i-j)*.025))),y=a.map(i=>Number(i.wins??0)+Number(i.ties??0)*.5),w=a.map((i,l)=>Number(i.fpts??0)+h*u[l]),p=new Array(a.length).fill(0);for(let i=0;i<t;i++){const l=y.map((r,v)=>{let c=0;for(let $=0;$<h;$++)Math.random()<N[v]&&c++;return r+c}),x=a.map((r,v)=>v).sort((r,v)=>l[v]-l[r]||w[v]-w[r]);for(let r=0;r<Math.min(e,x.length);r++)p[x[r]]++}return p.map(i=>i/t)}function A(a){const e=String(a||"").toLowerCase();return/out|ir|injured reserve|pup/.test(e)?3:/doubtful/.test(e)?2:/questionable|limited|dnp/.test(e)?1:0}function G(a){const e=(a==null?void 0:a.data_source)??null;return typeof e=="string"&&e.toLowerCase()==="demo"}export{K as renderDashboard};
