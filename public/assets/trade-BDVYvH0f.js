@@ -1,4 +1,4 @@
-import{k as ee,h as l,r as te,p as P,i as q,j as fe,t as se,J as $e,N as be}from"./index-C2mMjaKG.js";async function ke(m){const U=new URLSearchParams(location.hash.split("?")[1]||"");let re=U.get("team_a")||"1",ae=U.get("team_b")||"2";m.innerHTML=`
+import{k as ee,h as l,r as te,p as P,i as q,j as fe,t as se,J as $e,N as be}from"./index-v73tIri3.js";async function ke(m){const U=new URLSearchParams(location.hash.split("?")[1]||"");let re=U.get("team_a")||"1",ae=U.get("team_b")||"2";m.innerHTML=`
     <div class="hero reveal in">
       <h1>Trade</h1>
       <p>Select two teams, pick the players being traded on each side, and analyze Model weekly &amp; ROS trade impact.</p>
