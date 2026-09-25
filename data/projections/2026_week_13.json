@@ -1,7 +1,7 @@
 {
   "week": 13,
   "season": 2026,
-  "updated_at": "2026-09-24T11:29:31.141212+00:00",
+  "updated_at": "2026-09-25T11:35:24.537187+00:00",
   "players": [
     {
       "player_id": "00-0034857",
@@ -49,6 +49,48 @@
         "rushing_tds": 6.8
       },
       "opponent_team": "NE"
+    },
+    {
+      "player_id": "00-0038542",
+      "player_name": "Bijan Robinson",
+      "position": "RB",
+      "team": "ATL",
+      "projected_points": 21.04,
+      "ml_adjustment": -2.06,
+      "projection_lower": 8.47,
+      "projection_upper": 33.61,
+      "width": 12.57,
+      "ros_points": 105.2,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 19.953,
+        "rushing_yards": 104.576,
+        "rushing_tds": 0.455,
+        "receiving_yards": 42.894,
+        "receiving_tds": 0.218,
+        "receptions": 4.459,
+        "fumbles_lost_total": 0.071,
+        "rushing_40": 0.333,
+        "targets": 5.333,
+        "fumble_recovery_own": 0.333,
+        "rushing_first_downs": 6.667,
+        "receiving_first_downs": 1.0
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": 25,
+      "matchup_difficulty": "EASY",
+      "matchup_pts_allowed": 10.4,
+      "market_season_stats": {
+        "rushing_yards": 836.6,
+        "rushing_tds": 3.6,
+        "receiving_yards": 343.2,
+        "receiving_tds": 1.7,
+        "receptions": 35.7
+      },
+      "opponent_team": "DET"
     },
     {
       "player_id": "00-0039139",
@@ -256,47 +298,6 @@
         "receptions": 44.7
       },
       "opponent_team": "KC"
-    },
-    {
-      "player_id": "00-0038542",
-      "player_name": "Bijan Robinson",
-      "position": "RB",
-      "team": "ATL",
-      "projected_points": 18.57,
-      "ml_adjustment": -2.3,
-      "projection_lower": 6.57,
-      "projection_upper": 30.58,
-      "width": 12.0,
-      "ros_points": 92.86,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 17.529,
-        "rushing_yards": 83.165,
-        "rushing_tds": 0.233,
-        "receiving_yards": 48.741,
-        "receiving_tds": 0.251,
-        "receptions": 4.988,
-        "fumbles_lost_total": 0.106,
-        "targets": 7.0,
-        "fumble_recovery_own": 0.5,
-        "rushing_first_downs": 4.5,
-        "receiving_first_downs": 1.0
-      },
-      "wind_mph": 0,
-      "temp_f": 72.0,
-      "matchup_rank": 25,
-      "matchup_difficulty": "EASY",
-      "matchup_pts_allowed": 10.4,
-      "market_season_stats": {
-        "rushing_yards": 582.2,
-        "rushing_tds": 1.6,
-        "receiving_yards": 341.2,
-        "receiving_tds": 1.8,
-        "receptions": 34.9
-      },
-      "opponent_team": "DET"
     },
     {
       "player_id": "00-0034796",
@@ -514,6 +515,52 @@
         "receptions": 10.1
       },
       "opponent_team": "BYE"
+    },
+    {
+      "player_id": "00-0039917",
+      "player_name": "Michael Penix Jr.",
+      "position": "QB",
+      "team": "ATL",
+      "projected_points": 17.72,
+      "ml_adjustment": 2.43,
+      "projection_lower": 3.72,
+      "projection_upper": 31.72,
+      "width": 14.0,
+      "ros_points": 88.62,
+      "remaining_games": 5,
+      "games_played": 1,
+      "bye_week": 11,
+      "avg_stats": {
+        "passing_yards": 227.378,
+        "passing_tds": 0.949,
+        "passing_interceptions": 0.467,
+        "rushing_yards": 5.822,
+        "rushing_tds": 0.107,
+        "carries": 2.267,
+        "fumbles_lost_total": 0.178,
+        "passing_2pt_conversions": 1.0,
+        "passing_40": 2.0,
+        "completions": 18.0,
+        "attempts": 25.0,
+        "passing_first_downs": 8.0
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": 32,
+      "matchup_difficulty": "EASY",
+      "matchup_pts_allowed": 23.0,
+      "projected_pass_yards": 227.4,
+      "projected_pass_tds": 0.95,
+      "projected_rush_yards": 5.8,
+      "projected_rush_tds": 0.11,
+      "projected_carries": 2.3,
+      "market_season_stats": {
+        "passing_yards": 1364.3,
+        "passing_tds": 5.7,
+        "rushing_yards": 34.9,
+        "rushing_tds": 0.6
+      },
+      "opponent_team": "DET"
     },
     {
       "player_id": "00-0039918",
@@ -1164,53 +1211,6 @@
       "opponent_team": "LAC"
     },
     {
-      "player_id": "00-0036264",
-      "player_name": "Jordan Love",
-      "position": "QB",
-      "team": "GB",
-      "projected_points": 15.22,
-      "ml_adjustment": -0.32,
-      "projection_lower": 1.22,
-      "projection_upper": 29.22,
-      "width": 14.0,
-      "ros_points": 76.1,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "passing_yards": 241.64,
-        "passing_tds": 1.453,
-        "passing_interceptions": 0.44,
-        "rushing_yards": 7.96,
-        "rushing_tds": 0.045,
-        "carries": 2.08,
-        "fumbles_lost_total": 0.28,
-        "passing_40": 1.5,
-        "completions": 18.5,
-        "attempts": 35.5,
-        "fumble_recovery_own": 0.5,
-        "passing_first_downs": 12.0,
-        "def_tackles_solo": 0.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72,
-      "matchup_rank": 17,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 16.2,
-      "projected_pass_yards": 241.6,
-      "projected_pass_tds": 1.45,
-      "projected_rush_yards": 8.0,
-      "projected_rush_tds": 0.04,
-      "projected_carries": 2.1,
-      "market_season_stats": {
-        "passing_yards": 1691.5,
-        "passing_tds": 10.2,
-        "rushing_yards": 55.7,
-        "rushing_tds": 0.3
-      },
-      "opponent_team": "NO"
-    },
-    {
       "player_id": "00-0037248",
       "player_name": "James Cook",
       "position": "RB",
@@ -1639,6 +1639,53 @@
       "opponent_team": "SEA"
     },
     {
+      "player_id": "00-0036264",
+      "player_name": "Jordan Love",
+      "position": "QB",
+      "team": "GB",
+      "projected_points": 14.53,
+      "ml_adjustment": -1.64,
+      "projection_lower": 0.53,
+      "projection_upper": 28.53,
+      "width": 14.0,
+      "ros_points": 72.65,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "passing_yards": 258.96,
+        "passing_tds": 1.518,
+        "passing_interceptions": 0.56,
+        "rushing_yards": 5.307,
+        "rushing_tds": 0.045,
+        "carries": 1.653,
+        "fumbles_lost_total": 0.253,
+        "passing_40": 1.333,
+        "completions": 21.667,
+        "attempts": 41.333,
+        "fumble_recovery_own": 0.333,
+        "passing_first_downs": 13.0,
+        "def_tackles_solo": 0.333
+      },
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": 17,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 16.2,
+      "projected_pass_yards": 259.0,
+      "projected_pass_tds": 1.52,
+      "projected_rush_yards": 5.3,
+      "projected_rush_tds": 0.04,
+      "projected_carries": 1.7,
+      "market_season_stats": {
+        "passing_yards": 2071.7,
+        "passing_tds": 12.1,
+        "rushing_yards": 42.5,
+        "rushing_tds": 0.4
+      },
+      "opponent_team": "NO"
+    },
+    {
       "player_id": "00-0040122",
       "player_name": "Ashton Jeanty",
       "position": "RB",
@@ -1846,6 +1893,47 @@
       "opponent_team": "TB"
     },
     {
+      "player_id": "00-0037238",
+      "player_name": "Drake London",
+      "position": "WR",
+      "team": "ATL",
+      "projected_points": 13.8,
+      "ml_adjustment": -1.34,
+      "projection_lower": 1.92,
+      "projection_upper": 25.68,
+      "width": 11.88,
+      "ros_points": 69.0,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 0.4,
+        "rushing_yards": 0.8,
+        "rushing_tds": 0.002,
+        "receiving_yards": 85.433,
+        "receiving_tds": 0.217,
+        "receptions": 5.267,
+        "fumbles_lost_total": 0.033,
+        "targets": 6.333,
+        "receiving_40": 0.667,
+        "receiving_first_downs": 3.333,
+        "def_tackles_solo": 0.667
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": 10,
+      "matchup_difficulty": "HARD",
+      "matchup_pts_allowed": 8.0,
+      "market_season_stats": {
+        "rushing_yards": 6.4,
+        "rushing_tds": 0.0,
+        "receiving_yards": 683.5,
+        "receiving_tds": 1.7,
+        "receptions": 42.1
+      },
+      "opponent_team": "DET"
+    },
+    {
       "player_id": "00-0040743",
       "player_name": "Tyler Shough",
       "position": "QB",
@@ -1928,46 +2016,6 @@
         "receptions": 36.2
       },
       "opponent_team": "LA"
-    },
-    {
-      "player_id": "00-0037238",
-      "player_name": "Drake London",
-      "position": "WR",
-      "team": "ATL",
-      "projected_points": 13.64,
-      "ml_adjustment": 1.06,
-      "projection_lower": 1.81,
-      "projection_upper": 25.48,
-      "width": 11.84,
-      "ros_points": 68.22,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 0.4,
-        "rushing_yards": 0.8,
-        "rushing_tds": 0.002,
-        "receiving_yards": 61.95,
-        "receiving_tds": 0.299,
-        "receptions": 4.6,
-        "fumbles_lost_total": 0.05,
-        "targets": 4.5,
-        "receiving_first_downs": 2.5,
-        "def_tackles_solo": 0.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72.0,
-      "matchup_rank": 10,
-      "matchup_difficulty": "HARD",
-      "matchup_pts_allowed": 8.0,
-      "market_season_stats": {
-        "rushing_yards": 5.6,
-        "rushing_tds": 0.0,
-        "receiving_yards": 433.7,
-        "receiving_tds": 2.1,
-        "receptions": 32.2
-      },
-      "opponent_team": "DET"
     },
     {
       "player_id": "00-0039163",
@@ -2261,6 +2309,45 @@
       "opponent_team": "SEA"
     },
     {
+      "player_id": "00-0038124",
+      "player_name": "Christian Watson",
+      "position": "WR",
+      "team": "GB",
+      "projected_points": 12.97,
+      "ml_adjustment": -4.67,
+      "projection_lower": 1.3,
+      "projection_upper": 24.64,
+      "width": 11.67,
+      "ros_points": 64.85,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 0.04,
+        "rushing_yards": 0.12,
+        "rushing_tds": 0.002,
+        "receiving_yards": 81.24,
+        "receiving_tds": 0.782,
+        "receptions": 4.8,
+        "targets": 9.667,
+        "receiving_40": 0.333,
+        "receiving_first_downs": 4.0
+      },
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": 13,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 8.3,
+      "market_season_stats": {
+        "rushing_yards": 1.0,
+        "rushing_tds": 0.0,
+        "receiving_yards": 649.9,
+        "receiving_tds": 6.3,
+        "receptions": 38.4
+      },
+      "opponent_team": "NO"
+    },
+    {
       "player_id": "00-0036613",
       "player_name": "Jaylen Waddle",
       "position": "WR",
@@ -2532,6 +2619,43 @@
       "opponent_team": "DEN"
     },
     {
+      "player_id": "00-0038996",
+      "player_name": "Tucker Kraft",
+      "position": "TE",
+      "team": "GB",
+      "projected_points": 12.5,
+      "ml_adjustment": 3.01,
+      "projection_lower": 4.58,
+      "projection_upper": 20.42,
+      "width": 7.92,
+      "ros_points": 62.49,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 0.05,
+        "rushing_yards": 0.15,
+        "receiving_yards": 45.65,
+        "receiving_tds": 0.252,
+        "receptions": 3.4,
+        "targets": 5.667,
+        "fumble_recovery_own": 0.667,
+        "receiving_first_downs": 1.333
+      },
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": 20,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 7.5,
+      "market_season_stats": {
+        "rushing_yards": 1.2,
+        "receiving_yards": 365.2,
+        "receiving_tds": 2.0,
+        "receptions": 27.2
+      },
+      "opponent_team": "NO"
+    },
+    {
       "player_id": "00-0039064",
       "player_name": "Zay Flowers",
       "position": "WR",
@@ -2682,82 +2806,6 @@
         "receptions": 33.6
       },
       "opponent_team": "TEN"
-    },
-    {
-      "player_id": "00-0038124",
-      "player_name": "Christian Watson",
-      "position": "WR",
-      "team": "GB",
-      "projected_points": 12.12,
-      "ml_adjustment": -3.79,
-      "projection_lower": 0.66,
-      "projection_upper": 23.57,
-      "width": 11.45,
-      "ros_points": 60.59,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 0.06,
-        "rushing_yards": 0.18,
-        "rushing_tds": 0.002,
-        "receiving_yards": 74.26,
-        "receiving_tds": 0.726,
-        "receptions": 4.1,
-        "targets": 9.5,
-        "receiving_40": 0.5,
-        "receiving_first_downs": 3.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72,
-      "matchup_rank": 13,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 8.3,
-      "market_season_stats": {
-        "rushing_yards": 1.3,
-        "rushing_tds": 0.0,
-        "receiving_yards": 519.8,
-        "receiving_tds": 5.1,
-        "receptions": 28.7
-      },
-      "opponent_team": "NO"
-    },
-    {
-      "player_id": "00-0038996",
-      "player_name": "Tucker Kraft",
-      "position": "TE",
-      "team": "GB",
-      "projected_points": 12.12,
-      "ml_adjustment": 1.29,
-      "projection_lower": 4.27,
-      "projection_upper": 19.98,
-      "width": 7.85,
-      "ros_points": 60.61,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 0.075,
-        "rushing_yards": 0.225,
-        "receiving_yards": 52.675,
-        "receiving_tds": 0.357,
-        "receptions": 3.4,
-        "targets": 4.5,
-        "fumble_recovery_own": 0.5,
-        "receiving_first_downs": 1.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72,
-      "matchup_rank": 20,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 7.5,
-      "market_season_stats": {
-        "rushing_yards": 1.6,
-        "receiving_yards": 368.7,
-        "receiving_tds": 2.5,
-        "receptions": 23.8
-      },
-      "opponent_team": "NO"
     },
     {
       "player_id": "00-0035228",
@@ -4349,6 +4397,45 @@
       "opponent_team": "ARI"
     },
     {
+      "player_id": "00-0040667",
+      "player_name": "Matthew Golden",
+      "position": "WR",
+      "team": "GB",
+      "projected_points": 9.59,
+      "ml_adjustment": -1.65,
+      "projection_lower": 0,
+      "projection_upper": 21.01,
+      "width": 11.42,
+      "ros_points": 47.95,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 0.286,
+        "rushing_yards": 1.4,
+        "rushing_tds": 0.002,
+        "receiving_yards": 60.914,
+        "receiving_tds": 0.194,
+        "receptions": 3.829,
+        "targets": 10.0,
+        "receiving_40": 0.667,
+        "receiving_first_downs": 4.0
+      },
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": 13,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 8.3,
+      "market_season_stats": {
+        "rushing_yards": 11.2,
+        "rushing_tds": 0.0,
+        "receiving_yards": 487.3,
+        "receiving_tds": 1.6,
+        "receptions": 30.6
+      },
+      "opponent_team": "NO"
+    },
+    {
       "player_id": "00-0036875",
       "player_name": "Rhamondre Stevenson",
       "position": "RB",
@@ -5261,45 +5348,6 @@
       "opponent_team": "CAR"
     },
     {
-      "player_id": "00-0040667",
-      "player_name": "Matthew Golden",
-      "position": "WR",
-      "team": "GB",
-      "projected_points": 8.16,
-      "ml_adjustment": -0.24,
-      "projection_lower": 0,
-      "projection_upper": 19.58,
-      "width": 11.42,
-      "ros_points": 40.8,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 0.429,
-        "rushing_yards": 2.1,
-        "rushing_tds": 0.002,
-        "receiving_yards": 46.071,
-        "receiving_tds": 0.054,
-        "receptions": 3.243,
-        "targets": 9.0,
-        "receiving_40": 0.5,
-        "receiving_first_downs": 4.0
-      },
-      "wind_mph": 0,
-      "temp_f": 72,
-      "matchup_rank": 13,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 8.3,
-      "market_season_stats": {
-        "rushing_yards": 14.7,
-        "rushing_tds": 0.0,
-        "receiving_yards": 322.5,
-        "receiving_tds": 0.4,
-        "receptions": 22.7
-      },
-      "opponent_team": "NO"
-    },
-    {
       "player_id": "00-0039424",
       "player_name": "Devaughn Vele",
       "position": "WR",
@@ -5700,39 +5748,6 @@
       "opponent_team": "LAC"
     },
     {
-      "player_id": "00-0036970",
-      "player_name": "Kyle Pitts",
-      "position": "TE",
-      "team": "ATL",
-      "projected_points": 7.8,
-      "ml_adjustment": -0.08,
-      "projection_lower": 0,
-      "projection_upper": 15.63,
-      "width": 7.83,
-      "ros_points": 38.99,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "receiving_yards": 35.753,
-        "receiving_tds": 0.166,
-        "receptions": 3.306,
-        "targets": 2.0,
-        "receiving_first_downs": 0.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72.0,
-      "matchup_rank": 31,
-      "matchup_difficulty": "EASY",
-      "matchup_pts_allowed": 11.6,
-      "market_season_stats": {
-        "receiving_yards": 250.3,
-        "receiving_tds": 1.2,
-        "receptions": 23.1
-      },
-      "opponent_team": "DET"
-    },
-    {
       "player_id": "00-0041027",
       "player_name": "Jeremiyah Love",
       "position": "RB",
@@ -5916,38 +5931,6 @@
         "receptions": 7.0
       },
       "opponent_team": "CHI"
-    },
-    {
-      "player_id": "00-0025565",
-      "player_name": "Nick Folk",
-      "position": "K",
-      "team": "ATL",
-      "projected_points": 7.72,
-      "ml_adjustment": 0.79,
-      "projection_lower": 0.92,
-      "projection_upper": 14.52,
-      "width": 6.8,
-      "ros_points": 38.61,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "fg_made_20_29": 0.188,
-        "fg_made_30_39": 0.337,
-        "fg_made_40_49": 0.663,
-        "fg_made_50_59": 0.463,
-        "fg_missed": 0.638,
-        "pat_made": 1.025,
-        "fg_missed_40_49": 0.5,
-        "fg_missed_50_59": 1.0
-      },
-      "wind_mph": 0,
-      "temp_f": 72.0,
-      "matchup_rank": null,
-      "matchup_difficulty": null,
-      "matchup_pts_allowed": null,
-      "market_season_stats": {},
-      "opponent_team": "DET"
     },
     {
       "player_id": "00-0031492",
@@ -6839,6 +6822,38 @@
       "matchup_pts_allowed": null,
       "market_season_stats": {},
       "opponent_team": "BYE"
+    },
+    {
+      "player_id": "00-0025565",
+      "player_name": "Nick Folk",
+      "position": "K",
+      "team": "ATL",
+      "projected_points": 7.28,
+      "ml_adjustment": -0.07,
+      "projection_lower": 0.48,
+      "projection_upper": 14.08,
+      "width": 6.8,
+      "ros_points": 36.4,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "fg_made_20_29": 0.125,
+        "fg_made_30_39": 0.425,
+        "fg_made_40_49": 0.775,
+        "fg_made_50_59": 0.375,
+        "fg_missed": 0.625,
+        "pat_made": 1.35,
+        "fg_missed_40_49": 0.333,
+        "fg_missed_50_59": 0.667
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": null,
+      "matchup_difficulty": null,
+      "matchup_pts_allowed": null,
+      "market_season_stats": {},
+      "opponent_team": "DET"
     },
     {
       "player_id": "00-0039066",
@@ -8125,24 +8140,24 @@
       "player_name": "Trey Smack",
       "position": "K",
       "team": "GB",
-      "projected_points": 6.37,
-      "ml_adjustment": -0.47,
+      "projected_points": 6.4,
+      "ml_adjustment": 0.03,
       "projection_lower": 0,
-      "projection_upper": 13.17,
+      "projection_upper": 13.2,
       "width": 6.8,
-      "ros_points": 31.86,
+      "ros_points": 31.98,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "fg_made_0_19": 0.018,
-        "fg_made_20_29": 0.52,
-        "fg_made_30_39": 0.35,
-        "fg_made_40_49": 0.35,
-        "fg_made_50_59": 0.272,
-        "fg_missed": 0.06,
-        "pat_made": 1.98,
-        "pat_missed": 0.5
+        "fg_made_0_19": 0.012,
+        "fg_made_20_29": 0.48,
+        "fg_made_30_39": 0.3,
+        "fg_made_40_49": 0.3,
+        "fg_made_50_59": 0.248,
+        "fg_missed": 0.04,
+        "pat_made": 1.92,
+        "pat_missed": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -8334,46 +8349,6 @@
       "opponent_team": "WAS"
     },
     {
-      "player_id": "00-0039811",
-      "player_name": "MarShawn Lloyd",
-      "position": "RB",
-      "team": "GB",
-      "projected_points": 6.13,
-      "ml_adjustment": -0.65,
-      "projection_lower": 0,
-      "projection_upper": 16.61,
-      "width": 10.49,
-      "ros_points": 30.64,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 8.24,
-        "rushing_yards": 29.76,
-        "rushing_tds": 0.182,
-        "receiving_yards": 8.04,
-        "receiving_tds": 0.198,
-        "receptions": 1.24,
-        "fumbles_lost_total": 0.26,
-        "targets": 1.5,
-        "rushing_first_downs": 1.5,
-        "receiving_first_downs": 0.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72,
-      "matchup_rank": 29,
-      "matchup_difficulty": "EASY",
-      "matchup_pts_allowed": 12.1,
-      "market_season_stats": {
-        "rushing_yards": 208.3,
-        "rushing_tds": 1.3,
-        "receiving_yards": 56.3,
-        "receiving_tds": 1.4,
-        "receptions": 8.7
-      },
-      "opponent_team": "NO"
-    },
-    {
       "player_id": "00-0040737",
       "player_name": "Terrance Ferguson",
       "position": "TE",
@@ -8553,6 +8528,39 @@
         "receptions": 17.9
       },
       "opponent_team": "DAL"
+    },
+    {
+      "player_id": "00-0036970",
+      "player_name": "Kyle Pitts",
+      "position": "TE",
+      "team": "ATL",
+      "projected_points": 5.87,
+      "ml_adjustment": 0.07,
+      "projection_lower": 0,
+      "projection_upper": 13.7,
+      "width": 7.83,
+      "ros_points": 29.33,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "receiving_yards": 25.835,
+        "receiving_tds": 0.124,
+        "receptions": 2.471,
+        "targets": 2.0,
+        "receiving_first_downs": 0.333
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": 31,
+      "matchup_difficulty": "EASY",
+      "matchup_pts_allowed": 11.6,
+      "market_season_stats": {
+        "receiving_yards": 206.7,
+        "receiving_tds": 1.0,
+        "receptions": 19.8
+      },
+      "opponent_team": "DET"
     },
     {
       "player_id": "00-0037809",
@@ -9104,45 +9112,6 @@
       "opponent_team": "BUF"
     },
     {
-      "player_id": "00-0033858",
-      "player_name": "Jonnu Smith",
-      "position": "TE",
-      "team": "GB",
-      "projected_points": 5.36,
-      "ml_adjustment": -0.13,
-      "projection_lower": 0,
-      "projection_upper": 13.2,
-      "width": 7.83,
-      "ros_points": 26.82,
-      "remaining_games": 5,
-      "games_played": 1,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 0.424,
-        "rushing_yards": 3.294,
-        "rushing_tds": 0.047,
-        "receiving_yards": 20.447,
-        "receiving_tds": 0.108,
-        "receptions": 2.188,
-        "targets": 3.0,
-        "receiving_40": 1.0,
-        "receiving_first_downs": 2.0
-      },
-      "wind_mph": 0,
-      "temp_f": 72,
-      "matchup_rank": 20,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 7.5,
-      "market_season_stats": {
-        "rushing_yards": 19.8,
-        "rushing_tds": 0.3,
-        "receiving_yards": 122.7,
-        "receiving_tds": 0.6,
-        "receptions": 13.1
-      },
-      "opponent_team": "NO"
-    },
-    {
       "player_id": "00-0040134",
       "player_name": "Pat Bryant",
       "position": "WR",
@@ -9219,6 +9188,45 @@
         "receptions": 14.1
       },
       "opponent_team": "BYE"
+    },
+    {
+      "player_id": "00-0037746",
+      "player_name": "Brian Robinson",
+      "position": "RB",
+      "team": "ATL",
+      "projected_points": 5.34,
+      "ml_adjustment": -0.68,
+      "projection_lower": 0,
+      "projection_upper": 15.82,
+      "width": 10.49,
+      "ros_points": 26.68,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 8.165,
+        "rushing_yards": 35.812,
+        "rushing_tds": 0.233,
+        "receiving_yards": 3.788,
+        "receiving_tds": 0.012,
+        "receptions": 0.588,
+        "targets": 0.667,
+        "rushing_first_downs": 2.667,
+        "receiving_first_downs": 0.333
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": 25,
+      "matchup_difficulty": "EASY",
+      "matchup_pts_allowed": 10.4,
+      "market_season_stats": {
+        "rushing_yards": 286.5,
+        "rushing_tds": 1.9,
+        "receiving_yards": 30.3,
+        "receiving_tds": 0.1,
+        "receptions": 4.7
+      },
+      "opponent_team": "DET"
     },
     {
       "player_id": "00-0034829",
@@ -9403,39 +9411,6 @@
       "opponent_team": "HOU"
     },
     {
-      "player_id": "00-0032392",
-      "player_name": "Austin Hooper",
-      "position": "TE",
-      "team": "ATL",
-      "projected_points": 5.18,
-      "ml_adjustment": 0.7,
-      "projection_lower": 0,
-      "projection_upper": 13.02,
-      "width": 7.83,
-      "ros_points": 25.92,
-      "remaining_games": 5,
-      "games_played": 1,
-      "bye_week": 11,
-      "avg_stats": {
-        "receiving_yards": 20.185,
-        "receiving_tds": 0.128,
-        "receptions": 1.692,
-        "targets": 4.0,
-        "receiving_first_downs": 2.0
-      },
-      "wind_mph": 0,
-      "temp_f": 72.0,
-      "matchup_rank": 31,
-      "matchup_difficulty": "EASY",
-      "matchup_pts_allowed": 11.6,
-      "market_season_stats": {
-        "receiving_yards": 121.1,
-        "receiving_tds": 0.8,
-        "receptions": 10.2
-      },
-      "opponent_team": "DET"
-    },
-    {
       "player_id": "00-0041100",
       "player_name": "Josh Cameron",
       "position": "WR",
@@ -9583,6 +9558,45 @@
       "opponent_team": "BYE"
     },
     {
+      "player_id": "00-0033858",
+      "player_name": "Jonnu Smith",
+      "position": "TE",
+      "team": "GB",
+      "projected_points": 5.01,
+      "ml_adjustment": -0.23,
+      "projection_lower": 0,
+      "projection_upper": 12.85,
+      "width": 7.83,
+      "ros_points": 25.07,
+      "remaining_games": 5,
+      "games_played": 2,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 0.318,
+        "rushing_yards": 2.471,
+        "rushing_tds": 0.035,
+        "receiving_yards": 21.035,
+        "receiving_tds": 0.091,
+        "receptions": 2.141,
+        "targets": 3.0,
+        "receiving_40": 0.5,
+        "receiving_first_downs": 1.0
+      },
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": 20,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 7.5,
+      "market_season_stats": {
+        "rushing_yards": 17.3,
+        "rushing_tds": 0.2,
+        "receiving_yards": 147.2,
+        "receiving_tds": 0.6,
+        "receptions": 15.0
+      },
+      "opponent_team": "NO"
+    },
+    {
       "player_id": "00-0039342",
       "player_name": "Xavier Legette",
       "position": "WR",
@@ -9657,6 +9671,46 @@
         "receptions": 17.5
       },
       "opponent_team": "MIA"
+    },
+    {
+      "player_id": "00-0039811",
+      "player_name": "MarShawn Lloyd",
+      "position": "RB",
+      "team": "GB",
+      "projected_points": 4.98,
+      "ml_adjustment": -1.15,
+      "projection_lower": 0,
+      "projection_upper": 15.46,
+      "width": 10.49,
+      "ros_points": 24.89,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 7.56,
+        "rushing_yards": 25.84,
+        "rushing_tds": 0.141,
+        "receiving_yards": 7.16,
+        "receiving_tds": 0.183,
+        "receptions": 1.36,
+        "fumbles_lost_total": 0.24,
+        "targets": 2.0,
+        "rushing_first_downs": 1.333,
+        "receiving_first_downs": 0.333
+      },
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": 29,
+      "matchup_difficulty": "EASY",
+      "matchup_pts_allowed": 12.1,
+      "market_season_stats": {
+        "rushing_yards": 206.7,
+        "rushing_tds": 1.1,
+        "receiving_yards": 57.3,
+        "receiving_tds": 1.5,
+        "receptions": 10.9
+      },
+      "opponent_team": "NO"
     },
     {
       "player_id": "00-0034771",
@@ -10225,6 +10279,44 @@
       "opponent_team": "CLE"
     },
     {
+      "player_id": "00-0040948",
+      "player_name": "J. Michael Sturdivant",
+      "position": "WR",
+      "team": "GB",
+      "projected_points": 4.47,
+      "ml_adjustment": -1.66,
+      "projection_lower": 0,
+      "projection_upper": 15.89,
+      "width": 11.42,
+      "ros_points": 22.33,
+      "remaining_games": 5,
+      "games_played": 2,
+      "bye_week": 11,
+      "avg_stats": {
+        "rushing_yards": 0.78,
+        "rushing_tds": 0.031,
+        "receiving_yards": 26.3,
+        "receiving_tds": 0.159,
+        "receptions": 2.34,
+        "fumbles_lost_total": 0.03,
+        "targets": 1.5,
+        "receiving_first_downs": 1.0
+      },
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": 13,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 8.3,
+      "market_season_stats": {
+        "rushing_yards": 5.5,
+        "rushing_tds": 0.2,
+        "receiving_yards": 184.1,
+        "receiving_tds": 1.1,
+        "receptions": 16.4
+      },
+      "opponent_team": "NO"
+    },
+    {
       "player_id": "00-0041041",
       "player_name": "Oscar Delp",
       "position": "TE",
@@ -10530,45 +10622,6 @@
       "opponent_team": "CLE"
     },
     {
-      "player_id": "00-0037746",
-      "player_name": "Brian Robinson",
-      "position": "RB",
-      "team": "ATL",
-      "projected_points": 4.27,
-      "ml_adjustment": -0.6,
-      "projection_lower": 0,
-      "projection_upper": 14.75,
-      "width": 10.49,
-      "ros_points": 21.34,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 7.247,
-        "rushing_yards": 30.518,
-        "rushing_tds": 0.109,
-        "receiving_yards": 4.082,
-        "receiving_tds": 0.012,
-        "receptions": 0.682,
-        "targets": 1.0,
-        "rushing_first_downs": 2.0,
-        "receiving_first_downs": 0.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72.0,
-      "matchup_rank": 25,
-      "matchup_difficulty": "EASY",
-      "matchup_pts_allowed": 10.4,
-      "market_season_stats": {
-        "rushing_yards": 213.6,
-        "rushing_tds": 0.8,
-        "receiving_yards": 28.6,
-        "receiving_tds": 0.1,
-        "receptions": 4.8
-      },
-      "opponent_team": "DET"
-    },
-    {
       "player_id": "00-0041503",
       "player_name": "Nate Boerkircher",
       "position": "TE",
@@ -10640,22 +10693,22 @@
       "player_name": "Jahan Dotson",
       "position": "WR",
       "team": "ATL",
-      "projected_points": 4.18,
-      "ml_adjustment": 0.71,
+      "projected_points": 4.2,
+      "ml_adjustment": 0.95,
       "projection_lower": 0,
-      "projection_upper": 15.61,
+      "projection_upper": 15.63,
       "width": 11.42,
-      "ros_points": 20.91,
+      "ros_points": 21.01,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
         "rushing_tds": 0.002,
-        "receiving_yards": 16.48,
-        "receiving_tds": 0.082,
-        "receptions": 1.32,
-        "targets": 3.5,
-        "fumble_recovery_own": 0.5,
+        "receiving_yards": 15.187,
+        "receiving_tds": 0.073,
+        "receptions": 1.28,
+        "targets": 3.333,
+        "fumble_recovery_own": 0.333,
         "receiving_first_downs": 1.0
       },
       "wind_mph": 0,
@@ -10665,9 +10718,9 @@
       "matchup_pts_allowed": 8.0,
       "market_season_stats": {
         "rushing_tds": 0.0,
-        "receiving_yards": 115.4,
+        "receiving_yards": 121.5,
         "receiving_tds": 0.6,
-        "receptions": 9.2
+        "receptions": 10.2
       },
       "opponent_team": "DET"
     },
@@ -10969,6 +11022,39 @@
       "opponent_team": "GB"
     },
     {
+      "player_id": "00-0032392",
+      "player_name": "Austin Hooper",
+      "position": "TE",
+      "team": "ATL",
+      "projected_points": 3.95,
+      "ml_adjustment": -1.13,
+      "projection_lower": 0,
+      "projection_upper": 11.78,
+      "width": 7.83,
+      "ros_points": 19.75,
+      "remaining_games": 5,
+      "games_played": 2,
+      "bye_week": 11,
+      "avg_stats": {
+        "receiving_yards": 18.338,
+        "receiving_tds": 0.247,
+        "receptions": 1.769,
+        "targets": 3.0,
+        "receiving_first_downs": 1.5
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": 31,
+      "matchup_difficulty": "EASY",
+      "matchup_pts_allowed": 11.6,
+      "market_season_stats": {
+        "receiving_yards": 128.4,
+        "receiving_tds": 1.7,
+        "receptions": 12.4
+      },
+      "opponent_team": "DET"
+    },
+    {
       "player_id": "00-0037742",
       "player_name": "Treylon Burks",
       "position": "WR",
@@ -11147,44 +11233,6 @@
       "opponent_team": "DEN"
     },
     {
-      "player_id": "00-0041044",
-      "player_name": "Zachariah Branch",
-      "position": "WR",
-      "team": "ATL",
-      "projected_points": 3.79,
-      "ml_adjustment": -1.97,
-      "projection_lower": 0,
-      "projection_upper": 15.22,
-      "width": 11.42,
-      "ros_points": 18.97,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "rushing_yards": 0.78,
-        "rushing_tds": 0.031,
-        "receiving_yards": 24.7,
-        "receiving_tds": 0.159,
-        "receptions": 2.14,
-        "fumbles_lost_total": 0.03,
-        "targets": 1.0,
-        "receiving_first_downs": 0.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72.0,
-      "matchup_rank": 10,
-      "matchup_difficulty": "HARD",
-      "matchup_pts_allowed": 8.0,
-      "market_season_stats": {
-        "rushing_yards": 5.5,
-        "rushing_tds": 0.2,
-        "receiving_yards": 172.9,
-        "receiving_tds": 1.1,
-        "receptions": 15.0
-      },
-      "opponent_team": "DET"
-    },
-    {
       "player_id": "00-0040177",
       "player_name": "Jordan James",
       "position": "RB",
@@ -11286,38 +11334,6 @@
         "receptions": 12.0
       },
       "opponent_team": "CIN"
-    },
-    {
-      "player_id": "00-0037317",
-      "player_name": "Nick Muse",
-      "position": "TE",
-      "team": "ATL",
-      "projected_points": 3.72,
-      "ml_adjustment": -0.91,
-      "projection_lower": 0,
-      "projection_upper": 11.56,
-      "width": 7.83,
-      "ros_points": 18.62,
-      "remaining_games": 5,
-      "games_played": 1,
-      "bye_week": 11,
-      "avg_stats": {
-        "receiving_yards": 19.28,
-        "receiving_tds": 0.126,
-        "receptions": 2.0,
-        "fumbles_lost_total": 0.024
-      },
-      "wind_mph": 0,
-      "temp_f": 72.0,
-      "matchup_rank": 31,
-      "matchup_difficulty": "EASY",
-      "matchup_pts_allowed": 11.6,
-      "market_season_stats": {
-        "receiving_yards": 115.7,
-        "receiving_tds": 0.8,
-        "receptions": 12.0
-      },
-      "opponent_team": "DET"
     },
     {
       "player_id": "00-0040277",
@@ -11458,43 +11474,6 @@
         "receptions": 14.3
       },
       "opponent_team": "BYE"
-    },
-    {
-      "player_id": "00-0035208",
-      "player_name": "Olamide Zaccheaus",
-      "position": "WR",
-      "team": "ATL",
-      "projected_points": 3.68,
-      "ml_adjustment": -0.69,
-      "projection_lower": 0,
-      "projection_upper": 15.11,
-      "width": 11.42,
-      "ros_points": 18.42,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 0.171,
-        "rushing_yards": 1.071,
-        "rushing_tds": 0.002,
-        "receiving_yards": 15.014,
-        "receiving_tds": 0.114,
-        "receptions": 2.071,
-        "targets": 2.0
-      },
-      "wind_mph": 0,
-      "temp_f": 72.0,
-      "matchup_rank": 10,
-      "matchup_difficulty": "HARD",
-      "matchup_pts_allowed": 8.0,
-      "market_season_stats": {
-        "rushing_yards": 7.5,
-        "rushing_tds": 0.0,
-        "receiving_yards": 105.1,
-        "receiving_tds": 0.8,
-        "receptions": 14.5
-      },
-      "opponent_team": "DET"
     },
     {
       "player_id": "00-0041529",
@@ -12008,6 +11987,78 @@
       "opponent_team": "KC"
     },
     {
+      "player_id": "00-0037317",
+      "player_name": "Nick Muse",
+      "position": "TE",
+      "team": "ATL",
+      "projected_points": 3.48,
+      "ml_adjustment": -0.06,
+      "projection_lower": 0,
+      "projection_upper": 11.31,
+      "width": 7.83,
+      "ros_points": 17.38,
+      "remaining_games": 5,
+      "games_played": 2,
+      "bye_week": 11,
+      "avg_stats": {
+        "receiving_yards": 14.46,
+        "receiving_tds": 0.105,
+        "receptions": 1.5,
+        "fumbles_lost_total": 0.018,
+        "def_tackles_solo": 1.0
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": 31,
+      "matchup_difficulty": "EASY",
+      "matchup_pts_allowed": 11.6,
+      "market_season_stats": {
+        "receiving_yards": 101.2,
+        "receiving_tds": 0.7,
+        "receptions": 10.5
+      },
+      "opponent_team": "DET"
+    },
+    {
+      "player_id": "00-0038090",
+      "player_name": "Skyy Moore",
+      "position": "WR",
+      "team": "GB",
+      "projected_points": 3.47,
+      "ml_adjustment": 1.05,
+      "projection_lower": 0,
+      "projection_upper": 14.89,
+      "width": 11.42,
+      "ros_points": 17.35,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 0.047,
+        "rushing_yards": 0.259,
+        "rushing_tds": 0.002,
+        "receiving_yards": 9.447,
+        "receiving_tds": 0.054,
+        "receptions": 1.118,
+        "targets": 3.667,
+        "fumble_recovery_own": 0.333,
+        "receiving_first_downs": 0.667
+      },
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": 13,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 8.3,
+      "market_season_stats": {
+        "rushing_yards": 2.1,
+        "rushing_tds": 0.0,
+        "receiving_yards": 75.6,
+        "receiving_tds": 0.4,
+        "receptions": 8.9
+      },
+      "opponent_team": "NO"
+    },
+    {
       "player_id": "00-0035689",
       "player_name": "Dawson Knox",
       "position": "TE",
@@ -12114,6 +12165,44 @@
         "receptions": 5.4
       },
       "opponent_team": "BYE"
+    },
+    {
+      "player_id": "00-0041044",
+      "player_name": "Zachariah Branch",
+      "position": "WR",
+      "team": "ATL",
+      "projected_points": 3.41,
+      "ml_adjustment": -1.11,
+      "projection_lower": 0,
+      "projection_upper": 14.83,
+      "width": 11.42,
+      "ros_points": 17.05,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "rushing_yards": 0.52,
+        "rushing_tds": 0.021,
+        "receiving_yards": 18.8,
+        "receiving_tds": 0.124,
+        "receptions": 1.76,
+        "fumbles_lost_total": 0.02,
+        "targets": 1.333,
+        "receiving_first_downs": 0.333
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": 10,
+      "matchup_difficulty": "HARD",
+      "matchup_pts_allowed": 8.0,
+      "market_season_stats": {
+        "rushing_yards": 4.2,
+        "rushing_tds": 0.2,
+        "receiving_yards": 150.4,
+        "receiving_tds": 1.0,
+        "receptions": 14.1
+      },
+      "opponent_team": "DET"
     },
     {
       "player_id": "00-0036628",
@@ -12361,6 +12450,43 @@
       "opponent_team": "MIA"
     },
     {
+      "player_id": "00-0035208",
+      "player_name": "Olamide Zaccheaus",
+      "position": "WR",
+      "team": "ATL",
+      "projected_points": 3.31,
+      "ml_adjustment": -0.48,
+      "projection_lower": 0,
+      "projection_upper": 14.74,
+      "width": 11.42,
+      "ros_points": 16.56,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 0.114,
+        "rushing_yards": 0.714,
+        "rushing_tds": 0.002,
+        "receiving_yards": 12.343,
+        "receiving_tds": 0.094,
+        "receptions": 1.914,
+        "targets": 2.0
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": 10,
+      "matchup_difficulty": "HARD",
+      "matchup_pts_allowed": 8.0,
+      "market_season_stats": {
+        "rushing_yards": 5.7,
+        "rushing_tds": 0.0,
+        "receiving_yards": 98.7,
+        "receiving_tds": 0.8,
+        "receptions": 15.3
+      },
+      "opponent_team": "DET"
+    },
+    {
       "player_id": "00-0040024",
       "player_name": "Darius Cooper",
       "position": "WR",
@@ -12578,42 +12704,6 @@
         "receptions": 8.5
       },
       "opponent_team": "MIN"
-    },
-    {
-      "player_id": "00-0040948",
-      "player_name": "J. Michael Sturdivant",
-      "position": "WR",
-      "team": "GB",
-      "projected_points": 3.23,
-      "ml_adjustment": -3.45,
-      "projection_lower": 0,
-      "projection_upper": 14.65,
-      "width": 11.42,
-      "ros_points": 16.13,
-      "remaining_games": 5,
-      "games_played": 1,
-      "bye_week": 11,
-      "avg_stats": {
-        "rushing_yards": 1.04,
-        "rushing_tds": 0.041,
-        "receiving_yards": 29.2,
-        "receiving_tds": 0.194,
-        "receptions": 2.32,
-        "fumbles_lost_total": 0.04
-      },
-      "wind_mph": 0,
-      "temp_f": 72,
-      "matchup_rank": 13,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 8.3,
-      "market_season_stats": {
-        "rushing_yards": 6.2,
-        "rushing_tds": 0.2,
-        "receiving_yards": 175.2,
-        "receiving_tds": 1.2,
-        "receptions": 13.9
-      },
-      "opponent_team": "NO"
     },
     {
       "player_id": "00-0040590",
@@ -13693,45 +13783,6 @@
       "opponent_team": "BYE"
     },
     {
-      "player_id": "00-0038685",
-      "player_name": "Chris Brooks",
-      "position": "RB",
-      "team": "GB",
-      "projected_points": 2.8,
-      "ml_adjustment": -0.09,
-      "projection_lower": 0,
-      "projection_upper": 13.28,
-      "width": 10.49,
-      "ros_points": 13.98,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 3.153,
-        "rushing_yards": 11.741,
-        "rushing_tds": 0.06,
-        "receiving_yards": 6.212,
-        "receiving_tds": 0.012,
-        "receptions": 0.659,
-        "targets": 1.5,
-        "rushing_first_downs": 0.5,
-        "receiving_first_downs": 0.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72,
-      "matchup_rank": 29,
-      "matchup_difficulty": "EASY",
-      "matchup_pts_allowed": 12.1,
-      "market_season_stats": {
-        "rushing_yards": 82.2,
-        "rushing_tds": 0.4,
-        "receiving_yards": 43.5,
-        "receiving_tds": 0.1,
-        "receptions": 4.6
-      },
-      "opponent_team": "NO"
-    },
-    {
       "player_id": "00-0037085",
       "player_name": "Tyler Badie",
       "position": "RB",
@@ -13946,6 +13997,46 @@
         "receptions": 2.5
       },
       "opponent_team": "NE"
+    },
+    {
+      "player_id": "00-0038685",
+      "player_name": "Chris Brooks",
+      "position": "RB",
+      "team": "GB",
+      "projected_points": 2.64,
+      "ml_adjustment": -0.14,
+      "projection_lower": 0,
+      "projection_upper": 13.13,
+      "width": 10.49,
+      "ros_points": 13.2,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 2.835,
+        "rushing_yards": 10.494,
+        "rushing_tds": 0.06,
+        "receiving_yards": 5.941,
+        "receiving_tds": 0.012,
+        "receptions": 0.706,
+        "targets": 1.333,
+        "rushing_first_downs": 0.333,
+        "receiving_first_downs": 0.333,
+        "def_tackles_solo": 0.333
+      },
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": 29,
+      "matchup_difficulty": "EASY",
+      "matchup_pts_allowed": 12.1,
+      "market_season_stats": {
+        "rushing_yards": 84.0,
+        "rushing_tds": 0.5,
+        "receiving_yards": 47.5,
+        "receiving_tds": 0.1,
+        "receptions": 5.6
+      },
+      "opponent_team": "NO"
     },
     {
       "player_id": "00-0036754",
@@ -14317,23 +14408,25 @@
       "player_name": "Kaleb Johnson",
       "position": "RB",
       "team": "GB",
-      "projected_points": 2.41,
-      "ml_adjustment": 0.81,
+      "projected_points": 2.42,
+      "ml_adjustment": 0.48,
       "projection_lower": 0,
-      "projection_upper": 12.9,
+      "projection_upper": 12.91,
       "width": 10.49,
-      "ros_points": 12.06,
+      "ros_points": 12.1,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "carries": 3.28,
-        "rushing_yards": 10.54,
+        "carries": 3.52,
+        "rushing_yards": 10.36,
         "rushing_tds": 0.06,
-        "receiving_yards": 0.54,
+        "receiving_yards": 2.36,
         "receiving_tds": 0.012,
-        "receptions": 0.06,
-        "rushing_first_downs": 1.5
+        "receptions": 0.24,
+        "targets": 1.0,
+        "rushing_first_downs": 1.0,
+        "receiving_first_downs": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -14341,11 +14434,11 @@
       "matchup_difficulty": "EASY",
       "matchup_pts_allowed": 12.1,
       "market_season_stats": {
-        "rushing_yards": 73.8,
-        "rushing_tds": 0.4,
-        "receiving_yards": 3.8,
+        "rushing_yards": 82.9,
+        "rushing_tds": 0.5,
+        "receiving_yards": 18.9,
         "receiving_tds": 0.1,
-        "receptions": 0.4
+        "receptions": 1.9
       },
       "opponent_team": "NO"
     },
@@ -14422,6 +14515,42 @@
         "receptions": 3.0
       },
       "opponent_team": "CHI"
+    },
+    {
+      "player_id": "00-0036463",
+      "player_name": "Chris Blair",
+      "position": "WR",
+      "team": "ATL",
+      "projected_points": 2.38,
+      "ml_adjustment": 1.06,
+      "projection_lower": 0,
+      "projection_upper": 13.8,
+      "width": 11.42,
+      "ros_points": 11.9,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "rushing_tds": 0.002,
+        "receiving_yards": 1.2,
+        "receiving_tds": 0.054,
+        "receptions": 0.2,
+        "targets": 1.0,
+        "receiving_2pt_conversions": 0.333,
+        "def_tackles_solo": 0.667
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": 10,
+      "matchup_difficulty": "HARD",
+      "matchup_pts_allowed": 8.0,
+      "market_season_stats": {
+        "rushing_tds": 0.0,
+        "receiving_yards": 9.6,
+        "receiving_tds": 0.4,
+        "receptions": 1.6
+      },
+      "opponent_team": "DET"
     },
     {
       "player_id": "00-0036893",
@@ -14746,44 +14875,6 @@
       "opponent_team": "LA"
     },
     {
-      "player_id": "00-0038090",
-      "player_name": "Skyy Moore",
-      "position": "WR",
-      "team": "GB",
-      "projected_points": 2.24,
-      "ml_adjustment": 0.87,
-      "projection_lower": 0,
-      "projection_upper": 13.67,
-      "width": 11.42,
-      "ros_points": 11.22,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 0.071,
-        "rushing_yards": 0.388,
-        "rushing_tds": 0.002,
-        "receiving_yards": 4.271,
-        "receiving_tds": 0.054,
-        "receptions": 0.576,
-        "targets": 2.0,
-        "fumble_recovery_own": 0.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72,
-      "matchup_rank": 13,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 8.3,
-      "market_season_stats": {
-        "rushing_yards": 2.7,
-        "rushing_tds": 0.0,
-        "receiving_yards": 29.9,
-        "receiving_tds": 0.4,
-        "receptions": 4.0
-      },
-      "opponent_team": "NO"
-    },
-    {
       "player_id": "00-0037524",
       "player_name": "Tay Martin",
       "position": "WR",
@@ -14920,44 +15011,6 @@
       "opponent_team": "CIN"
     },
     {
-      "player_id": "00-0037091",
-      "player_name": "Bo Melton",
-      "position": "WR",
-      "team": "GB",
-      "projected_points": 2.19,
-      "ml_adjustment": 0.43,
-      "projection_lower": 0,
-      "projection_upper": 13.62,
-      "width": 11.42,
-      "ros_points": 10.97,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "carries": 0.231,
-        "rushing_yards": 1.615,
-        "rushing_tds": 0.002,
-        "receiving_yards": 6.938,
-        "receiving_tds": 0.086,
-        "receptions": 0.385,
-        "targets": 1.0,
-        "receiving_first_downs": 0.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72,
-      "matchup_rank": 13,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 8.3,
-      "market_season_stats": {
-        "rushing_yards": 11.3,
-        "rushing_tds": 0.0,
-        "receiving_yards": 48.6,
-        "receiving_tds": 0.6,
-        "receptions": 2.7
-      },
-      "opponent_team": "NO"
-    },
-    {
       "player_id": "00-0034798",
       "player_name": "Durham Smythe",
       "position": "TE",
@@ -15061,6 +15114,45 @@
         "receptions": 2.4
       },
       "opponent_team": "HOU"
+    },
+    {
+      "player_id": "00-0037091",
+      "player_name": "Bo Melton",
+      "position": "WR",
+      "team": "GB",
+      "projected_points": 2.14,
+      "ml_adjustment": 0.71,
+      "projection_lower": 0,
+      "projection_upper": 13.57,
+      "width": 11.42,
+      "ros_points": 10.71,
+      "remaining_games": 5,
+      "games_played": 3,
+      "bye_week": 11,
+      "avg_stats": {
+        "carries": 0.154,
+        "rushing_yards": 1.077,
+        "rushing_tds": 0.002,
+        "receiving_yards": 5.292,
+        "receiving_tds": 0.076,
+        "receptions": 0.323,
+        "targets": 1.0,
+        "receiving_first_downs": 0.333,
+        "def_tackles_solo": 0.333
+      },
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": 13,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 8.3,
+      "market_season_stats": {
+        "rushing_yards": 8.6,
+        "rushing_tds": 0.0,
+        "receiving_yards": 42.3,
+        "receiving_tds": 0.6,
+        "receptions": 2.6
+      },
+      "opponent_team": "NO"
     },
     {
       "player_id": "00-0037093",
@@ -15477,40 +15569,6 @@
         "receptions": 3.7
       },
       "opponent_team": "CIN"
-    },
-    {
-      "player_id": "00-0036463",
-      "player_name": "Chris Blair",
-      "position": "WR",
-      "team": "ATL",
-      "projected_points": 1.85,
-      "ml_adjustment": 1.19,
-      "projection_lower": 0,
-      "projection_upper": 13.27,
-      "width": 11.42,
-      "ros_points": 9.25,
-      "remaining_games": 5,
-      "games_played": 2,
-      "bye_week": 11,
-      "avg_stats": {
-        "rushing_tds": 0.002,
-        "receiving_yards": 1.2,
-        "receiving_tds": 0.054,
-        "receptions": 0.2,
-        "targets": 1.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72.0,
-      "matchup_rank": 10,
-      "matchup_difficulty": "HARD",
-      "matchup_pts_allowed": 8.0,
-      "market_season_stats": {
-        "rushing_tds": 0.0,
-        "receiving_yards": 8.4,
-        "receiving_tds": 0.4,
-        "receptions": 1.4
-      },
-      "opponent_team": "DET"
     },
     {
       "player_id": "00-0033576",
@@ -17108,15 +17166,15 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 1.5,
-        "def_tackles_with_assist": 0.5,
-        "def_tackles_for_loss": 2.0,
-        "def_sacks": 1.25,
-        "def_qb_hits": 1.5,
-        "def_pass_defended": 0.5
+        "def_tackles_solo": 1.0,
+        "def_tackles_with_assist": 0.333,
+        "def_tackles_for_loss": 1.333,
+        "def_sacks": 0.833,
+        "def_qb_hits": 1.0,
+        "def_pass_defended": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -17689,10 +17747,11 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 1,
+      "games_played": 2,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 1.0
+        "def_tackles_solo": 1.0,
+        "def_pass_defended": 0.5
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -18991,11 +19050,12 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 2.0,
-        "def_qb_hits": 0.5
+        "def_tackles_solo": 2.333,
+        "def_tackles_for_loss": 0.333,
+        "def_qb_hits": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -19247,10 +19307,11 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 3.5
+        "def_tackles_solo": 2.667,
+        "def_pass_defended": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -19498,10 +19559,10 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 0.5
+        "def_tackles_solo": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -19686,12 +19747,12 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 2.0,
-        "def_tackles_with_assist": 0.5,
-        "def_pass_defended": 1.0
+        "def_tackles_solo": 3.333,
+        "def_tackles_with_assist": 0.333,
+        "def_pass_defended": 0.667
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -19948,16 +20009,16 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 4.5,
-        "def_tackles_for_loss": 0.5,
-        "def_sacks": 0.25,
-        "def_qb_hits": 1.0,
-        "def_interceptions": 0.5,
-        "def_interception_yards": 5.5,
-        "def_pass_defended": 0.5
+        "def_tackles_solo": 4.0,
+        "def_tackles_for_loss": 0.333,
+        "def_sacks": 0.167,
+        "def_qb_hits": 0.667,
+        "def_interceptions": 0.333,
+        "def_interception_yards": 3.667,
+        "def_pass_defended": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -20470,7 +20531,7 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {},
       "wind_mph": 0,
@@ -21793,10 +21854,10 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 1.5
+        "def_tackles_solo": 1.0
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -22126,12 +22187,12 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 2.5,
-        "def_tackles_for_loss": 0.5,
-        "def_pass_defended": 1.0
+        "def_tackles_solo": 4.333,
+        "def_tackles_for_loss": 0.333,
+        "def_pass_defended": 1.667
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -22899,10 +22960,13 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 2.5
+        "def_tackles_solo": 3.0,
+        "def_interceptions": 0.333,
+        "def_interception_yards": 1.667,
+        "def_pass_defended": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -23569,7 +23633,7 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {},
       "wind_mph": 0,
@@ -23592,10 +23656,12 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 0.5
+        "def_tackles_solo": 0.333,
+        "def_tackles_with_assist": 0.333,
+        "def_tackles_for_loss": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -24502,13 +24568,14 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "fumble_recovery_opp": 0.5,
-        "def_tackles_solo": 2.0,
-        "def_tackles_for_loss": 0.5,
-        "def_qb_hits": 0.5
+        "fumble_recovery_opp": 0.333,
+        "def_tackles_solo": 1.667,
+        "def_tackles_for_loss": 0.333,
+        "def_qb_hits": 0.667,
+        "def_pass_defended": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -24783,10 +24850,10 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 1.5
+        "def_tackles_solo": 1.667
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -24909,12 +24976,12 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 1,
+      "games_played": 2,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 3.0,
-        "def_sacks": 0.5,
-        "def_qb_hits": 1.0
+        "def_tackles_solo": 1.5,
+        "def_sacks": 0.25,
+        "def_qb_hits": 0.5
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -26024,7 +26091,7 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {},
       "wind_mph": 0,
@@ -26436,13 +26503,14 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 1.5,
-        "def_sacks": 0.25,
-        "def_qb_hits": 1.5,
-        "def_fumbles_forced": 0.5
+        "def_tackles_solo": 1.333,
+        "def_tackles_for_loss": 0.333,
+        "def_sacks": 0.5,
+        "def_qb_hits": 2.333,
+        "def_fumbles_forced": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -26980,9 +27048,11 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
-      "avg_stats": {},
+      "avg_stats": {
+        "def_tackles_solo": 0.333
+      },
       "wind_mph": 0,
       "temp_f": 72,
       "matchup_rank": null,
@@ -27054,10 +27124,12 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 2.5
+        "def_tackles_solo": 1.667,
+        "def_tackles_with_assist": 0.333,
+        "def_tackles_for_loss": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -28109,10 +28181,10 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 3.0
+        "def_tackles_solo": 2.333
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -28446,13 +28518,13 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 0.5,
-        "def_sacks": 0.25,
-        "def_qb_hits": 0.5,
-        "def_pass_defended": 0.5
+        "def_tackles_solo": 0.667,
+        "def_sacks": 0.167,
+        "def_qb_hits": 1.0,
+        "def_pass_defended": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -28607,14 +28679,14 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 4.5,
-        "def_tackles_with_assist": 1.0,
-        "def_tackles_for_loss": 2.0,
-        "def_sacks": 1.25,
-        "def_qb_hits": 2.5
+        "def_tackles_solo": 3.333,
+        "def_tackles_with_assist": 0.667,
+        "def_tackles_for_loss": 1.333,
+        "def_sacks": 0.833,
+        "def_qb_hits": 2.0
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -30137,14 +30209,14 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 6.0,
-        "def_tackles_with_assist": 0.5,
-        "def_tackles_for_loss": 0.5,
-        "def_qb_hits": 0.5,
-        "def_pass_defended": 1.0
+        "def_tackles_solo": 5.333,
+        "def_tackles_with_assist": 0.333,
+        "def_tackles_for_loss": 0.333,
+        "def_qb_hits": 0.333,
+        "def_pass_defended": 0.667
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -30317,10 +30389,11 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 1,
+      "games_played": 2,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 1.0
+        "def_tackles_solo": 0.5,
+        "def_pass_defended": 0.5
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -30449,14 +30522,14 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 4.5,
-        "def_tackles_with_assist": 1.5,
-        "def_tackles_for_loss": 2.5,
-        "def_sacks": 1.0,
-        "def_qb_hits": 1.0
+        "def_tackles_solo": 3.667,
+        "def_tackles_with_assist": 1.0,
+        "def_tackles_for_loss": 2.0,
+        "def_sacks": 0.667,
+        "def_qb_hits": 0.667
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -30531,11 +30604,11 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 1.5,
-        "def_qb_hits": 0.5
+        "def_tackles_solo": 1.0,
+        "def_qb_hits": 1.667
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -30609,12 +30682,13 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 3.0,
+        "def_tackles_solo": 2.667,
+        "def_tackles_with_assist": 0.333,
         "def_tackles_for_loss": 1.0,
-        "def_pass_defended": 1.0
+        "def_pass_defended": 0.667
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -30762,10 +30836,11 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_pass_defended": 0.5
+        "def_qb_hits": 0.333,
+        "def_pass_defended": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -31012,12 +31087,12 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 2.5,
-        "def_sacks": 0.25,
-        "def_qb_hits": 0.5
+        "def_tackles_solo": 2.0,
+        "def_sacks": 0.167,
+        "def_qb_hits": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -31570,11 +31645,14 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 4.0,
-        "def_fumbles_forced": 0.5
+        "def_tackles_solo": 3.667,
+        "def_interceptions": 0.333,
+        "def_interception_yards": 5.667,
+        "def_pass_defended": 0.333,
+        "def_fumbles_forced": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -33543,7 +33621,7 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {},
       "wind_mph": 0,
@@ -33593,12 +33671,12 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 1.0,
-        "def_sacks": 0.25,
-        "def_qb_hits": 1.0
+        "def_tackles_solo": 0.667,
+        "def_sacks": 0.167,
+        "def_qb_hits": 0.667
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -34081,12 +34159,12 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 1.5,
-        "def_tackles_with_assist": 0.5,
-        "def_tackles_for_loss": 0.5
+        "def_tackles_solo": 1.667,
+        "def_tackles_with_assist": 0.333,
+        "def_tackles_for_loss": 0.667
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -34208,10 +34286,10 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 0.5
+        "def_tackles_solo": 1.0
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -34752,10 +34830,10 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 1.0
+        "def_tackles_solo": 0.667
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -34777,13 +34855,13 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 2,
+      "games_played": 3,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 2.5,
-        "def_sacks": 0.25,
-        "def_qb_hits": 0.5,
-        "def_pass_defended": 0.5
+        "def_tackles_solo": 3.0,
+        "def_sacks": 0.167,
+        "def_qb_hits": 0.333,
+        "def_pass_defended": 0.333
       },
       "wind_mph": 0,
       "temp_f": 72,
@@ -36347,7 +36425,7 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 1,
+      "games_played": 2,
       "bye_week": 11,
       "avg_stats": {
         "def_tackles_solo": 1.0
@@ -36812,10 +36890,13 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 1,
+      "games_played": 2,
       "bye_week": 11,
       "avg_stats": {
-        "def_tackles_solo": 1.0
+        "def_tackles_solo": 0.5,
+        "def_tackles_with_assist": 0.5,
+        "def_tackles_for_loss": 0.5,
+        "def_fg_blocks": 0.5
       },
       "wind_mph": 0,
       "temp_f": 72.0,
@@ -37274,9 +37355,11 @@
       "width": 10.2,
       "ros_points": 0.0,
       "remaining_games": 5,
-      "games_played": 1,
+      "games_played": 2,
       "bye_week": 11,
-      "avg_stats": {},
+      "avg_stats": {
+        "def_tackles_solo": 0.5
+      },
       "wind_mph": 0,
       "temp_f": 72,
       "matchup_rank": null,
@@ -38548,6 +38631,101 @@
       "matchup_pts_allowed": null,
       "market_season_stats": {},
       "opponent_team": "BYE"
+    },
+    {
+      "player_id": "00-0035237",
+      "player_name": "Jawaan Taylor",
+      "position": "OT",
+      "team": "ATL",
+      "projected_points": 0.0,
+      "ml_adjustment": 0.0,
+      "projection_lower": 0,
+      "projection_upper": 10.2,
+      "width": 10.2,
+      "ros_points": 0.0,
+      "remaining_games": 5,
+      "games_played": 1,
+      "bye_week": 11,
+      "avg_stats": {},
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": null,
+      "matchup_difficulty": null,
+      "matchup_pts_allowed": null,
+      "market_season_stats": {},
+      "opponent_team": "DET"
+    },
+    {
+      "player_id": "00-0036833",
+      "player_name": "Ryan Neuzil",
+      "position": "G",
+      "team": "ATL",
+      "projected_points": 0.0,
+      "ml_adjustment": 0.0,
+      "projection_lower": 0,
+      "projection_upper": 10.2,
+      "width": 10.2,
+      "ros_points": 0.0,
+      "remaining_games": 5,
+      "games_played": 1,
+      "bye_week": 11,
+      "avg_stats": {},
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": null,
+      "matchup_difficulty": null,
+      "matchup_pts_allowed": null,
+      "market_season_stats": {},
+      "opponent_team": "DET"
+    },
+    {
+      "player_id": "00-0040156",
+      "player_name": "Billy Bowman Jr.",
+      "position": "CB",
+      "team": "ATL",
+      "projected_points": 0.0,
+      "ml_adjustment": 0.0,
+      "projection_lower": 0,
+      "projection_upper": 10.2,
+      "width": 10.2,
+      "ros_points": 0.0,
+      "remaining_games": 5,
+      "games_played": 1,
+      "bye_week": 11,
+      "avg_stats": {
+        "def_tackles_solo": 1.0,
+        "def_pass_defended": 2.0
+      },
+      "wind_mph": 0,
+      "temp_f": 72.0,
+      "matchup_rank": null,
+      "matchup_difficulty": null,
+      "matchup_pts_allowed": null,
+      "market_season_stats": {},
+      "opponent_team": "DET"
+    },
+    {
+      "player_id": "00-0040884",
+      "player_name": "Jager Burton",
+      "position": "C",
+      "team": "GB",
+      "projected_points": 0.0,
+      "ml_adjustment": 0.0,
+      "projection_lower": 0,
+      "projection_upper": 10.2,
+      "width": 10.2,
+      "ros_points": 0.0,
+      "remaining_games": 5,
+      "games_played": 1,
+      "bye_week": 11,
+      "avg_stats": {},
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": null,
+      "matchup_difficulty": null,
+      "matchup_pts_allowed": null,
+      "market_season_stats": {},
+      "opponent_team": "NO"
     }
   ],
   "team_def": [
@@ -38572,21 +38750,21 @@
     },
     {
       "team": "ATL",
-      "games_played": 2,
+      "games_played": 3,
       "def_avg": {
-        "sacks": 2.0,
-        "ints": 0.0,
-        "fum_rec": 0.5,
-        "ff": 1.0,
+        "sacks": 1.667,
+        "ints": 0.333,
+        "fum_rec": 0.333,
+        "ff": 0.667,
         "def_tds": 0.0,
         "st_tds": 0.0,
         "safeties": 0.0,
-        "blk_kicks": 0.0,
-        "pts_allowed": 27.0,
-        "yds_allowed": 317.0
+        "blk_kicks": 0.333,
+        "pts_allowed": 22.67,
+        "yds_allowed": 321.0
       },
       "bye_week": 11,
-      "projected_points": 4.0,
+      "projected_points": 4.33,
       "opponent_team": "DET"
     },
     {
@@ -38762,21 +38940,21 @@
     },
     {
       "team": "GB",
-      "games_played": 2,
+      "games_played": 3,
       "def_avg": {
-        "sacks": 3.5,
-        "ints": 0.5,
+        "sacks": 2.333,
+        "ints": 0.667,
         "fum_rec": 0.0,
         "ff": 0.0,
         "def_tds": 0.0,
         "st_tds": 0.0,
         "safeties": 0.0,
         "blk_kicks": 0.0,
-        "pts_allowed": 28.0,
-        "yds_allowed": 286.0
+        "pts_allowed": 30.33,
+        "yds_allowed": 356.7
       },
       "bye_week": 11,
-      "projected_points": 3.5,
+      "projected_points": 2.67,
       "opponent_team": "NO"
     },
     {
