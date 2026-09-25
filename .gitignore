@@ -7,6 +7,7 @@ __pycache__/
 .DS_Store
 .worktrees/
 .claude/settings.local.json
+.opencode/
 graphify-out/
 *.db
 *.pem
