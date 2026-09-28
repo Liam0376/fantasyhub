@@ -207,8 +207,11 @@ def _hub_player(p: dict) -> dict:
     # Honest Sleeper-native signals (popularity rank + depth chart) for the
     # resolved player. No ECR/ADP exists in Sleeper's API — those stay empty.
     smeta = players_map().get(str(sleeper_id), {}) if sleeper_id else {}
+    headshot_url = (f"https://sleepercdn.com/content/nfl/players/thumb/{sleeper_id}.jpg"
+                    if sleeper_id else None)
     return {
         "player_id": p.get("player_id", ""), "sleeper_id": sleeper_id,
+        "headshot_url": headshot_url,
         "search_rank": smeta.get("r"), "depth_order": smeta.get("do"),
         "depth_position": smeta.get("dp"),
         "player_name": p.get("player_name", ""),
@@ -457,8 +460,10 @@ def hub_waiver(league_id: str, owner_id=None) -> dict:
                 improvement = vbd
             else:
                 continue
+        _sid = _sleeper_id_for(p)
         recs.append({
-            "player_id": p.get("player_id", ""), "sleeper_id": _sleeper_id_for(p),
+            "player_id": p.get("player_id", ""), "sleeper_id": _sid,
+            "headshot_url": (f"https://sleepercdn.com/content/nfl/players/thumb/{_sid}.jpg" if _sid else None),
             "player_name": p.get("player_name", ""),
             "position": pos, "team": p.get("team", ""),
             "projected_points": pts, "improvement_over_roster": round(improvement, 2),
@@ -505,6 +510,7 @@ def _pkg_entry(p, fc):
     sid = str(p.get("sleeper_id") or "")
     m = fc.get(sid) or {}
     return {"player_id": p.get("player_id"), "sleeper_id": sid or None,
+            "headshot_url": (f"https://sleepercdn.com/content/nfl/players/thumb/{sid}.jpg" if sid else None),
             "player_name": p.get("player_name"), "position": p.get("position"),
             "team": p.get("team"),
             "weekly": round(float(p.get("weekly") or 0), 1),
@@ -803,6 +809,7 @@ def hub_props_board(league_id: str, teams=None, week=None, season=None) -> dict:
             except (ValueError, TypeError):
                 return None
         base = {"player_id": p.get("player_id", ""), "sleeper_id": sid,
+                "headshot_url": (f"https://sleepercdn.com/content/nfl/players/thumb/{sid}.jpg" if sid else None),
                 "player_name": p.get("player_name", ""), "position": pos,
                 "team": p.get("team", ""), "injury_status": p.get("injury_status"),
                 "available": available, "sigma": None, "actual": None,
