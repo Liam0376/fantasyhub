@@ -47,6 +47,9 @@ def test_bias_matches_val_fit():
     # mean(predicted - actual) over 2024 RB rows with week <= 4. If a future
     # retraining changes models or data, this fails and forces a recalibration
     # instead of serving stale constants.
+    if not DATA_PATH.exists():
+        import pytest
+        pytest.skip("training_data.jsonl not in repo (30 MB, gitignored)")
     b = _load_bias()
     ml_projector._load_models()
     model = ml_projector._models.get("RB")
