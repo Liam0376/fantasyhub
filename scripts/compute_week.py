@@ -803,6 +803,10 @@ def main():
     # Weather only available for current week (Open-Meteo 16-day limit);
     # future weeks stay weather-neutral (honest nulls).
     for target_week in range(week, total_weeks + 1):
+        outfile_check = out_dir / f"{season}_week_{target_week:02d}.json"
+        if target_week != week and outfile_check.exists():
+            print(f"  Week {target_week}: file exists, skipping (freeze past/future snapshots).")
+            continue
         # Weather ONLY for the current week: Open-Meteo's 16-day window
         # can't cover other weeks, and past weeks' games are over.
         # Calling it per week fired ~200 doomed HTTP requests (~15 min).
