@@ -8,11 +8,14 @@ import os
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+import pytest
+
 from analytics import compute_analytics
 
 TEST_LEAGUE_ID = "1397736035240173568"  # Fantasy Bahamas, 12-team PPR auction
 
 
+@pytest.mark.network
 def test_compute_analytics_end_to_end():
     result = compute_analytics(TEST_LEAGUE_ID)
     assert "players" in result

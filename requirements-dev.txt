@@ -1,0 +1,3 @@
+# Test-only dependencies. Never deployed: Vercel installs
+# requirements.txt, the projections cron installs requirements-ml.txt.
+pytest==9.1.1

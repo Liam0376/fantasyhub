@@ -8,9 +8,12 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+import pytest
+
 from hubapi import hub_news
 
 
+@pytest.mark.network
 def test_hub_news_returns_real_trending_data():
     result = hub_news(limit=5)
     assert "trending_adds" in result
@@ -32,16 +35,26 @@ def test_hub_news_handles_def_team_ids():
     """Sleeper's trending list includes team-abbreviation ids for DEF
     (e.g. 'TB') that are NOT in data/players/latest.json's snapshot
     (snapshot_players.py's KEEP set excludes 'DEF'). These must resolve
-    to a DEF entry, not crash and not silently drop the row."""
-    result = hub_news(limit=25)
-    def_rows = [p for p in result["trending_adds"] if p["position"] == "DEF"]
-    # Not asserting def_rows is non-empty (Sleeper's top-25 trending adds
-    # may or may not include a DEF on any given day) — asserting that IF
-    # one is present, it's well-formed, and that the full call didn't
-    # crash or drop rows silently when one is present.
-    for p in def_rows:
-        assert p["team"] == p["player_id"]
-        assert len(p["player_id"]) <= 3 and p["player_id"].isalpha()
+    to a DEF entry, not crash and not silently drop the row.
+
+    Synthesized trending payload so the mapping logic is asserted
+    deterministically (a live top-25 list may hold no DEF row, which
+    made the old loop vacuous)."""
+    synthetic = [
+        {"player_id": "TB", "count": 42},
+        {"player_id": "3114", "count": 7},  # numeric id, not in snapshot
+    ]
+    with patch("hubapi._sleeper", return_value=synthetic):
+        result = hub_news(limit=25)
+    rows = result["trending_adds"]
+    assert len(rows) == 2, "rows must not be dropped when a DEF id is present"
+    def_row = next(p for p in rows if p["player_id"] == "TB")
+    assert def_row["position"] == "DEF"
+    assert def_row["team"] == "TB"
+    assert def_row["count"] == 42
+    num_row = next(p for p in rows if p["player_id"] == "3114")
+    assert num_row["position"] != "DEF"
+    assert num_row["count"] == 7
 
 
 def test_hub_news_soft_fails_on_sleeper_error():

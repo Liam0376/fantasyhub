@@ -762,8 +762,13 @@ def hub_games(league_id: str, week=None, season=None) -> dict:
             gm["temp_f"] = sw["temp_f"]
         if sw.get("precip_prob") is not None:
             gm["precip_prob"] = sw["precip_prob"]
-    return {"games": games, "meta": {"week": wk, "season": int(season or 0),
-                                     "cold": not games}}
+    # Top-level week/season/timestamp is the contract the SPA reads
+    # (hub/src/api.js:306 maps data.timestamp/week/season); meta kept
+    # for older consumers of the nested shape.
+    return {"games": games, "week": wk, "season": int(season or 0),
+            "timestamp": int(time.time()),
+            "meta": {"week": wk, "season": int(season or 0),
+                     "cold": not games}}
 
 
 def hub_props_board(league_id: str, teams=None, week=None, season=None) -> dict:
@@ -827,5 +832,9 @@ def hub_props_board(league_id: str, teams=None, week=None, season=None) -> dict:
             rows.append({**base, "market": "anytime_td",
                          "p_yes": round(1 - math.exp(-tds), 3), "fair_line": 0,
                          "actual_p_yes": td_hit})
-    return {"players": rows, "meta": {"week": a["meta"].get("week"),
-                                      "season": a["meta"].get("season")}}
+    # Same top-level contract as hub_games (hub/src/api.js:334).
+    return {"players": rows, "week": a["meta"].get("week"),
+            "season": a["meta"].get("season"),
+            "timestamp": int(time.time()),
+            "meta": {"week": a["meta"].get("week"),
+                     "season": a["meta"].get("season")}}

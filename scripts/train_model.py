@@ -4,7 +4,8 @@
 Strict temporal split:
   Train:    2022-2023
   Val:      2024 (early stopping)
-  Holdout:  2025 (final gate — never touched during development)
+  Holdout:  2025 (final gate — never used for fitting; read only for
+            gating and post-hoc reporting, e.g. the bias probe)
 
 Two modes trained:
   1. Per-position residual models (heuristic + ML correction)

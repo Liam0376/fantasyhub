@@ -12,10 +12,13 @@ incomplete weeks print a gap message and exit 0.
 History: data/grades/weekly.json (array of entries, one per graded week).
 Committed by the cron alongside projections.
 
-Scoring caveat (documented, not fixed): stored projections use reference
-scoring while actuals are pure PPR — absolute MAE levels mix scoring
-rules (worst for QB/K/DEF). Per-player ML-vs-heuristic DELTAS share the
-same base and are clean; RB/WR rows are cleanest. See docs/ACCURACY.md.
+Scoring: projections are REF-scored (compute_week.py:464), so actuals for
+modeled positions (QB/RB/WR/TE/K) are scored with the same REF_SCORING
+from their raw stats row — both sides one rule, no offset. Other
+positions (IDP, etc.) fall back to nflverse fantasy_points_ppr, which is
+offense-only scoring and reads 0 for them — same 0=0 rows the projection
+side has; the OFFENSE split (QB/RB/WR/TE/K) is the honest headline.
+See docs/ACCURACY.md.
 
 Usage:
     python scripts/grade_weekly_predictions.py [--season YYYY] [--week N]
@@ -36,12 +39,17 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "api"))
 
-from scoring import NFLVERSE_STATS_URL  # noqa: E402
+from scoring import NFLVERSE_STATS_URL, REF_SCORING, score_avg_stats  # noqa: E402
 
 SCHEDULE_URL = ("https://github.com/nflverse/nflverse-data/releases/"
                 "download/schedules/games.csv")
 HISTORY_PATH = REPO_ROOT / "data" / "grades" / "weekly.json"
 TOP_TIER_CUTOFF = 17.0
+# Positions with a real model AND reference-scored actuals. The OFFENSE
+# split exists because IDP/LS/P rows are 0=0 on both sides and drag the
+# ALL-split MAE toward zero (700+ rows of no-signal in W1/W2).
+OFFENSE_POSITIONS = ("QB", "RB", "WR", "TE", "K")
+_MODELED = set(OFFENSE_POSITIONS)
 
 
 def _fetch_csv(url, timeout=180):
@@ -86,9 +94,25 @@ def is_week_final(sched_rows, actual_teams, season, week):
 
 
 def grade_rows(proj_players, actual_by_pid):
-    """Pure grading math. Returns dict with overall/by_pos/top_tier splits.
-    Each split: n, mae_h, mae_ml (None when no ml rows), bias_h, bias_ml.
-    Rows without actuals are skipped (counted in n_skipped)."""
+    """Pure grading math. Returns dict with overall/offense/top_tier/pos
+    splits. Each split: n, mae_h, bias_h (+ n_ml, mae_ml, bias_ml,
+    mae_h_ml when ML rows exist; mae_h_ml is the paired heuristic
+    baseline on the same n_ml rows). Rows without actuals are skipped
+    (n_skipped).
+
+    Cohort rules:
+    - TOP is selected on the PRE-treatment base (projected - ml): the
+      cohort must not depend on the treatment being evaluated, or the
+      ML-vs-H comparison on TOP is conditioned on ML's own output.
+    - n_ml counts only rows where ML actually applied (ml_adjustment
+      present AND != 0.0). Unmodeled positions carry a literal 0.0 key;
+      counting them made n_ml == n and diluted every ML delta toward
+      the heuristic number.
+    - Because n_ml can be < n (IDP rows are 0.0), mae_ml is also paired
+      with mae_h_ml: the heuristic's error restricted to the SAME ML
+      rows. mae_h vs mae_ml alone is cross-denominator when n_ml < n
+      (OFFENSE/ALL splits) and reads as a fake ML regression.
+    """
     groups = defaultdict(list)
     skipped = 0
     for p in proj_players:
@@ -97,32 +121,40 @@ def grade_rows(proj_players, actual_by_pid):
             skipped += 1
             continue
         ml = p.get("ml_adjustment")
+        ml_f = float(ml) if ml is not None else 0.0
+        h = float(p["projected_points"])
+        base = h - ml_f
         groups["ALL"].append((p, ml))
         pos = (p.get("position") or "UNK").upper()
+        if pos in OFFENSE_POSITIONS:
+            groups["OFFENSE"].append((p, ml))
         groups[pos].append((p, ml))
-        if float(p.get("projected_points") or 0) >= TOP_TIER_CUTOFF:
+        if base >= TOP_TIER_CUTOFF:
             groups["TOP"].append((p, ml))
 
     def split(rows):
         n = len(rows)
         if not n:
             return {"n": 0}
-        eh = em = sh = sm = 0.0
+        eh = em = sh = sm = eh_ml = 0.0
         n_ml = 0
         for p, ml in rows:
             a = actual_by_pid[str(p["player_id"])]
             h = float(p["projected_points"])
-            base = h - (float(ml) if ml is not None else 0.0)
+            ml_f = float(ml) if ml is not None else 0.0
+            base = h - ml_f
             eh += abs(base - a)
             sh += base - a
-            if ml is not None:
+            if ml is not None and ml_f != 0.0:
                 em += abs(h - a)
                 sm += h - a
+                eh_ml += abs(base - a)
                 n_ml += 1
         out = {"n": n, "mae_h": round(eh / n, 3), "bias_h": round(sh / n, 3)}
         if n_ml:
             out.update({"n_ml": n_ml, "mae_ml": round(em / n_ml, 3),
-                        "bias_ml": round(sm / n_ml, 3)})
+                        "bias_ml": round(sm / n_ml, 3),
+                        "mae_h_ml": round(eh_ml / n_ml, 3)})
         return out
 
     return {"splits": {k: split(v) for k, v in groups.items()},
@@ -195,6 +227,20 @@ def main():
             continue
         if not x.get("player_id"):
             continue
+        # Score actuals with the SAME rule as the projections (REF) for
+        # modeled positions; fantasy_points_ppr would mix rules AND reads
+        # 0 for every K (nflverse leaves fantasy_points empty on kicking
+        # rows while fg_made_*/pat_made are populated). Non-modeled
+        # positions keep ppr: REF has no IDP keys, and their projections
+        # are 0=0 anyway (surfaced via the OFFENSE split instead).
+        pos = (x.get("position") or "").upper()
+        if pos in _MODELED:
+            try:
+                actual_by_pid[str(x["player_id"])] = score_avg_stats(
+                    x, REF_SCORING, pos)
+                continue
+            except (TypeError, ValueError):
+                pass
         try:
             actual_by_pid[str(x["player_id"])] = float(
                 x.get("fantasy_points_ppr") or 0)

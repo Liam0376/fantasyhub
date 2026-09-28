@@ -79,9 +79,32 @@ def test_ship_false_means_none():
         _restore(snap)
 
 
+def test_failed_reload_clears_stale_models():
+    # Fail-closed contract: a reload that fails (meta gone) must clear the
+    # models from the previous good load — stale predictions must never
+    # keep serving. Seed a "model", force a reload against a missing meta,
+    # assert ml_predict returns None AND _models is empty.
+    snap = _snapshot()
+    try:
+        ml_projector._loaded = True
+        ml_projector._ship = True
+        ml_projector._models.clear()
+        ml_projector._models["QB"] = object()  # stand-in for a loaded model
+        ml_projector._feature_cols["QB"] = ["position"]
+
+        ml_projector.META_PATH = ml_projector.MODEL_DIR / "does_not_exist.json"
+        ml_projector._loaded = False  # force _load_models() to run again
+        assert ml_projector.ml_predict({"position": "QB"}, "QB") is None
+        assert ml_projector._models == {}, "failed reload must clear stale models"
+        assert ml_projector._feature_cols == {}, "failed reload must clear stale cols"
+    finally:
+        _restore(snap)
+
+
 if __name__ == "__main__":
     test_none_when_meta_missing()
     test_none_for_unknown_position()
     test_qb_residual_or_graceful_none()
     test_ship_false_means_none()
+    test_failed_reload_clears_stale_models()
     print("OK")

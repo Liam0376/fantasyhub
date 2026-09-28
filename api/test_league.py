@@ -12,9 +12,10 @@ import league
 
 
 class _Resp:
-    def __init__(self, payload, ok=True):
+    def __init__(self, payload, ok=True, status_code=200):
         self._payload = payload
         self.ok = ok
+        self.status_code = status_code
 
     def json(self):
         return self._payload
@@ -102,8 +103,44 @@ def test_unknown_owner_gets_placeholder():
     assert out["teams"][0]["team_name"] == "Team 1"
 
 
+def test_unknown_league_raises_league_not_found():
+    # Sleeper answers 404 (body "null") for a bad league id; that must
+    # surface as LeagueNotFound so index.py can map it to 404, not as an
+    # HTTPError that the catch-all turns into 500 internal_error.
+    def fake_get(url, timeout=10):
+        return _Resp(None, ok=False, status_code=404)
+    real = league.requests.get
+    league.requests.get = fake_get
+    try:
+        try:
+            league.fetch_league("FAKE_NONEXISTENT_999")
+            raise AssertionError("expected LeagueNotFound")
+        except league.LeagueNotFound:
+            pass
+    finally:
+        league.requests.get = real
+
+
+def test_null_body_raises_league_not_found():
+    # 200 with a literal "null" payload: same meaning, same mapping.
+    def fake_get(url, timeout=10):
+        return _Resp(None, ok=True, status_code=200)
+    real = league.requests.get
+    league.requests.get = fake_get
+    try:
+        try:
+            league.fetch_league("nullish")
+            raise AssertionError("expected LeagueNotFound")
+        except league.LeagueNotFound:
+            pass
+    finally:
+        league.requests.get = real
+
+
 if __name__ == "__main__":
     test_parse_full_league()
     test_drafts_outage_falls_back()
     test_unknown_owner_gets_placeholder()
+    test_unknown_league_raises_league_not_found()
+    test_null_body_raises_league_not_found()
     print("OK")

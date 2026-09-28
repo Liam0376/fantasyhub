@@ -35,6 +35,7 @@ def test_grade_math_hand_computed():
     assert all_s["n_ml"] == 1
     assert all_s["mae_ml"] == 1.0  # |20-19|
     assert all_s["bias_ml"] == 1.0  # 20 - 19
+    assert all_s["mae_h_ml"] == 3.0  # paired: |22-19| on the same row
 
 
 def test_grade_bias_signs():
@@ -55,7 +56,44 @@ def test_grade_top_tier_split():
     out = grade_rows(players, actual)
     assert out["splits"]["TOP"]["n"] == 1
     assert out["splits"]["RB"]["n"] == 2
+    assert out["splits"]["OFFENSE"]["n"] == 2
     assert TOP_TIER_CUTOFF == 17.0
+
+
+def test_top_tier_selects_on_pre_treatment_base():
+    # The cohort must not depend on the treatment: boosted 16 -> 18 is
+    # base 16 (not TOP); shaved 18 -> 16 is base 18 (TOP). Old code
+    # keyed on post-ML projected_points, flipping both.
+    players = [_p("boosted", 18.0, 2.0), _p("shaved", 16.0, -2.0)]
+    actual = {"boosted": 17.0, "shaved": 17.0}
+    out = grade_rows(players, actual)["splits"]["TOP"]
+    assert out["n"] == 1
+
+
+def test_zero_ml_adjustment_not_counted_as_ml_row():
+    # Unmodeled positions carry a literal 0.0 ml_adjustment key; counting
+    # them made n_ml == n and diluted the ML-vs-H delta to nothing.
+    players = [_p("modeled", 20.0, -2.0), _p("unmodeled", 10.0, 0.0)]
+    actual = {"modeled": 19.0, "unmodeled": 12.0}
+    s = grade_rows(players, actual)["splits"]["ALL"]
+    assert s["n"] == 2
+    assert s["n_ml"] == 1
+    assert s["mae_ml"] == 1.0  # only the modeled row
+    # Paired baseline: heuristic error on that SAME row (base 22 vs 19),
+    # so mae_h_ml (3.0) vs mae_ml (1.0) is same-denominator — unlike
+    # mae_h (2.5 over both rows) which would read as an ML regression.
+    assert s["mae_h_ml"] == 3.0
+
+
+def test_offense_split_excludes_idp():
+    players = [_p("qb", 20.0, None, pos="QB"),
+               _p("k", 8.0, None, pos="K"),
+               _p("lb", 5.0, None, pos="LB")]
+    actual = {"qb": 19.0, "k": 7.0, "lb": 5.0}
+    out = grade_rows(players, actual)["splits"]
+    assert out["ALL"]["n"] == 3
+    assert out["OFFENSE"]["n"] == 2
+    assert out["LB"]["n"] == 1
 
 
 def test_finality_gate():

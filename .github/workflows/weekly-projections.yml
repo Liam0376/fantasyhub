@@ -15,6 +15,13 @@ on:
 
 permissions:
   contents: write
+  issues: write
+
+# Never stack runs: a queued run would commit on top of the previous one
+# and the push can race. Cancel the older in-flight run instead.
+concurrency:
+  group: weekly-projections
+  cancel-in-progress: false
 
 jobs:
   compute:
@@ -36,15 +43,38 @@ jobs:
         # 500MB bundle cap, and xgboost's linux wheels pull nvidia-nccl-cu12.
         # Major-version caps: the ML gate was validated on xgboost 2.x /
         # numpy 1.x-2.x; an uncapped major bump would silently change predictions.
-        run: pip install -r requirements-ml.txt
+        run: pip install -r requirements-ml.txt -r requirements-dev.txt
+
+      - name: Run tests
+        # Gate the cron on a green suite: a red test must stop rot before
+        # it commits new projections. Network-marked tests self-skip when
+        # Sleeper is unreachable, so a Sleeper outage doesn't block the
+        # compute (the pipeline needs nflverse/GitHub, not Sleeper).
+        run: python -m pytest api/ scripts/ -q --tb=short
 
       - name: Compute projections
-        # -u: unbuffered, so progress prints stream live. Buffered output
-        # on a cancelled run shows nothing and looks like a hang.
+        # Inputs go through env vars, not format(): dispatch inputs are
+        # attacker-injectable shell text in the general case, and even a
+        # benign typo would break the interpolation. Validate + pass as
+        # argv, so only digits ever reach the command line.
+        env:
+          INPUT_WEEK: ${{ github.event.inputs.week }}
+          INPUT_SEASON: ${{ github.event.inputs.season }}
         run: |
-          python -u scripts/compute_week.py \
-            ${{ github.event.inputs.week && format('--week {0}', github.event.inputs.week) || '' }} \
-            ${{ github.event.inputs.season && format('--season {0}', github.event.inputs.season) || '' }}
+          ARGS=()
+          if [ -n "$INPUT_WEEK" ]; then
+            case "$INPUT_WEEK" in
+              *[!0-9]*) echo "invalid week: $INPUT_WEEK" >&2; exit 1 ;;
+            esac
+            ARGS+=(--week "$INPUT_WEEK")
+          fi
+          if [ -n "$INPUT_SEASON" ]; then
+            case "$INPUT_SEASON" in
+              *[!0-9]*) echo "invalid season: $INPUT_SEASON" >&2; exit 1 ;;
+            esac
+            ARGS+=(--season "$INPUT_SEASON")
+          fi
+          python -u scripts/compute_week.py "${ARGS[@]}"
 
       - name: Snapshot injuries
         run: python scripts/fetch_injuries.py
@@ -69,6 +99,9 @@ jobs:
       - name: Guard freshness
         # compute_week.py has exited 0 with stale/empty output before.
         # Fail loudly so the cron alert fires instead of committing rot.
+        # Grades + ML assertions: an ML pipeline that silently stops
+        # shipping (ship=false, 0 adjusted rows) or stops grading is a
+        # regression too — catching it here keeps ACCURACY.md honest.
         run: |
           python -c "
           import json, sys
@@ -77,7 +110,22 @@ jobs:
           ts = datetime.fromisoformat(d['updated_at'])
           assert datetime.now(timezone.utc) - ts < timedelta(hours=30), f\"stale: {d['updated_at']}\"
           assert len(d.get('players', [])) > 500, f\"too few players: {len(d.get('players', []))}\"
-          print(f\"fresh: week {d['week']} season {d['season']} n={len(d['players'])}\")
+
+          meta = json.load(open('data/models/ml_meta.json'))
+          n_ml = sum(1 for p in d['players'] if p.get('ml_adjustment'))
+          if meta.get('ship'):
+              assert n_ml > 0, 'ml_meta ship=true but 0 ML-adjusted players in output'
+
+          grades = json.load(open('data/grades/weekly.json'))
+          assert grades, 'data/grades/weekly.json is empty'
+          newest = max(grades, key=lambda e: e['graded_at'])
+          newest_ts = datetime.fromisoformat(newest['graded_at'])
+          # Age-check only in the regular season of the same year the
+          # grades belong to: the cron runs year-round, and playoffs
+          # (week 19+) / offseason legitimately produce no new grades.
+          if newest['season'] == d['season'] and d['week'] <= 18:
+              assert datetime.now(timezone.utc) - newest_ts < timedelta(days=30), f\"grades stale: {newest_ts}\"
+          print(f\"fresh: week {d['week']} season {d['season']} n={len(d['players'])} n_ml={n_ml} newest_grade={newest['season']} w{newest['week']}\")
           "
 
       - name: Commit data
@@ -86,4 +134,20 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/projections/ data/injuries/ data/players/ data/slate/ data/grades/ data/market/
           git diff --cached --quiet || git commit -m "chore: update projections $(date -u +%Y-%m-%d)"
+          # Rebase before push: manual dispatch runs can overlap the
+          # scheduled run just enough for the remote to have moved.
+          git pull --rebase origin main
           git push
+
+      - name: Open failure issue
+        # A silently red cron rots for weeks; file an issue so the
+        # failure is visible outside the Actions tab.
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "Daily Projections failed: $(date -u +%F)" \
+            --body "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            || echo "issue creation failed, continuing"

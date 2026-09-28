@@ -3,7 +3,9 @@
 evidence-gated (see that file's header for the full methodology and
 rejected-alternatives log; this port keeps only the SHIPPED production
 path). Frozen production numbers as of the port: MAE=4.563, corr=0.648,
-pairwise=74.1%, coverage=82.1% (n=10,351, weeks 4-18, true scoring).
+pairwise=74.1% (n=10,351, weeks 4-18, true scoring). Displayed-interval
+coverage 82.1% (v1) / 84.2% (v2, shipped) on the 2025 holdout (n=5,425 /
+5,239) — a different sample than the MAE gate above.
 Provenance for this and every other accuracy number lives in
 docs/ACCURACY.md — read the Scope column before comparing numbers.
 

@@ -15,6 +15,7 @@ from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.dirname(__file__))
 
 import hubapi
+from league import LeagueNotFound
 
 
 class handler(BaseHTTPRequestHandler):
@@ -113,6 +114,10 @@ class handler(BaseHTTPRequestHandler):
                 status, body = 200, hubapi.hub_start_sit(g("league_id"))
             else:
                 status, body = 404, {"error": "Not found"}
+        except LeagueNotFound:
+            # Bad/old league id: a client error. 500 made every stale
+            # bookmark look like an outage and hid the real problem.
+            status, body = 404, {"error": "league_not_found"}
         except Exception as e:
             import sys
             print(f"hub-api error: {e}", file=sys.stderr)

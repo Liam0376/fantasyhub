@@ -2,6 +2,8 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
+import pytest
+
 from weather import STADIUM_COORDS, get_forecast
 
 
@@ -16,6 +18,7 @@ def test_stadium_coords_coverage():
     assert set(STADIUM_COORDS) == expected_teams
 
 
+@pytest.mark.network
 def test_get_forecast_bad_request_returns_none():
     # lat/lon nonsense + unreachable-ish game time still degrades to None,
     # never raises (soft-fail by design, matches father project's adapter).
@@ -24,12 +27,15 @@ def test_get_forecast_bad_request_returns_none():
     assert result is None
 
 
-def test_get_forecast_valid_returns_dict_or_none():
-    # Real coords (Arrowhead), past date — API may return data or fail gracefully
-    result = get_forecast(39.0489, -94.4839, "2025-09-08T13:00:00")
-    if result is not None:
-        assert "temp_f" in result
-        assert "wind_mph" in result
+def test_get_forecast_network_error_returns_none():
+    # Connection failure path: soft-fail to None, never raise. Offline
+    # stand-in for the old live test, which passed vacuously whenever
+    # the API happened to fail (result was None, assertions skipped).
+    class _Down(_FakeSession):
+        def get(self, url, timeout=10):
+            raise ConnectionError("simulated outage")
+    assert get_forecast(39.0489, -94.4839,
+                        "2025-09-08T13:00:00", session=_Down()) is None
 
 
 class _FakeSession:
@@ -75,7 +81,7 @@ def test_get_forecast_malformed_payload_returns_none():
 if __name__ == "__main__":
     test_stadium_coords_coverage()
     test_get_forecast_bad_request_returns_none()
-    test_get_forecast_valid_returns_dict_or_none()
+    test_get_forecast_network_error_returns_none()
     test_get_forecast_picks_closest_hour_offline()
     test_get_forecast_malformed_payload_returns_none()
     print("OK")

@@ -4,13 +4,28 @@ import requests
 BASE = "https://api.sleeper.app/v1"
 
 
+class LeagueNotFound(Exception):
+    """Sleeper says the league id doesn't exist (HTTP 404).
+
+    Raised instead of letting requests.HTTPError fall through to the
+    index.py catch-all: a bad/old league id is a client error, not a
+    server fault. index.py maps it to 404 {"error": "league_not_found"}.
+    """
+
+
 def fetch_league(league_id: str) -> dict:
     """Fetch league settings, rosters, and users from Sleeper."""
     league_id = str(league_id).strip()
 
     r = requests.get(f"{BASE}/league/{league_id}", timeout=10)
+    if r.status_code == 404:
+        raise LeagueNotFound(league_id)
     r.raise_for_status()
     league = r.json()
+    # Sleeper answers 404 with a literal "null" body for unknown ids on
+    # some edges; a non-dict payload means the same thing.
+    if not isinstance(league, dict):
+        raise LeagueNotFound(league_id)
 
     r = requests.get(f"{BASE}/league/{league_id}/rosters", timeout=10)
     r.raise_for_status()

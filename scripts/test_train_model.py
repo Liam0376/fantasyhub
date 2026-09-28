@@ -13,6 +13,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
 sys.path.insert(0, str(Path(__file__).parent))
 
+import pytest
+
 try:
     import numpy as np
     HAVE_NP = True
@@ -24,8 +26,7 @@ import train_model
 
 def _need_np():
     if not HAVE_NP:
-        print("SKIP (numpy missing): pip install -r requirements-ml.txt")
-        return False
+        pytest.skip("numpy missing: pip install -r requirements-ml.txt")
     return True
 
 
@@ -56,15 +57,21 @@ def test_pairwise_edges_and_perfect_ranking():
 
 
 def test_training_entry_points_need_deps():
-    if train_model.np is not None and train_model.xgb is not None:
-        return  # deps present: nothing to assert about the guard
-    for fn in (lambda: train_model.train_position_model("QB", [], []),
-               train_model.main):
-        try:
-            fn()
-            assert False, "expected RuntimeError without deps"
-        except RuntimeError:
-            pass
+    # Force the missing-deps branch via _IMPORT_ERROR so the guard is
+    # asserted even in envs where numpy+xgboost ARE installed (the old
+    # version returned early there and asserted nothing).
+    orig = train_model._IMPORT_ERROR
+    train_model._IMPORT_ERROR = ImportError("forced missing deps")
+    try:
+        for fn in (lambda: train_model.train_position_model("QB", [], []),
+                   train_model.main):
+            try:
+                fn()
+                raise AssertionError("expected RuntimeError without deps")
+            except RuntimeError as e:
+                assert "needs numpy+xgboost" in str(e)
+    finally:
+        train_model._IMPORT_ERROR = orig
 
 
 if __name__ == "__main__":

@@ -5,7 +5,12 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 
+from unittest.mock import patch
+
+import pytest
+
 from index import handler
+from league import LeagueNotFound
 
 
 class FakeWFile:
@@ -63,13 +68,38 @@ def test_send_cors_header():
     assert h.headers.get("Content-Type") == "application/json"
 
 
+def test_league_not_found_maps_to_404():
+    # Deterministic (no network): a LeagueNotFound bubbling out of any
+    # hub handler is a client error — 404 with a distinct code, never a
+    # 500 and never a stack trace in the body.
+    with patch("hubapi.fetch_league", side_effect=LeagueNotFound("FAKE")):
+        h = _make_handler("/hub-api/meta?league_id=FAKE")
+        h.do_GET()
+    assert h.status == 404
+    assert _response(h) == {"error": "league_not_found"}
+
+
+def test_unexpected_error_maps_to_500_without_leak():
+    # Deterministic: a non-LeagueNotFound failure is a server error, and
+    # the response must carry only the fixed code — no exception text,
+    # no traceback, nothing about the internals.
+    with patch("hubapi.fetch_league",
+               side_effect=RuntimeError("secret internal detail")):
+        h = _make_handler("/hub-api/meta?league_id=X")
+        h.do_GET()
+    assert h.status == 500
+    raw = h.wfile.data.decode()
+    assert _response(h) == {"error": "internal_error"}
+    assert "secret" not in raw and "Traceback" not in raw
+
+
+@pytest.mark.network
 def test_error_does_not_leak():
+    # Live smoke of the same contract against Sleeper's real 404.
     h = _make_handler("/hub-api/meta?league_id=FAKE_NONEXISTENT_999")
     h.do_GET()
-    if h.status == 500:
-        body = _response(h)
-        assert body["error"] == "internal_error"
-        assert "Traceback" not in body["error"]
+    assert h.status in (404, 500)
+    assert "Traceback" not in h.wfile.data.decode()
 
 
 def test_missing_league_id_graceful():
@@ -95,7 +125,8 @@ def test_404():
 if __name__ == "__main__":
     test_send_json()
     test_send_cors_header()
-    test_error_does_not_leak()
+    test_league_not_found_maps_to_404()
+    test_unexpected_error_maps_to_500_without_leak()
     test_missing_league_id_graceful()
     test_health()
     test_404()

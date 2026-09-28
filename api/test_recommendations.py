@@ -9,6 +9,8 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
+import pytest
+
 from hubapi import hub_rec_waiver, hub_rec_trade, hub_start_sit
 
 TEST_LEAGUE_ID = "1397736035240173568"  # Fantasy Bahamas, 12-team PPR auction
@@ -33,6 +35,7 @@ def test_trade_cold_shape():
     assert out["cold"] is True
 
 
+@pytest.mark.network
 def test_start_sit_live():
     out = hub_start_sit(TEST_LEAGUE_ID)
     assert out["count"] > 0
@@ -43,6 +46,7 @@ def test_start_sit_live():
     assert {x["decision"] for x in out["recommendations"]} <= {"START", "SIT"}
 
 
+@pytest.mark.network
 def test_waiver_live_shape():
     out = hub_rec_waiver(TEST_LEAGUE_ID)
     assert "recommendations" in out and "count" in out
@@ -50,6 +54,7 @@ def test_waiver_live_shape():
     assert "timestamp" in out["meta"]
 
 
+@pytest.mark.network
 def test_trade_live_shape():
     out = hub_rec_trade(TEST_LEAGUE_ID, team_a_id=1, team_b_id=2)
     assert "winner" in out and "value_difference" in out
