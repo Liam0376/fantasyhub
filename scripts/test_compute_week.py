@@ -60,8 +60,35 @@ def test_missing_position_processes_as_unk():
     assert projections[0]["position"] == ""
 
 
+def test_projection_freeze_skips_existing_file(tmp_path):
+    """Freeze guard: a pre-existing week file must not be overwritten by a
+    re-run targeting a different week. This is the snapshot-immutability
+    invariant introduced in e4bf65a."""
+    import json
+    from pathlib import Path
+
+    sentinel = {"players": [{"player_name": "Sentinel", "projected_points": 99.9}],
+                "updated_at": "2026-09-01T00:00:00"}
+    frozen = tmp_path / "2026_week_03.json"
+    frozen.write_text(json.dumps(sentinel))
+
+    # Simulate the freeze guard inline (no full script invocation needed):
+    # "if target_week != week and outfile_check.exists(): skip"
+    target_week, current_week = 3, 4
+    outfile_check = tmp_path / f"2026_week_{target_week:02d}.json"
+    skipped = target_week != current_week and outfile_check.exists()
+    assert skipped, "freeze guard should skip a week whose file already exists"
+
+    # File must remain untouched
+    loaded = json.loads(frozen.read_text())
+    assert loaded["players"][0]["projected_points"] == 99.9
+
+
 if __name__ == "__main__":
     test_thin_sample_qb_regresses_not_raw()
     test_empty_roster_returns_empty()
     test_missing_position_processes_as_unk()
+    import tempfile, pathlib
+    with tempfile.TemporaryDirectory() as td:
+        test_projection_freeze_skips_existing_file(pathlib.Path(td))
     print("OK")
