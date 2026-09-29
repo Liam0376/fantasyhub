@@ -60,6 +60,7 @@ def resolve_player(sid: str, pmap: dict, by_np: dict, by_n: dict) -> dict:
             return _enriched(hit, sid, "DEF")
         return {"player_id": sid, "sleeper_id": sid, "player_name": sid,
                 "position": "DEF", "team": sid, "opponent_team": "",
+                "projected_points": 0.0,
                 "weekly": 0.0, "ros": 0.0, "vor": 0.0, "auction_value": 0,
                 "injury_status": None, "bye_week": None, "width": 0,
                 "lower": 0, "upper": 0, "tier": 0, "edge": "FAIR",
@@ -76,6 +77,7 @@ def resolve_player(sid: str, pmap: dict, by_np: dict, by_n: dict) -> dict:
         return {**_enriched(hit, sid, pos), **_sleeper_extra(meta)}
     return {"player_id": str(sid), "sleeper_id": str(sid), "player_name": name,
             "position": pos, "team": meta.get("t") or "", "opponent_team": "",
+            "projected_points": 0.0,
             "weekly": 0.0, "ros": 0.0, "vor": 0.0, "auction_value": 0,
             "injury_status": None, "bye_week": None, "width": 0,
             "lower": 0, "upper": 0, "tier": 0, "edge": "FAIR",
@@ -86,6 +88,7 @@ def _enriched(hit: dict, sid: str, pos: str) -> dict:
     return {"player_id": hit.get("player_id", str(sid)), "sleeper_id": str(sid),
             "player_name": hit.get("player_name", ""), "position": pos,
             "team": hit.get("team", ""), "opponent_team": hit.get("opponent_team", ""),
+            "projected_points": hit.get("projected_points", 0),
             "weekly": hit.get("projected_points", 0), "ros": hit.get("ros_points", 0),
             "vor": hit.get("vor", 0), "auction_value": hit.get("auction_value", 0),
             "injury_status": hit.get("injury_status"), "bye_week": hit.get("bye_week"),
