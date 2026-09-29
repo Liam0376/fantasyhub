@@ -1,7 +1,7 @@
 {
   "week": 4,
   "season": 2026,
-  "updated_at": "2026-09-29T00:49:21.445746+00:00",
+  "updated_at": "2026-09-29T01:21:31.779265+00:00",
   "players": [
     {
       "player_id": "00-0034857",
@@ -1255,6 +1255,48 @@
         "rushing_tds": 0.7
       },
       "opponent_team": "MIA"
+    },
+    {
+      "player_id": "00-0035719",
+      "player_name": "Deebo Samuel Sr.",
+      "position": "WR",
+      "team": "SF",
+      "projected_points": 15.74,
+      "ml_adjustment": -0.65,
+      "projection_lower": 4.32,
+      "projection_upper": 27.16,
+      "width": 11.42,
+      "ros_points": 153.43,
+      "remaining_games": 13,
+      "games_played": 3,
+      "bye_week": 8,
+      "avg_stats": {
+        "carries": 1.225,
+        "rushing_yards": 8.101,
+        "rushing_tds": 0.02,
+        "receiving_yards": 51.41,
+        "receiving_tds": 0.446,
+        "receptions": 3.703,
+        "targets": 3.667,
+        "receiving_40": 0.333,
+        "rushing_first_downs": 0.667,
+        "receiving_first_downs": 1.333
+      },
+      "wind_mph": 0.3,
+      "temp_f": 75.4,
+      "matchup_rank": 28,
+      "matchup_difficulty": "EASY",
+      "matchup_pts_allowed": 11.8,
+      "market_season_stats": {
+        "rushing_yards": 129.6,
+        "rushing_tds": 0.3,
+        "receiving_yards": 822.6,
+        "receiving_tds": 7.1,
+        "receptions": 59.2
+      },
+      "injury_elevation": 3.94,
+      "injury_elevation_from": "Mike Evans",
+      "opponent_team": "DEN"
     },
     {
       "player_id": "00-0039851",
@@ -2897,46 +2939,6 @@
         "receptions": 20.8
       },
       "opponent_team": "CIN"
-    },
-    {
-      "player_id": "00-0035719",
-      "player_name": "Deebo Samuel Sr.",
-      "position": "WR",
-      "team": "SF",
-      "projected_points": 11.8,
-      "ml_adjustment": -0.65,
-      "projection_lower": 0.38,
-      "projection_upper": 23.23,
-      "width": 11.42,
-      "ros_points": 153.43,
-      "remaining_games": 13,
-      "games_played": 3,
-      "bye_week": 8,
-      "avg_stats": {
-        "carries": 1.225,
-        "rushing_yards": 8.101,
-        "rushing_tds": 0.02,
-        "receiving_yards": 51.41,
-        "receiving_tds": 0.446,
-        "receptions": 3.703,
-        "targets": 3.667,
-        "receiving_40": 0.333,
-        "rushing_first_downs": 0.667,
-        "receiving_first_downs": 1.333
-      },
-      "wind_mph": 0.3,
-      "temp_f": 75.4,
-      "matchup_rank": 28,
-      "matchup_difficulty": "EASY",
-      "matchup_pts_allowed": 11.8,
-      "market_season_stats": {
-        "rushing_yards": 129.6,
-        "rushing_tds": 0.3,
-        "receiving_yards": 822.6,
-        "receiving_tds": 7.1,
-        "receptions": 59.2
-      },
-      "opponent_team": "DEN"
     },
     {
       "player_id": "00-0040715",
@@ -6694,45 +6696,6 @@
       "opponent_team": "MIN"
     },
     {
-      "player_id": "00-0039365",
-      "player_name": "Jacob Cowing",
-      "position": "WR",
-      "team": "SF",
-      "projected_points": 7.26,
-      "ml_adjustment": -0.3,
-      "projection_lower": 0,
-      "projection_upper": 18.68,
-      "width": 11.42,
-      "ros_points": 43.18,
-      "remaining_games": 13,
-      "games_played": 3,
-      "bye_week": 8,
-      "avg_stats": {
-        "rushing_yards": 0.535,
-        "rushing_tds": 0.022,
-        "receiving_yards": 15.019,
-        "receiving_tds": 0.131,
-        "receptions": 1.193,
-        "fumbles_lost_total": 0.02,
-        "targets": 0.667
-      },
-      "wind_mph": 0.3,
-      "temp_f": 75.4,
-      "matchup_rank": 28,
-      "matchup_difficulty": "EASY",
-      "matchup_pts_allowed": 11.8,
-      "market_season_stats": {
-        "rushing_yards": 8.6,
-        "rushing_tds": 0.4,
-        "receiving_yards": 240.3,
-        "receiving_tds": 2.1,
-        "receptions": 19.1
-      },
-      "injury_elevation": 3.94,
-      "injury_elevation_from": "Mike Evans",
-      "opponent_team": "DEN"
-    },
-    {
       "player_id": "00-0025565",
       "player_name": "Nick Folk",
       "position": "K",
@@ -7228,42 +7191,6 @@
       "opponent_team": "IND"
     },
     {
-      "player_id": "00-0033110",
-      "player_name": "Tyler Higbee",
-      "position": "TE",
-      "team": "LA",
-      "projected_points": 6.89,
-      "ml_adjustment": -1.96,
-      "projection_lower": 0,
-      "projection_upper": 14.72,
-      "width": 7.83,
-      "ros_points": 86.22,
-      "remaining_games": 14,
-      "games_played": 2,
-      "bye_week": null,
-      "avg_stats": {
-        "receiving_yards": 31.66,
-        "receiving_tds": 0.308,
-        "receptions": 3.5,
-        "fumbles_lost_total": 0.2,
-        "targets": 6.5,
-        "receiving_first_downs": 3.0
-      },
-      "wind_mph": 2.2,
-      "temp_f": 83.8,
-      "matchup_rank": 3,
-      "matchup_difficulty": "HARD",
-      "matchup_pts_allowed": 5.5,
-      "market_season_stats": {
-        "receiving_yards": 506.6,
-        "receiving_tds": 4.9,
-        "receptions": 56.0
-      },
-      "injury_elevation": 0.35,
-      "injury_elevation_from": "Colby Parkinson",
-      "opponent_team": "PHI"
-    },
-    {
       "player_id": "00-0033908",
       "player_name": "Cooper Kupp",
       "position": "WR",
@@ -7498,6 +7425,42 @@
       "opponent_team": "SF"
     },
     {
+      "player_id": "00-0033110",
+      "player_name": "Tyler Higbee",
+      "position": "TE",
+      "team": "LA",
+      "projected_points": 6.54,
+      "ml_adjustment": -1.96,
+      "projection_lower": 0,
+      "projection_upper": 14.37,
+      "width": 7.83,
+      "ros_points": 86.22,
+      "remaining_games": 14,
+      "games_played": 2,
+      "bye_week": null,
+      "avg_stats": {
+        "receiving_yards": 31.66,
+        "receiving_tds": 0.308,
+        "receptions": 3.5,
+        "fumbles_lost_total": 0.2,
+        "targets": 6.5,
+        "receiving_first_downs": 3.0
+      },
+      "wind_mph": 2.2,
+      "temp_f": 83.8,
+      "matchup_rank": 3,
+      "matchup_difficulty": "HARD",
+      "matchup_pts_allowed": 5.5,
+      "market_season_stats": {
+        "receiving_yards": 506.6,
+        "receiving_tds": 4.9,
+        "receptions": 56.0
+      },
+      "injury_elevation": 0.38,
+      "injury_elevation_from": "Colby Parkinson",
+      "opponent_team": "PHI"
+    },
+    {
       "player_id": "00-0035644",
       "player_name": "Noah Fant",
       "position": "TE",
@@ -7569,6 +7532,47 @@
         "receptions": 40.3
       },
       "opponent_team": "CLE"
+    },
+    {
+      "player_id": "00-0040198",
+      "player_name": "Ollie Gordon II",
+      "position": "RB",
+      "team": "MIA",
+      "projected_points": 6.42,
+      "ml_adjustment": -0.95,
+      "projection_lower": 0,
+      "projection_upper": 16.91,
+      "width": 10.49,
+      "ros_points": 41.62,
+      "remaining_games": 13,
+      "games_played": 2,
+      "bye_week": 6,
+      "avg_stats": {
+        "carries": 6.471,
+        "rushing_yards": 15.088,
+        "rushing_tds": 0.223,
+        "receiving_yards": 3.567,
+        "receiving_tds": 0.03,
+        "receptions": 0.769,
+        "targets": 1.5,
+        "rushing_first_downs": 2.0,
+        "receiving_first_downs": 0.5
+      },
+      "wind_mph": 0,
+      "temp_f": 72,
+      "matchup_rank": 13,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 7.5,
+      "market_season_stats": {
+        "rushing_yards": 226.3,
+        "rushing_tds": 3.3,
+        "receiving_yards": 53.5,
+        "receiving_tds": 0.4,
+        "receptions": 11.5
+      },
+      "injury_elevation": 3.22,
+      "injury_elevation_from": "De'Von Achane",
+      "opponent_team": "MIN"
     },
     {
       "player_id": "00-0038393",
@@ -8253,6 +8257,48 @@
       "opponent_team": "SF"
     },
     {
+      "player_id": "00-0041048",
+      "player_name": "Ted Hurst III",
+      "position": "WR",
+      "team": "TB",
+      "projected_points": 5.85,
+      "ml_adjustment": -1.62,
+      "projection_lower": 0,
+      "projection_upper": 17.27,
+      "width": 11.42,
+      "ros_points": 72.06,
+      "remaining_games": 13,
+      "games_played": 3,
+      "bye_week": 10,
+      "avg_stats": {
+        "rushing_yards": 0.495,
+        "rushing_tds": 0.019,
+        "receiving_yards": 33.535,
+        "receiving_tds": 0.239,
+        "receptions": 2.248,
+        "fumbles_lost_total": 0.02,
+        "targets": 4.333,
+        "receiving_40": 0.333,
+        "receiving_first_downs": 1.333,
+        "def_tackles_solo": 0.667
+      },
+      "wind_mph": 6.3,
+      "temp_f": 78.8,
+      "matchup_rank": 11,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 8.0,
+      "market_season_stats": {
+        "rushing_yards": 7.9,
+        "rushing_tds": 0.3,
+        "receiving_yards": 536.6,
+        "receiving_tds": 3.8,
+        "receptions": 36.0
+      },
+      "injury_elevation": 0.31,
+      "injury_elevation_from": "Jalen McMillan",
+      "opponent_team": "GB"
+    },
+    {
       "player_id": "00-0040785",
       "player_name": "Dohnte Meyers",
       "position": "WR",
@@ -8756,46 +8802,6 @@
         "receptions": 41.6
       },
       "opponent_team": "LAC"
-    },
-    {
-      "player_id": "00-0041048",
-      "player_name": "Ted Hurst III",
-      "position": "WR",
-      "team": "TB",
-      "projected_points": 5.54,
-      "ml_adjustment": -1.62,
-      "projection_lower": 0,
-      "projection_upper": 16.97,
-      "width": 11.42,
-      "ros_points": 72.06,
-      "remaining_games": 13,
-      "games_played": 3,
-      "bye_week": 10,
-      "avg_stats": {
-        "rushing_yards": 0.495,
-        "rushing_tds": 0.019,
-        "receiving_yards": 33.535,
-        "receiving_tds": 0.239,
-        "receptions": 2.248,
-        "fumbles_lost_total": 0.02,
-        "targets": 4.333,
-        "receiving_40": 0.333,
-        "receiving_first_downs": 1.333,
-        "def_tackles_solo": 0.667
-      },
-      "wind_mph": 6.3,
-      "temp_f": 78.8,
-      "matchup_rank": 11,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 8.0,
-      "market_season_stats": {
-        "rushing_yards": 7.9,
-        "rushing_tds": 0.3,
-        "receiving_yards": 536.6,
-        "receiving_tds": 3.8,
-        "receptions": 36.0
-      },
-      "opponent_team": "GB"
     },
     {
       "player_id": "00-0036259",
@@ -9395,6 +9401,45 @@
       "opponent_team": "CHI"
     },
     {
+      "player_id": "00-0040394",
+      "player_name": "Anthony Tyus III",
+      "position": "RB",
+      "team": "CAR",
+      "projected_points": 5.05,
+      "ml_adjustment": -2.84,
+      "projection_lower": 0,
+      "projection_upper": 15.54,
+      "width": 10.49,
+      "ros_points": 43.9,
+      "remaining_games": 13,
+      "games_played": 1,
+      "bye_week": 5,
+      "avg_stats": {
+        "carries": 5.92,
+        "rushing_yards": 24.838,
+        "rushing_tds": 0.229,
+        "receiving_yards": 9.254,
+        "receiving_tds": 0.076,
+        "receptions": 1.136,
+        "fumbles_lost_total": 0.08
+      },
+      "wind_mph": 6.1,
+      "temp_f": 71.1,
+      "matchup_rank": 20,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 8.6,
+      "market_season_stats": {
+        "rushing_yards": 347.7,
+        "rushing_tds": 3.2,
+        "receiving_yards": 129.6,
+        "receiving_tds": 1.1,
+        "receptions": 15.9
+      },
+      "injury_elevation": 1.67,
+      "injury_elevation_from": "Jonathon Brooks",
+      "opponent_team": "DET"
+    },
+    {
       "player_id": "00-0040138",
       "player_name": "Jaylin Noel",
       "position": "WR",
@@ -9701,6 +9746,42 @@
         "receptions": 25.9
       },
       "opponent_team": "BAL"
+    },
+    {
+      "player_id": "00-0036244",
+      "player_name": "Colby Parkinson",
+      "position": "TE",
+      "team": "LA",
+      "projected_points": 4.78,
+      "ml_adjustment": -0.16,
+      "projection_lower": 0,
+      "projection_upper": 12.61,
+      "width": 7.83,
+      "ros_points": 61.66,
+      "remaining_games": 14,
+      "games_played": 3,
+      "bye_week": null,
+      "avg_stats": {
+        "receiving_yards": 15.857,
+        "receiving_tds": 0.202,
+        "receptions": 1.829,
+        "fumbles_lost_total": 0.029,
+        "targets": 1.667,
+        "receiving_first_downs": 0.333
+      },
+      "wind_mph": 2.2,
+      "temp_f": 83.8,
+      "matchup_rank": 3,
+      "matchup_difficulty": "HARD",
+      "matchup_pts_allowed": 5.5,
+      "market_season_stats": {
+        "receiving_yards": 269.6,
+        "receiving_tds": 3.4,
+        "receptions": 31.1
+      },
+      "injury_elevation": 0.38,
+      "injury_elevation_from": "Terrance Ferguson",
+      "opponent_team": "PHI"
     },
     {
       "player_id": "00-0041558",
@@ -10286,40 +10367,6 @@
         "receptions": 8.9
       },
       "opponent_team": "KC"
-    },
-    {
-      "player_id": "00-0036244",
-      "player_name": "Colby Parkinson",
-      "position": "TE",
-      "team": "LA",
-      "projected_points": 4.4,
-      "ml_adjustment": -0.16,
-      "projection_lower": 0,
-      "projection_upper": 12.24,
-      "width": 7.83,
-      "ros_points": 61.66,
-      "remaining_games": 14,
-      "games_played": 3,
-      "bye_week": null,
-      "avg_stats": {
-        "receiving_yards": 15.857,
-        "receiving_tds": 0.202,
-        "receptions": 1.829,
-        "fumbles_lost_total": 0.029,
-        "targets": 1.667,
-        "receiving_first_downs": 0.333
-      },
-      "wind_mph": 2.2,
-      "temp_f": 83.8,
-      "matchup_rank": 3,
-      "matchup_difficulty": "HARD",
-      "matchup_pts_allowed": 5.5,
-      "market_season_stats": {
-        "receiving_yards": 269.6,
-        "receiving_tds": 3.4,
-        "receptions": 31.1
-      },
-      "opponent_team": "PHI"
     },
     {
       "player_id": "00-0039814",
@@ -11345,47 +11392,6 @@
       "opponent_team": "NO"
     },
     {
-      "player_id": "00-0040237",
-      "player_name": "Tez Johnson",
-      "position": "WR",
-      "team": "TB",
-      "projected_points": 3.84,
-      "ml_adjustment": -0.25,
-      "projection_lower": 0,
-      "projection_upper": 15.26,
-      "width": 11.42,
-      "ros_points": 45.87,
-      "remaining_games": 13,
-      "games_played": 3,
-      "bye_week": 10,
-      "avg_stats": {
-        "carries": 0.387,
-        "rushing_yards": -0.203,
-        "rushing_tds": 0.001,
-        "receiving_yards": 19.041,
-        "receiving_tds": 0.133,
-        "receptions": 1.092,
-        "targets": 2.333,
-        "receiving_40": 0.333,
-        "receiving_first_downs": 0.333
-      },
-      "wind_mph": 6.3,
-      "temp_f": 78.8,
-      "matchup_rank": 11,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 8.0,
-      "market_season_stats": {
-        "rushing_yards": -3.2,
-        "rushing_tds": 0.0,
-        "receiving_yards": 304.7,
-        "receiving_tds": 2.1,
-        "receptions": 17.5
-      },
-      "injury_elevation": 0.31,
-      "injury_elevation_from": "Jalen McMillan",
-      "opponent_team": "GB"
-    },
-    {
       "player_id": "00-0041529",
       "player_name": "Kevin Coleman Jr.",
       "position": "WR",
@@ -12291,6 +12297,45 @@
       "opponent_team": "SEA"
     },
     {
+      "player_id": "00-0040237",
+      "player_name": "Tez Johnson",
+      "position": "WR",
+      "team": "TB",
+      "projected_points": 3.53,
+      "ml_adjustment": -0.25,
+      "projection_lower": 0,
+      "projection_upper": 14.95,
+      "width": 11.42,
+      "ros_points": 45.87,
+      "remaining_games": 13,
+      "games_played": 3,
+      "bye_week": 10,
+      "avg_stats": {
+        "carries": 0.387,
+        "rushing_yards": -0.203,
+        "rushing_tds": 0.001,
+        "receiving_yards": 19.041,
+        "receiving_tds": 0.133,
+        "receptions": 1.092,
+        "targets": 2.333,
+        "receiving_40": 0.333,
+        "receiving_first_downs": 0.333
+      },
+      "wind_mph": 6.3,
+      "temp_f": 78.8,
+      "matchup_rank": 11,
+      "matchup_difficulty": "AVG",
+      "matchup_pts_allowed": 8.0,
+      "market_season_stats": {
+        "rushing_yards": -3.2,
+        "rushing_tds": 0.0,
+        "receiving_yards": 304.7,
+        "receiving_tds": 2.1,
+        "receptions": 17.5
+      },
+      "opponent_team": "GB"
+    },
+    {
       "player_id": "00-0034981",
       "player_name": "Foster Moreau",
       "position": "TE",
@@ -12762,43 +12807,6 @@
       "opponent_team": "LA"
     },
     {
-      "player_id": "00-0040394",
-      "player_name": "Anthony Tyus III",
-      "position": "RB",
-      "team": "CAR",
-      "projected_points": 3.38,
-      "ml_adjustment": -2.84,
-      "projection_lower": 0,
-      "projection_upper": 13.86,
-      "width": 10.49,
-      "ros_points": 43.9,
-      "remaining_games": 13,
-      "games_played": 1,
-      "bye_week": 5,
-      "avg_stats": {
-        "carries": 5.92,
-        "rushing_yards": 24.838,
-        "rushing_tds": 0.229,
-        "receiving_yards": 9.254,
-        "receiving_tds": 0.076,
-        "receptions": 1.136,
-        "fumbles_lost_total": 0.08
-      },
-      "wind_mph": 6.1,
-      "temp_f": 71.1,
-      "matchup_rank": 20,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 8.6,
-      "market_season_stats": {
-        "rushing_yards": 347.7,
-        "rushing_tds": 3.2,
-        "receiving_yards": 129.6,
-        "receiving_tds": 1.1,
-        "receptions": 15.9
-      },
-      "opponent_team": "DET"
-    },
-    {
       "player_id": "00-0039874",
       "player_name": "Jaylen Wright",
       "position": "RB",
@@ -12942,6 +12950,43 @@
         "receptions": 27.2
       },
       "opponent_team": "ATL"
+    },
+    {
+      "player_id": "00-0039365",
+      "player_name": "Jacob Cowing",
+      "position": "WR",
+      "team": "SF",
+      "projected_points": 3.32,
+      "ml_adjustment": -0.3,
+      "projection_lower": 0,
+      "projection_upper": 14.75,
+      "width": 11.42,
+      "ros_points": 43.18,
+      "remaining_games": 13,
+      "games_played": 3,
+      "bye_week": 8,
+      "avg_stats": {
+        "rushing_yards": 0.535,
+        "rushing_tds": 0.022,
+        "receiving_yards": 15.019,
+        "receiving_tds": 0.131,
+        "receptions": 1.193,
+        "fumbles_lost_total": 0.02,
+        "targets": 0.667
+      },
+      "wind_mph": 0.3,
+      "temp_f": 75.4,
+      "matchup_rank": 28,
+      "matchup_difficulty": "EASY",
+      "matchup_pts_allowed": 11.8,
+      "market_season_stats": {
+        "rushing_yards": 8.6,
+        "rushing_tds": 0.4,
+        "receiving_yards": 240.3,
+        "receiving_tds": 2.1,
+        "receptions": 19.1
+      },
+      "opponent_team": "DEN"
     },
     {
       "player_id": "00-0036972",
@@ -13344,45 +13389,6 @@
         "receptions": 20.7
       },
       "opponent_team": "SF"
-    },
-    {
-      "player_id": "00-0040198",
-      "player_name": "Ollie Gordon II",
-      "position": "RB",
-      "team": "MIA",
-      "projected_points": 3.2,
-      "ml_adjustment": -0.95,
-      "projection_lower": 0,
-      "projection_upper": 13.69,
-      "width": 10.49,
-      "ros_points": 41.62,
-      "remaining_games": 13,
-      "games_played": 2,
-      "bye_week": 6,
-      "avg_stats": {
-        "carries": 6.471,
-        "rushing_yards": 15.088,
-        "rushing_tds": 0.223,
-        "receiving_yards": 3.567,
-        "receiving_tds": 0.03,
-        "receptions": 0.769,
-        "targets": 1.5,
-        "rushing_first_downs": 2.0,
-        "receiving_first_downs": 0.5
-      },
-      "wind_mph": 0,
-      "temp_f": 72,
-      "matchup_rank": 13,
-      "matchup_difficulty": "AVG",
-      "matchup_pts_allowed": 7.5,
-      "market_season_stats": {
-        "rushing_yards": 226.3,
-        "rushing_tds": 3.3,
-        "receiving_yards": 53.5,
-        "receiving_tds": 0.4,
-        "receptions": 11.5
-      },
-      "opponent_team": "MIN"
     },
     {
       "player_id": "00-0036628",

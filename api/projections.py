@@ -13,7 +13,7 @@ _PLAYERS_PATH  = os.path.join(os.path.dirname(__file__), "..", "data", "players"
 
 # Statuses confirmed out for the season — applied to ALL future weeks.
 # Q/D/Out are week-specific, so ignored for frozen future projections.
-_SEASON_OUT = {"IR", "PUP", "SUS", "NFI", "EXE"}
+_SEASON_OUT = {"IR", "PUP", "SUS", "NFI", "EXE", "OUT"}
 _SKILL_POS  = {"QB", "RB", "WR", "TE"}
 
 # Redistribution fraction for IR/season-out starters → backup.
@@ -23,7 +23,9 @@ _ELEVATION_FRAC = 0.30
 
 
 def _norm(name: str) -> str:
-    return re.sub(r"[^a-z0-9]", "", (name or "").lower())
+    # Strip generational suffixes so "Ollie Gordon" matches "Ollie Gordon II"
+    name = re.sub(r"\s+\b(Jr\.?|Sr\.?|II|III|IV|V)\b", "", name or "", flags=re.IGNORECASE).strip()
+    return re.sub(r"[^a-z0-9]", "", name.lower())
 
 
 def _load_injury_data() -> tuple[set, dict]:

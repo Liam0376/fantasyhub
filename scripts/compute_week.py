@@ -320,7 +320,9 @@ def _num_or_none(v):
 
 def _norm_name(name: str) -> str:
     import re
-    return re.sub(r"[^a-z0-9]", "", (name or "").lower())
+    # Strip generational suffixes so depth chart matches projections
+    name = re.sub(r"\s+\b(Jr\.?|Sr\.?|II|III|IV|V)\b", "", name or "", flags=re.IGNORECASE).strip()
+    return re.sub(r"[^a-z0-9]", "", name.lower())
 
 
 def apply_injury_elevation(projections: list[dict], injuries_path: Path,
@@ -338,7 +340,7 @@ def apply_injury_elevation(projections: list[dict], injuries_path: Path,
     # Future weeks: only apply season-long statuses
     _SEVERITY_CURRENT = {"IR": 0.30, "OUT": 0.30, "DOUBTFUL": 0.15, "Q": 0.08,
                          "QUESTIONABLE": 0.08, "D": 0.15, "PUP": 0.30, "SUS": 0.30}
-    _SEVERITY_FUTURE  = {"IR": 0.30, "PUP": 0.30, "SUS": 0.30}
+    _SEVERITY_FUTURE  = {"IR": 0.30, "PUP": 0.30, "SUS": 0.30, "OUT": 0.30}
     _SEVERITY = _SEVERITY_CURRENT if current_week else _SEVERITY_FUTURE
     _ZERO_STATUSES = {"IR", "OUT", "PUP", "SUS"}  # zero projection regardless of week
     _SKILL = {"QB", "RB", "WR", "TE"}
@@ -415,8 +417,8 @@ def apply_injury_elevation(projections: list[dict], injuries_path: Path,
             # Find next available player at same pos/team not themselves injured
             for j in range(i + 1, len(depth_list)):
                 _bdo, bnorm, braw = depth_list[j]
-                if bnorm in inj_lookup:
-                    continue  # backup also injured
+                if bnorm in inj_lookup and inj_lookup[bnorm][0].upper() in _ZERO_STATUSES:
+                    continue  # backup confirmed out (IR/OUT/PUP/SUS)
                 backup = proj_by_name.get(bnorm)
                 if backup is None:
                     continue
