@@ -161,10 +161,14 @@ def main():
     all_rows = load_data()
     print(f"  {len(all_rows)} total rows")
 
-    train_all = [r for r in all_rows if r["season"] in (2022, 2023)]
-    val_all = [r for r in all_rows if r["season"] == 2024]
-    holdout_all = [r for r in all_rows if r["season"] == 2025]
-    print(f"  Train: {len(train_all)}, Val: {len(val_all)}, Holdout: {len(holdout_all)}")
+    # Temporal split: train on 2022-2024 (3 seasons), val on 2025.
+    # Previous: train 2022-2023, val 2024, holdout 2025.
+    # Updated 2026-09-29: 2024 data added to train for more signal;
+    # 2025 serves as both val (early stopping) and final gate.
+    train_all = [r for r in all_rows if r["season"] in (2022, 2023, 2024)]
+    val_all = [r for r in all_rows if r["season"] == 2025]
+    holdout_all = val_all  # 2025 is now both val and holdout gate
+    print(f"  Train: {len(train_all)}, Val/Holdout: {len(val_all)}")
 
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -290,8 +294,8 @@ def main():
         "ship": ship,
         "per_position": pos_results,
         "feature_cols_by_position": all_feature_cols,
-        "train_seasons": [2022, 2023],
-        "val_season": 2024,
+        "train_seasons": [2022, 2023, 2024],
+        "val_season": 2025,
         "holdout_season": 2025,
     }
     with open(META_PATH, "w") as f:

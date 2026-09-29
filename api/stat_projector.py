@@ -55,16 +55,19 @@ RECENT_WEIGHT = 2.0
 TD_REGRESSION_WEIGHT = 0.30
 USAGE_TREND_WEIGHT = 0.15
 
-# Per-game starter-level priors (median of 8+ game starters, 2024-2025 nflverse).
-# Anchor for thin-sample shrinkage — dampens boom/bust when games_played < 5.
+# Per-game starter-level priors (median of 8+ game starters, 2025 nflverse).
+# Recalibrated 2026-09-29 from training_data.jsonl 2025 season (2101 player-weeks,
+# 8+ games played). K and fumbles/carries kept from 2024-2025 baseline (not in
+# training features). Anchor for thin-sample shrinkage — dampens boom/bust
+# when games_played < 5.
 POS_STARTER_PRIORS = {
-    "QB": {"passing_yards": 219.2, "passing_tds": 1.24, "passing_interceptions": 0.65,
-           "rushing_yards": 14.1, "rushing_tds": 0.18, "carries": 3.1, "fumbles_lost_total": 0.15},
-    "RB": {"rushing_yards": 30.6, "rushing_tds": 0.29, "carries": 7.4,
-           "receiving_yards": 11.4, "receiving_tds": 0.11, "receptions": 1.4, "fumbles_lost_total": 0.10},
-    "WR": {"receiving_yards": 36.5, "receiving_tds": 0.25, "receptions": 2.9,
+    "QB": {"passing_yards": 218.6, "passing_tds": 1.48, "passing_interceptions": 0.62,
+           "rushing_yards": 17.0, "rushing_tds": 0.18, "carries": 3.1, "fumbles_lost_total": 0.15},
+    "RB": {"rushing_yards": 32.6, "rushing_tds": 0.31, "carries": 7.4,
+           "receiving_yards": 9.6, "receiving_tds": 0.11, "receptions": 1.33, "fumbles_lost_total": 0.10},
+    "WR": {"receiving_yards": 28.1, "receiving_tds": 0.24, "receptions": 2.41,
            "rushing_yards": 1.3, "rushing_tds": 0.07, "fumbles_lost_total": 0.05},
-    "TE": {"receiving_yards": 24.1, "receiving_tds": 0.15, "receptions": 2.5, "fumbles_lost_total": 0.03},
+    "TE": {"receiving_yards": 23.0, "receiving_tds": 0.21, "receptions": 2.39, "fumbles_lost_total": 0.03},
     "K":  {"fg_made_0_19": 0.03, "fg_made_20_29": 0.20, "fg_made_30_39": 0.25,
            "fg_made_40_49": 0.25, "fg_made_50_59": 0.12, "fg_missed": 0.10, "pat_made": 2.3},
 }

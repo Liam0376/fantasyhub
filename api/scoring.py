@@ -4,6 +4,7 @@ Single source of truth for stat mapping. Both scripts/compute_week.py
 (which stores per-game avg raw stats) and api/analytics.py (which scores
 those avgs per league) import from here. No hardcoded league scoring.
 """
+import math
 
 NFLVERSE_STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"
 
@@ -103,6 +104,38 @@ FLEX_ELIGIBILITY = {
 # Granular defensive positions grouped for IDP_FLEX-style matching.
 IDP_POSITIONS = {"DL", "LB", "DB", "DE", "DT", "CB", "S", "SAF", "FS",
                  "SS", "MLB", "ILB", "OLB", "NT", "EDGE"}
+
+
+# Game-to-game within-player coefficient of variation, derived from 2025
+# training data (ppg_std / ppg_wavg medians by position; rushing and
+# receiving empirically higher-variance than passing).
+# Used only for yardage bonus probability weighting below.
+_STAT_CV = {
+    "rushing_yards":   0.85,   # RB CV 0.581 points → stat CV ~0.85 (yards more volatile)
+    "receiving_yards": 0.75,   # WR/TE CV 0.60-0.66 points
+    "passing_yards":   0.40,   # QB CV 0.368 points; yards more stable than TDs
+    "carries":         0.55,
+    "completions":     0.40,
+}
+
+
+def _bonus_prob(avg: float, threshold: float, cv: float) -> float:
+    """P(single-game stat >= threshold | avg per-game, CV).
+
+    Approximates the game-level distribution as Normal(avg, avg*cv).
+    Returns 1.0 when avg already clears the threshold by ≥2σ (near-certainty)
+    and 0.0 when avg is near zero. Replaces the hard threshold in
+    score_avg_stats so a RB averaging 85 rush-yd/game still gets partial
+    100-yd bonus credit (~30%) instead of zero.
+    """
+    if avg <= 0:
+        return 0.0
+    sigma = avg * cv
+    if sigma <= 0:
+        return 1.0 if avg >= threshold else 0.0
+    z = (threshold - avg) / sigma
+    # P(X >= threshold) = 0.5 * erfc(z / sqrt(2))
+    return 0.5 * math.erfc(z / math.sqrt(2))
 
 
 def safe_float(v, default=0.0):
@@ -234,25 +267,24 @@ def score_avg_stats(avg: dict, scoring: dict, position: str) -> float:
     pts += blocks * g("blk_kick")
     if not g("blk_kick"):
         pts += blocks * g("idp_blk_kick")
-    # Yardage bonuses — awarded when per-game avg clears the threshold.
-    # Approximation (true bonus depends on single-game distribution),
-    # but correct directionally and league-specific.
-    if _f(avg.get("rushing_yards")) >= 100:
-        pts += g("bonus_rush_yd_100")
-    if _f(avg.get("rushing_yards")) >= 200:
-        pts += g("bonus_rush_yd_200")
-    if _f(avg.get("receiving_yards")) >= 100:
-        pts += g("bonus_rec_yd_100")
-    if _f(avg.get("receiving_yards")) >= 200:
-        pts += g("bonus_rec_yd_200")
-    if _f(avg.get("passing_yards")) >= 300:
-        pts += g("bonus_pass_yd_300")
-    if _f(avg.get("passing_yards")) >= 400:
-        pts += g("bonus_pass_yd_400")
-    if _f(avg.get("carries")) >= 20:
-        pts += g("bonus_rush_att_20")
-    if _f(avg.get("completions")) >= 25:
-        pts += g("bonus_pass_cmp_25")
+    # Yardage bonuses — weighted by P(single-game stat >= threshold).
+    # A RB averaging 85 rush-yd/game hits 100 roughly 30% of games, so
+    # the expected bonus contribution is 0.3 × bonus, not 0. The hard
+    # threshold (avg >= 100 → full bonus) is the previous approximation;
+    # probability-weighting is both more correct and more differentiating.
+    rush_yd = _f(avg.get("rushing_yards"))
+    rec_yd  = _f(avg.get("receiving_yards"))
+    pass_yd = _f(avg.get("passing_yards"))
+    carries = _f(avg.get("carries"))
+    cmp     = _f(avg.get("completions"))
+    pts += _bonus_prob(rush_yd, 100, _STAT_CV["rushing_yards"])  * g("bonus_rush_yd_100")
+    pts += _bonus_prob(rush_yd, 200, _STAT_CV["rushing_yards"])  * g("bonus_rush_yd_200")
+    pts += _bonus_prob(rec_yd,  100, _STAT_CV["receiving_yards"]) * g("bonus_rec_yd_100")
+    pts += _bonus_prob(rec_yd,  200, _STAT_CV["receiving_yards"]) * g("bonus_rec_yd_200")
+    pts += _bonus_prob(pass_yd, 300, _STAT_CV["passing_yards"])  * g("bonus_pass_yd_300")
+    pts += _bonus_prob(pass_yd, 400, _STAT_CV["passing_yards"])  * g("bonus_pass_yd_400")
+    pts += _bonus_prob(carries, 20,  _STAT_CV["carries"])         * g("bonus_rush_att_20")
+    pts += _bonus_prob(cmp,     25,  _STAT_CV["completions"])     * g("bonus_pass_cmp_25")
     # Long-TD bonuses (pass_td_40p etc.) need TD-distance data nflverse
     # player-week lacks — documented limitation, scored as 0.
     return pts

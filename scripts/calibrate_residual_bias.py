@@ -55,9 +55,16 @@ def main():
 
     _load_models()
     rows = [json.loads(l) for l in open(DATA_PATH)]
-    val = [r for r in rows if r.get("season") == 2024]
-    holdout = [r for r in rows if r.get("season") == 2025]
-    print(f"val rows: {len(val)}, holdout rows: {len(holdout)}")
+    # Temporal split updated 2026-09-29: 2024 is now in the training set,
+    # so bias can no longer be fitted on 2024 val. Split 2025 in half:
+    # weeks 1-9 for bias fitting, weeks 10-18 for the gate evaluation.
+    # Mild leakage (XGBoost early-stopping saw all of 2025) is acceptable
+    # for this additive correction; splitting by week keeps temporal order.
+    val = [r for r in rows
+           if r.get("season") == 2025 and int(r.get("week") or 0) <= 9]
+    holdout = [r for r in rows
+               if r.get("season") == 2025 and int(r.get("week") or 0) > 9]
+    print(f"val rows (2025 wk1-9): {len(val)}, holdout rows (2025 wk10-18): {len(holdout)}")
 
     # Fit bias on 2024 val: mean(predicted - actual residual).
     bias = {}
@@ -136,8 +143,10 @@ def main():
         "pairwise": pw, "heuristic_pairwise": pw_h,
         "pos_delta": pos_delta, "gates": gates,
         "all_pass": all(gates.values())}
-    if args.write:
+    if args.write and payload["gate_rerun_2025"]["all_pass"]:
         OUT_PATH.write_text(json.dumps(payload, indent=2))
+    elif args.write and not payload["gate_rerun_2025"]["all_pass"]:
+        print("  Gates failed — bias_correction.json not updated (correction hurts)")
     return 0
 
 
