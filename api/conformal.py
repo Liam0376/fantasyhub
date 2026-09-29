@@ -22,28 +22,44 @@ POS_RESIDUALS = {
     "K": [0.5, 1.1, 2.1, 3.2, 4.2, 5.5, 6.8, 8.0, 9.5],
 }
 
-# Position width-scaling factors, applied on top of the real conformal
-# base width. Single source — api/analytics.py, scripts/compute_week.py,
-# and scripts/backtest.py all import this instead of each keeping their
-# own copy (found duplicated 3x via ponytail-audit this session).
-POS_WIDTH_FACTORS = {"QB": 1.55, "RB": 1.07, "WR": 1.12, "TE": 0.88, "K": 0.85, "DEF": 0.75}
+# Floor/ceiling = empirical P20/P80 of actual points, conditional on the
+# projection, per position: (bin mean projection, P20, P80). Fit by the
+# father project's scripts/fit_intervals.py (walk-forward 2024-25, wk 4-18);
+# keep in sync with football-sports-analytics stat_projector.INTERVAL_TABLE.
+# Replaced flat qhat*factor half-widths (WR +/-11.4 at any projection).
+# Check on this repo's own 2026 wk 1-3 projections: in-range 0.54-0.61
+# (target 0.60), mean WR span 17.6 -> 8.2.
+INTERVAL_TABLE = {
+    "QB": [(4.2, 0.0, 14.0), (11.0, 3.2, 22.2), (14.7, 8.8, 24.7), (17.1, 10.1, 24.1), (19.5, 11.0, 28.9), (23.4, 14.2, 29.8)],
+    "RB": [(0.7, 0.0, 1.4), (1.9, 0.0, 4.2), (3.4, 0.4, 7.0), (5.1, 1.1, 9.4), (7.2, 2.3, 12.5), (10.1, 4.3, 15.9), (13.5, 7.4, 20.2), (18.8, 9.9, 25.0)],
+    "WR": [(0.6, 0.0, 2.0), (2.0, 0.0, 4.2), (3.5, 0.0, 7.4), (5.1, 1.0, 8.6), (7.0, 1.7, 10.8), (9.3, 3.1, 15.6), (12.1, 5.1, 18.9), (17.0, 7.8, 21.8)],
+    "TE": [(0.8, 0.0, 2.4), (2.0, 0.0, 4.1), (3.2, 0.0, 6.1), (4.5, 1.3, 7.1), (6.3, 2.4, 10.8), (8.6, 3.7, 14.4), (12.6, 4.8, 18.7)],
+    "K": [(5.8, 4.0, 12.0), (7.6, 4.0, 12.0), (8.7, 4.0, 12.0), (10.7, 4.0, 13.0)],
+}
 
-# Per-position ceiling on interval half-width. QB's high base×factor
-# (12.1×1.55=18.75) meant every QB above ~12pts hit the old 14.0 cap,
-# giving identical ±14 bands for a 15pt and a 35pt QB. Position-specific
-# ceilings restore differentiation at the high end.
-POS_MAX_WIDTH = {"QB": 22.0, "RB": 16.0, "WR": 17.0, "TE": 14.0, "K": 10.0, "DEF": 12.0}
+
+def interval_bounds(pos: str, pts: float) -> tuple:
+    """(floor, ceiling): linear interp between bin centers, constant offset
+    from the projection past either end. Unknown positions use WR."""
+    t = INTERVAL_TABLE.get((pos or "").upper()) or INTERVAL_TABLE["WR"]
+    if pts <= t[0][0]:
+        c, lo, hi = t[0]
+    elif pts >= t[-1][0]:
+        c, lo, hi = t[-1]
+    else:
+        for (c0, lo0, hi0), (c1, lo1, hi1) in zip(t, t[1:]):
+            if pts <= c1:
+                f = (pts - c0) / (c1 - c0)
+                c, lo, hi = pts, lo0 + f * (lo1 - lo0), hi0 + f * (hi1 - hi0)
+                break
+    return max(0.0, min(pts, pts - (c - lo))), max(pts, pts + (hi - c))
 
 
-def interval_width(pos: str, pts: float) -> float:
-    """Confidence interval half-width: real conformal base (qhat) scaled
-    by position and point-magnitude factors, clamped to [3.0, POS_MAX_WIDTH].
-    Single implementation — see POS_WIDTH_FACTORS docstring."""
-    base = qhat(POS_RESIDUALS.get(pos, POS_RESIDUALS["WR"]))
-    pf = POS_WIDTH_FACTORS.get(pos, 1.0)
-    qf = 1.0 if pts <= 12 else min(1.60, 1.0 + (pts - 12) * 0.022)
-    cap = POS_MAX_WIDTH.get(pos, 14.0)
-    return max(3.0, min(cap, base * pf * qf))
+def interval_fields(pos: str, pts: float) -> dict:
+    """projection_lower/upper plus width = half the (asymmetric) span."""
+    lo, hi = interval_bounds(pos, pts)
+    return {"projection_lower": round(lo, 2), "projection_upper": round(hi, 2),
+            "width": round((hi - lo) / 2, 2)}
 
 
 def qhat(residuals: list[float], alpha: float = 0.2) -> float:

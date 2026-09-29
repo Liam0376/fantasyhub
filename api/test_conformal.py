@@ -30,3 +30,20 @@ if __name__ == "__main__":
     test_qhat_empty_raises()
     test_pos_residuals_has_all_positions()
     print("OK")
+
+
+def test_interval_scales_with_projection():
+    # Regression: flat qhat*factor gave every WR +/-11.4, so a 1.5-pt WR
+    # showed [0, 12.9]. Range must be tight at the bottom and grow with pts.
+    from conformal import interval_bounds, interval_fields
+    lo1, hi1 = interval_bounds("WR", 1.5)
+    lo6, hi6 = interval_bounds("WR", 6.0)
+    lo15, hi15 = interval_bounds("WR", 15.0)
+    assert hi1 < 5.0
+    assert (hi1 - lo1) < (hi6 - lo6) < (hi15 - lo15)
+    assert hi6 - lo6 < 10.0
+    for pts in (0.0, 0.3, 50.0):
+        lo, hi = interval_bounds("QB", pts)
+        assert 0.0 <= lo <= pts <= hi
+    f = interval_fields("RB", 12.0)
+    assert abs(f["width"] - (f["projection_upper"] - f["projection_lower"]) / 2) < 0.011

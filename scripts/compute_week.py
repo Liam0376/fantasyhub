@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
-from conformal import qhat, POS_RESIDUALS, interval_width
+from conformal import interval_fields
 from scoring import AVG_STAT_KEYS, normalize_row_stats, score_avg_stats, score_team_def, REF_SCORING, safe_float, NFLVERSE_STATS_URL
 from stat_projector import project_player_stats, build_game_context, COVERED_STATS
 from weather import STADIUM_COORDS, get_forecast
@@ -423,8 +423,7 @@ def apply_injury_elevation(projections: list[dict], injuries_path: Path,
                 if backup is None:
                     continue
                 backup["projected_points"] = round(backup["projected_points"] + boost, 2)
-                backup["projection_lower"] = round(max(0, backup["projected_points"] - backup.get("width", 5)), 2)
-                backup["projection_upper"] = round(backup["projected_points"] + backup.get("width", 5), 2)
+                backup.update(interval_fields(backup.get("position", ""), backup["projected_points"]))
                 backup["injury_elevation"] = round(boost, 2)
                 backup["injury_elevation_from"] = raw_name
                 elevated += 1
@@ -702,7 +701,6 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                         - (1 if bye_week and bye_week > current_week else 0))
         ros_pts = avg_pts * remaining
 
-        width = interval_width(pos, avg_pts)
 
         # Matchup difficulty vs this week's opponent (positional
         # points-allowed rank; None for K/DEF/bye — no positional data).
@@ -716,9 +714,7 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
             "team": p["team"],
             "projected_points": round(avg_pts, 2),
             "ml_adjustment": round(ml_adj, 2),
-            "projection_lower": round(max(0, avg_pts - width), 2),
-            "projection_upper": round(avg_pts + width, 2),
-            "width": round(width, 2),
+            **interval_fields(pos, avg_pts),
             "ros_points": round(ros_pts, 2),
             "remaining_games": remaining,
             "games_played": played,

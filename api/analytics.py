@@ -2,7 +2,7 @@
 import json
 import os
 
-from conformal import interval_width
+from conformal import interval_fields
 from league import fetch_league
 from projections import get_projections
 from scoring import (FLEX_ELIGIBILITY, describe_scoring,
@@ -161,7 +161,6 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
         pos = (p.get("position") or "UNK").upper()
         rep = replacement.get(_roster_group(pos), replacement.get(pos, 0.0))
         vor = pts - rep
-        width = interval_width(pos, pts)
         # Bye-aware ROS: the bye week scores 0 and never counts toward
         # remaining games.
         bye_week = p.get("bye_week")
@@ -183,9 +182,7 @@ def compute_analytics(league_id: str, week: str | None = None, season: str | Non
             "team": p.get("team", ""),
             "opponent_team": p.get("opponent_team", ""),
             "projected_points": round(pts, 2),
-            "projection_lower": round(max(0, pts - width), 2),
-            "projection_upper": round(pts + width, 2),
-            "width": round(width, 2),
+            **interval_fields(pos, pts),
             "vor": round(max(0, vor), 2),
             "ros_points": round(pts * remaining, 2),
             "remaining_games": remaining,

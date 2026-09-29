@@ -20,7 +20,7 @@ from pathlib import Path
 import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
-from conformal import qhat, POS_RESIDUALS, interval_width
+from conformal import interval_fields
 from scoring import score_avg_stats, normalize_row_stats, REF_SCORING, safe_float, NFLVERSE_STATS_URL
 from stat_projector import project_player_stats, COVERED_STATS
 
@@ -168,8 +168,8 @@ def run_backtest(season: int, weeks: list[int]) -> dict:
             new_pairs.append((new_pts, actual_pts))
 
             # Compute widths using conformal base + heuristic scaling
-            old_widths.append(interval_width(pos, old_pts))
-            new_widths.append(interval_width(pos, new_pts))
+            old_widths.append(interval_fields(pos, old_pts)["width"])
+            new_widths.append(interval_fields(pos, new_pts)["width"])
 
     return {
         "old": compute_metrics(old_pairs, old_widths),
