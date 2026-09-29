@@ -318,6 +318,106 @@ def _num_or_none(v):
 
 
 
+def _norm_name(name: str) -> str:
+    import re
+    return re.sub(r"[^a-z0-9]", "", (name or "").lower())
+
+
+def apply_injury_elevation(projections: list[dict], injuries_path: Path,
+                           players_path: Path) -> None:
+    """Boost backup projections when starters are OUT/Doubtful for current week.
+
+    Redistribution fractions by injury status:
+      IR / Out    → 85% of starter's points to next available depth player
+      Doubtful    → 50%
+      Questionable→ 20%
+
+    Only skill positions (QB/RB/WR/TE) — no K/DEF redistribution.
+    Mutates projections in place; adds injury_elevation flag on boosted entries.
+    ponytail: simple depth-order redistribution, not snap-share model.
+    """
+    _SEVERITY = {"IR": 0.85, "OUT": 0.85, "DOUBTFUL": 0.50, "Q": 0.20,
+                 "QUESTIONABLE": 0.20, "D": 0.50}
+    _SKILL = {"QB", "RB", "WR", "TE"}
+
+    try:
+        with open(injuries_path) as f:
+            inj_data = json.load(f)
+        injury_map = inj_data.get("players", {})
+    except (OSError, json.JSONDecodeError):
+        return
+
+    try:
+        with open(players_path) as f:
+            snap_data = json.load(f)
+        sleeper_players = snap_data.get("players", {})
+    except (OSError, json.JSONDecodeError):
+        sleeper_players = {}
+
+    # Build injury lookup: norm_name → (status, severity)
+    inj_lookup: dict[str, tuple[str, float]] = {}
+    for key, status in injury_map.items():
+        parts = key.split("|")
+        name = parts[0].strip()
+        sev = _SEVERITY.get((status or "").upper(), 0.0)
+        if sev > 0:
+            inj_lookup[_norm_name(name)] = (status, sev)
+
+    # Build depth chart from Sleeper snapshot: (team, pos) → sorted [(depth_order, norm_name)]
+    depth_chart: dict[tuple, list] = defaultdict(list)
+    for _sid, sp in sleeper_players.items():
+        pos = (sp.get("p") or "").upper()
+        if pos not in _SKILL:
+            continue
+        team = sp.get("t") or ""
+        do = sp.get("do") or 99
+        name = sp.get("n") or ""
+        if team and name:
+            depth_chart[(team, pos)].append((do, _norm_name(name), name))
+    for key in depth_chart:
+        depth_chart[key].sort()
+
+    # Index projections by norm_name for fast lookup
+    proj_by_name: dict[str, dict] = {}
+    for p in projections:
+        proj_by_name[_norm_name(p["player_name"])] = p
+
+    elevated = 0
+    for (team, pos), depth_list in depth_chart.items():
+        for i, (do, norm, raw_name) in enumerate(depth_list):
+            if do > 3:
+                continue  # don't redistribute from depth 4+
+            sev_info = inj_lookup.get(norm)
+            if not sev_info:
+                continue
+            _status, severity = sev_info
+            starter_proj = proj_by_name.get(norm)
+            starter_pts = starter_proj["projected_points"] if starter_proj else 0.0
+            if starter_pts <= 0:
+                continue
+            boost = round(starter_pts * severity, 2)
+
+            # Find next available player at same pos/team not themselves injured
+            for j in range(i + 1, len(depth_list)):
+                _bdo, bnorm, braw = depth_list[j]
+                if bnorm in inj_lookup:
+                    continue  # backup also injured
+                backup = proj_by_name.get(bnorm)
+                if backup is None:
+                    continue
+                backup["projected_points"] = round(backup["projected_points"] + boost, 2)
+                backup["projection_lower"] = round(max(0, backup["projected_points"] - backup.get("width", 5)), 2)
+                backup["projection_upper"] = round(backup["projected_points"] + backup.get("width", 5), 2)
+                backup["injury_elevation"] = round(boost, 2)
+                backup["injury_elevation_from"] = raw_name
+                elevated += 1
+                break
+
+    if elevated:
+        print(f"  Injury elevation: {elevated} backups boosted")
+        projections.sort(key=lambda x: x["projected_points"], reverse=True)
+
+
 def compute_projections(stats_rows: list[dict], current_week: int, season: int,
                         byes: dict | None = None, prior_season_rows: list[dict] | None = None,
                         game_ctx: dict | None = None, weather_by_team: dict | None = None,
@@ -821,6 +921,13 @@ def main():
                                           pbp_data, opp_defense, prior_pbp_data,
                                           home_map, spread_map, roster_info, snap_data,
                                           roster_rows)
+
+        # Injury elevation: only for current week (injury status is live data).
+        if target_week == week:
+            injuries_path = Path(__file__).parent.parent / "data" / "injuries" / "latest.json"
+            players_path = Path(__file__).parent.parent / "data" / "players" / "latest.json"
+            apply_injury_elevation(projections, injuries_path, players_path)
+
         # Team DEF: copy and set per-week opponents/byes.
         week_td = []
         for td in team_def:

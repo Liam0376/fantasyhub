@@ -242,6 +242,8 @@ def _hub_player(p: dict) -> dict:
         "matchup_difficulty": p.get("matchup_difficulty"),
         "matchup_pts_allowed": p.get("matchup_pts_allowed"),
         "bye_week": p.get("bye_week"), "remaining_games": p.get("remaining_games", 0),
+        "injury_elevation": p.get("injury_elevation"),
+        "injury_elevation_from": p.get("injury_elevation_from"),
     }
 
 
