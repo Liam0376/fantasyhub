@@ -232,7 +232,8 @@ def score_avg_stats(avg: dict, scoring: dict, position: str) -> float:
     blocks = (_f(avg.get("def_fg_blocks")) + _f(avg.get("def_pat_blocks"))
               + _f(avg.get("def_punt_blocks")))
     pts += blocks * g("blk_kick")
-    pts += blocks * g("idp_blk_kick")
+    if not g("blk_kick"):
+        pts += blocks * g("idp_blk_kick")
     # Yardage bonuses — awarded when per-game avg clears the threshold.
     # Approximation (true bonus depends on single-game distribution),
     # but correct directionally and league-specific.

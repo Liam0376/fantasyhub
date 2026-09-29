@@ -17,11 +17,13 @@ sys.path.insert(0, os.path.dirname(__file__))
 import hubapi
 from league import LeagueNotFound
 
+_CORS_ORIGIN = os.environ.get("CORS_ORIGIN", "*")
+
 
 class handler(BaseHTTPRequestHandler):
     def _send(self, status, body):
         self.send_response(status)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", _CORS_ORIGIN)
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Content-Type", "application/json")
@@ -135,7 +137,7 @@ class handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", _CORS_ORIGIN)
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()

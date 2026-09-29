@@ -1,5 +1,7 @@
 """Fetch league data from Sleeper API."""
+import re
 import requests
+from concurrent.futures import ThreadPoolExecutor
 
 BASE = "https://api.sleeper.app/v1"
 
@@ -16,24 +18,27 @@ class LeagueNotFound(Exception):
 def fetch_league(league_id: str) -> dict:
     """Fetch league settings, rosters, and users from Sleeper."""
     league_id = str(league_id).strip()
-
-    r = requests.get(f"{BASE}/league/{league_id}", timeout=10)
-    if r.status_code == 404:
+    if not re.fullmatch(r'\d{1,20}', league_id):
         raise LeagueNotFound(league_id)
-    r.raise_for_status()
-    league = r.json()
+
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        f_league  = ex.submit(requests.get, f"{BASE}/league/{league_id}", timeout=10)
+        f_rosters = ex.submit(requests.get, f"{BASE}/league/{league_id}/rosters", timeout=10)
+        f_users   = ex.submit(requests.get, f"{BASE}/league/{league_id}/users", timeout=10)
+        r_league, r_rosters, r_users = f_league.result(), f_rosters.result(), f_users.result()
+
+    if r_league.status_code == 404:
+        raise LeagueNotFound(league_id)
+    r_league.raise_for_status()
+    league = r_league.json()
     # Sleeper answers 404 with a literal "null" body for unknown ids on
     # some edges; a non-dict payload means the same thing.
     if not isinstance(league, dict):
         raise LeagueNotFound(league_id)
-
-    r = requests.get(f"{BASE}/league/{league_id}/rosters", timeout=10)
-    r.raise_for_status()
-    rosters = r.json()
-
-    r = requests.get(f"{BASE}/league/{league_id}/users", timeout=10)
-    r.raise_for_status()
-    users = r.json()
+    r_rosters.raise_for_status()
+    rosters = r_rosters.json()
+    r_users.raise_for_status()
+    users = r_users.json()
 
     user_map = {}
     for u in users:
