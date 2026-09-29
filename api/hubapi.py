@@ -253,7 +253,7 @@ def hub_projections(league_id: str, week=None, season=None, limit=800, ros=False
     if ros:
         players.sort(key=lambda p: -(p["ros"] or 0))
     try:
-        players = players[:max(1, int(limit or 800))]
+        players = players[:max(1, min(int(limit or 800), 2000))]
     except (ValueError, TypeError):
         pass
     return {"players": players, "meta": a["meta"]}
@@ -477,8 +477,15 @@ def hub_waiver(league_id: str, owner_id=None) -> dict:
             "waiver_priority": 0,
         })
     recs.sort(key=lambda r: -r["improvement_over_roster"])
+    waiver_budget = int(settings.get("waiver_budget") or 100)
+    max_vbd = max((r["vbd"] for r in recs), default=1.0) or 1.0
     for i, r in enumerate(recs):
         r["waiver_priority"] = i + 1
+        if waiver_budget > 0:
+            bid = round((max(0, r["vbd"]) / max_vbd) * waiver_budget * 0.6)
+            r["suggested_bid"] = max(1, min(bid, waiver_budget))
+        else:
+            r["suggested_bid"] = None
     return {"recommendations": recs[:100]}
 
 

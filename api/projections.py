@@ -113,9 +113,16 @@ def _apply_future_injury_adjustments(players: list) -> None:
                 backup = by_name.get(bnorm)
                 if backup is None:
                     continue
-                backup["projected_points"] = round(backup["projected_points"] + boost, 2)
-                backup["projection_upper"] = round(backup["projected_points"] + backup.get("width", 5), 2)
-                backup["projection_lower"] = round(max(0, backup["projected_points"] - backup.get("width", 5)), 2)
+                new_pts = round(backup["projected_points"] + boost, 2)
+                backup["projected_points"] = new_pts
+                try:
+                    from conformal import interval_width as _iw
+                    new_width = _iw(pos, new_pts)
+                except Exception:
+                    new_width = backup.get("width", 5)
+                backup["projection_upper"] = round(new_pts + new_width, 2)
+                backup["projection_lower"] = round(max(0, new_pts - new_width), 2)
+                backup["width"] = round(new_width, 2)
                 backup["injury_elevation"]      = round(boost, 2)
                 backup["injury_elevation_from"] = starter.get("player_name", _raw)
                 break

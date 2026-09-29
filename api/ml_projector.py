@@ -12,9 +12,11 @@ from pathlib import Path
 
 MODEL_DIR = Path(__file__).parent.parent / "data" / "models"
 META_PATH = MODEL_DIR / "ml_meta.json"
+BIAS_PATH = MODEL_DIR / "bias_correction.json"
 
 _models: dict[str, object] = {}
 _feature_cols: dict[str, list[str]] = {}
+_bias: dict = {}
 _loaded = False
 _ship = False
 _load_error: str | None = None
@@ -30,6 +32,7 @@ def _fail(msg):
     _load_error = msg
     _models.clear()
     _feature_cols.clear()
+    _bias.clear()
     print(f"[ml_projector] {_load_error}", file=sys.stderr)
 
 
@@ -64,6 +67,14 @@ def _load_models():
                 _feature_cols[pos] = cols_by_pos[pos]
         if not _models:
             _fail("no models loaded")
+            return
+        if BIAS_PATH.exists():
+            try:
+                with open(BIAS_PATH) as f:
+                    bc = json.load(f)
+                _bias.update(bc.get("constants", {}))
+            except Exception as e:
+                print(f"[ml_projector] bias_correction load failed: {e}", file=sys.stderr)
     except Exception as e:
         # Loud, not silent: a swallowed load error once zeroed every
         # residual production-wide (xgboost 2.x loader vs 3.x artifacts).
@@ -90,6 +101,10 @@ def ml_predict(features: dict, position: str = None) -> float | None:
     try:
         import numpy as np
         X = np.array([[features.get(c, 0) for c in cols]], dtype=np.float32)
-        return float(model.predict(X)[0])
+        raw = float(model.predict(X)[0])
+        pos_bias = _bias.get(pos, {})
+        regime = "early" if features.get("current_week", 99) <= 4 else "late"
+        correction = pos_bias.get(regime, {}).get("bias", 0.0)
+        return raw - correction
     except Exception:
         return None
