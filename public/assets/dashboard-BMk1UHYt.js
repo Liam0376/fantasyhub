@@ -108,7 +108,7 @@ import{f as K,a as V,b as Y,c as G,d as J,e as B,g as Q,h as r,l as X,u as Z,p a
         </div>
       </div>
     </div>
-  `,e.querySelectorAll("[data-pid]").forEach(s=>{s.addEventListener("click",async()=>{const a=s.getAttribute("data-pid"),d=[...$.recommendations||[],...p].find(o=>String(o.player_id)===String(a));if(d){const{openPlayerModal:o}=await es(async()=>{const{openPlayerModal:u}=await import("./index-D0XiqyTN.js").then(w=>w.W);return{openPlayerModal:u}},__vite__mapDeps([0,1]));o(d,e)}})});e.querySelectorAll("[data-pj]").forEach(s=>{s.addEventListener("click",()=>{try{Ce(JSON.parse(s.getAttribute("data-pj")),e)}catch(_){}})});function O(e,i){return`
+  `,e.querySelectorAll("[data-pid]").forEach(s=>{s.addEventListener("click",async()=>{const a=s.getAttribute("data-pid"),d=[...$.recommendations||[],...p].find(o=>String(o.player_id)===String(a));if(d){const{openPlayerModal:o}=await es(async()=>{const{openPlayerModal:u}=await import("./index-D0XiqyTN.js").then(w=>w.W);return{openPlayerModal:u}},__vite__mapDeps([0,1]));o(d,e)}})});e.querySelectorAll("[data-pj]").forEach(s=>{s.addEventListener("click",()=>{try{Ce(JSON.parse(s.getAttribute("data-pj")),e)}catch(_){}})});}function O(e,i){return`
     <div class="mini-row" data-pj='${JSON.stringify(e)}' style="cursor:pointer">
       ${S(e,26)}
       <div style="flex:1; min-width:0">
