@@ -19,7 +19,7 @@ _SKILL_POS  = {"QB", "RB", "WR", "TE"}
 # Redistribution fraction for IR/season-out starters → backup.
 # 0.50: backup gets roughly half the starter's value — accounts for
 # committee splits, lower efficiency, and game-script differences.
-_ELEVATION_FRAC = 0.50
+_ELEVATION_FRAC = 0.30
 
 
 def _norm(name: str) -> str:
