@@ -28,15 +28,22 @@ POS_RESIDUALS = {
 # own copy (found duplicated 3x via ponytail-audit this session).
 POS_WIDTH_FACTORS = {"QB": 1.55, "RB": 1.07, "WR": 1.12, "TE": 0.88, "K": 0.85, "DEF": 0.75}
 
+# Per-position ceiling on interval half-width. QB's high base×factor
+# (12.1×1.55=18.75) meant every QB above ~12pts hit the old 14.0 cap,
+# giving identical ±14 bands for a 15pt and a 35pt QB. Position-specific
+# ceilings restore differentiation at the high end.
+POS_MAX_WIDTH = {"QB": 22.0, "RB": 16.0, "WR": 17.0, "TE": 14.0, "K": 10.0, "DEF": 12.0}
+
 
 def interval_width(pos: str, pts: float) -> float:
     """Confidence interval half-width: real conformal base (qhat) scaled
-    by position and point-magnitude factors, clamped to [3.0, 14.0].
+    by position and point-magnitude factors, clamped to [3.0, POS_MAX_WIDTH].
     Single implementation — see POS_WIDTH_FACTORS docstring."""
     base = qhat(POS_RESIDUALS.get(pos, POS_RESIDUALS["WR"]))
     pf = POS_WIDTH_FACTORS.get(pos, 1.0)
     qf = 1.0 if pts <= 12 else min(1.60, 1.0 + (pts - 12) * 0.022)
-    return max(3.0, min(14.0, base * pf * qf))
+    cap = POS_MAX_WIDTH.get(pos, 14.0)
+    return max(3.0, min(cap, base * pf * qf))
 
 
 def qhat(residuals: list[float], alpha: float = 0.2) -> float:

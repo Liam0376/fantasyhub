@@ -587,6 +587,7 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
 
         # ML residual: if model available, predict correction to heuristic
         ml_adj = 0.0
+        ml_features = {}
         if ml_predict and pbp_data is not None:
             sp = (spread_map or {}).get((p["team"], current_week), {})
             ri = (roster_info or {}).get(pid, {})
@@ -729,6 +730,10 @@ def compute_projections(stats_rows: list[dict], current_week: int, season: int,
             "matchup_difficulty": matchup.get("difficulty"),
             "matchup_pts_allowed": (round(matchup["pts_allowed"], 1)
                                     if matchup.get("pts_allowed") is not None else None),
+            "target_share": (round(ml_features["pbp_target_share_wavg"], 3)
+                             if ml_features.get("pbp_target_share_wavg") else None),
+            "air_yards_share": (round(ml_features["pbp_air_yards_share_wavg"], 3)
+                                if ml_features.get("pbp_air_yards_share_wavg") else None),
         }
         if pos == "QB":
             entry["projected_pass_yards"] = round(avg_stats.get("passing_yards", 0), 1)

@@ -473,7 +473,11 @@ def hub_waiver(league_id: str, owner_id=None) -> dict:
             "replaces_player_id": (replaces or {}).get("player_id"),
             "replaces_player_name": (replaces or {}).get("player_name"),
             "injury_status": p.get("injury_status"),
-            "confidence": "High" if improvement >= 8 else ("Medium" if improvement >= 4 else "Low"),
+            "confidence": (
+                "High" if improvement >= p.get("width", 8.0)
+                else ("Medium" if improvement >= p.get("width", 8.0) * 0.5
+                      else "Low")
+            ),
             "waiver_priority": 0,
         })
     recs.sort(key=lambda r: -r["improvement_over_roster"])

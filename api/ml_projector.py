@@ -17,9 +17,14 @@ BIAS_PATH = MODEL_DIR / "bias_correction.json"
 _models: dict[str, object] = {}
 _feature_cols: dict[str, list[str]] = {}
 _bias: dict = {}
+_skip_positions: set[str] = set()
 _loaded = False
 _ship = False
 _load_error: str | None = None
+
+# Minimum per-position MAE delta to use ML. Positions below this threshold
+# show negligible improvement over heuristic (TE: -0.046 in backtest).
+_MIN_DELTA = 0.08
 
 
 def _fail(msg):
@@ -33,6 +38,7 @@ def _fail(msg):
     _models.clear()
     _feature_cols.clear()
     _bias.clear()
+    _skip_positions.clear()
     print(f"[ml_projector] {_load_error}", file=sys.stderr)
 
 
@@ -68,6 +74,18 @@ def _load_models():
         if not _models:
             _fail("no models loaded")
             return
+        # Per-position ship gate: skip positions where ML adds < _MIN_DELTA
+        # improvement over heuristic (e.g. TE delta=-0.046 in backtest).
+        pos_data = meta.get("per_position", {})
+        for pos_key, pos_info in pos_data.items():
+            if abs(pos_info.get("delta", 1.0)) < _MIN_DELTA:
+                _skip_positions.add(pos_key.upper())
+                if pos_key.upper() in _models:
+                    del _models[pos_key.upper()]
+                if pos_key.upper() in _feature_cols:
+                    del _feature_cols[pos_key.upper()]
+        if _skip_positions:
+            print(f"[ml_projector] skipping ML for: {sorted(_skip_positions)}", file=sys.stderr)
         if BIAS_PATH.exists():
             try:
                 with open(BIAS_PATH) as f:
