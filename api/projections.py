@@ -2,35 +2,119 @@
 import json
 import os
 import re
+from collections import defaultdict
 
 from nfl_state import get_nfl_state
 
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "projections")
 _INJURIES_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "injuries", "latest.json")
+_PLAYERS_PATH  = os.path.join(os.path.dirname(__file__), "..", "data", "players",  "latest.json")
 
-# Statuses that mean a player is out for the foreseeable future.
-# Q/D/Out are week-specific — don't apply them to frozen future projections.
+# Statuses confirmed out for the season — applied to ALL future weeks.
+# Q/D/Out are week-specific, so ignored for frozen future projections.
 _SEASON_OUT = {"IR", "PUP", "SUS", "NFI", "EXE"}
+_SKILL_POS  = {"QB", "RB", "WR", "TE"}
+
+# Redistribution fraction for IR/season-out starters → backup
+_ELEVATION_FRAC = 0.85
 
 
 def _norm(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", (name or "").lower())
 
 
-def _season_out_set() -> set:
-    """Normalized names of players confirmed out for the season."""
+def _load_injury_data() -> tuple[set, dict]:
+    """Returns (season_out_norm_names, {norm_name: status})."""
     try:
         with open(_INJURIES_PATH) as f:
             data = json.load(f)
-        out = set()
+        out_set, all_inj = set(), {}
         for key, status in (data.get("players") or {}).items():
-            if (status or "").upper() in _SEASON_OUT:
-                name = key.split("|")[0].strip()
-                out.add(_norm(name))
-        return out
+            s = (status or "").upper()
+            name = _norm(key.split("|")[0].strip())
+            all_inj[name] = s
+            if s in _SEASON_OUT:
+                out_set.add(name)
+        return out_set, all_inj
     except (OSError, json.JSONDecodeError):
-        return set()
+        return set(), {}
+
+
+def _depth_chart() -> dict:
+    """(team, pos) → [(depth_order, norm_name, raw_name)] sorted by depth."""
+    try:
+        with open(_PLAYERS_PATH) as f:
+            data = json.load(f)
+        chart: dict = defaultdict(list)
+        for sp in (data.get("players") or {}).values():
+            pos = (sp.get("p") or "").upper()
+            if pos not in _SKILL_POS:
+                continue
+            team = sp.get("t") or ""
+            name = sp.get("n") or ""
+            do   = sp.get("do") or 99
+            if team and name:
+                chart[(team, pos)].append((do, _norm(name), name))
+        for key in chart:
+            chart[key].sort()
+        return dict(chart)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _apply_future_injury_adjustments(players: list) -> None:
+    """Zero season-long injuries and redistribute to depth-chart backups.
+    Mutates players in place. Both zero and boost reflect today's injury
+    snapshot, so a returning player auto-recovers their projection on the
+    next request after the daily snapshot updates.
+    """
+    out_set, _ = _load_injury_data()
+    if not out_set:
+        return
+    chart = _depth_chart()
+
+    # Index by norm name for O(1) lookup
+    by_name = {_norm(p.get("player_name", "")): p for p in players}
+
+    # Capture original projections before zeroing (needed for boost calc)
+    originals = {norm: p.get("projected_points", 0.0)
+                 for norm, p in by_name.items() if norm in out_set}
+
+    # Zero injured starters
+    for norm, p in by_name.items():
+        if norm in out_set:
+            p["projected_points"] = 0.0
+            p["projection_lower"] = 0.0
+            p["projection_upper"] = 0.0
+            p["ros_points"]       = 0.0
+            p["injury_status"]    = "IR"
+
+    # Boost next available backup
+    for (team, pos), depth_list in chart.items():
+        for i, (do, norm, _raw) in enumerate(depth_list):
+            if do > 3 or norm not in out_set:
+                continue
+            starter = by_name.get(norm)
+            if starter is None:
+                continue
+            original = originals.get(norm, 0.0)
+            if original <= 0:
+                continue
+            boost = round(original * _ELEVATION_FRAC, 2)
+            for j in range(i + 1, len(depth_list)):
+                _bdo, bnorm, _braw = depth_list[j]
+                if bnorm in out_set:
+                    continue
+                backup = by_name.get(bnorm)
+                if backup is None:
+                    continue
+                backup["projected_points"] = round(backup["projected_points"] + boost, 2)
+                backup["projection_upper"] = round(backup["projected_points"] + backup.get("width", 5), 2)
+                backup["projection_lower"] = round(max(0, backup["projected_points"] - backup.get("width", 5)), 2)
+                backup["injury_elevation"]      = round(boost, 2)
+                backup["injury_elevation_from"] = starter.get("player_name", _raw)
+                break
 
 
 def _clean_int(v, default, lo=None, hi=None):
@@ -76,20 +160,11 @@ def get_projections(week: str | None = None, season: str | None = None) -> dict:
 
     players = data.get("players", [])
 
-    # For future weeks: zero out players confirmed out for the season.
-    # Current week projections are intentionally left as computed (games
-    # may be in progress; a player who played and then got injured still
-    # has valid points for that week).
+    # For future weeks: zero season-long injuries and boost their backups.
+    # Current week left as-is (games may be in progress; a player who
+    # played then got injured still has valid points for that week).
     if week_n > def_week:
-        out_set = _season_out_set()
-        if out_set:
-            for p in players:
-                if _norm(p.get("player_name", "")) in out_set:
-                    p["projected_points"] = 0.0
-                    p["projection_lower"] = 0.0
-                    p["projection_upper"] = 0.0
-                    p["ros_points"] = 0.0
-                    p["injury_status"] = "IR"
+        _apply_future_injury_adjustments(players)
 
     return {
         "week": week_n,
