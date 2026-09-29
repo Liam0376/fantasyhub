@@ -341,7 +341,7 @@ def hub_matchups(league_id: str, week=None) -> dict:
         pairs.setdefault(str(m.get("matchup_id")), []).append(m)
 
     out = []
-    _, by_np, by_n = scored_index(league_id)
+    _, by_np, by_n = scored_index(league_id, week=wk, season=season)
     pmap = players_map()
     for mid, entries in sorted(pairs.items(), key=lambda kv: kv[0]):
         teams = []
