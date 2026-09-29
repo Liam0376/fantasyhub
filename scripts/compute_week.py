@@ -336,9 +336,9 @@ def apply_injury_elevation(projections: list[dict], injuries_path: Path,
     ponytail: depth-order redistribution, not snap-share model.
     """
     # Future weeks: only apply season-long statuses
-    _SEVERITY_CURRENT = {"IR": 0.85, "OUT": 0.85, "DOUBTFUL": 0.50, "Q": 0.20,
-                         "QUESTIONABLE": 0.20, "D": 0.50, "PUP": 1.0, "SUS": 1.0}
-    _SEVERITY_FUTURE  = {"IR": 0.85, "PUP": 1.0, "SUS": 1.0}
+    _SEVERITY_CURRENT = {"IR": 0.50, "OUT": 0.50, "DOUBTFUL": 0.30, "Q": 0.15,
+                         "QUESTIONABLE": 0.15, "D": 0.30, "PUP": 0.50, "SUS": 0.50}
+    _SEVERITY_FUTURE  = {"IR": 0.50, "PUP": 0.50, "SUS": 0.50}
     _SEVERITY = _SEVERITY_CURRENT if current_week else _SEVERITY_FUTURE
     _ZERO_STATUSES = {"IR", "OUT", "PUP", "SUS"}  # zero projection regardless of week
     _SKILL = {"QB", "RB", "WR", "TE"}
