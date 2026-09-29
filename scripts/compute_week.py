@@ -324,20 +324,23 @@ def _norm_name(name: str) -> str:
 
 
 def apply_injury_elevation(projections: list[dict], injuries_path: Path,
-                           players_path: Path) -> None:
-    """Boost backup projections when starters are OUT/Doubtful for current week.
+                           players_path: Path, current_week: bool = True) -> None:
+    """Zero injured starters and boost backup projections.
 
-    Redistribution fractions by injury status:
-      IR / Out    → 85% of starter's points to next available depth player
-      Doubtful    → 50%
-      Questionable→ 20%
+    For current week: IR/Out=85%, Doubtful=50%, Questionable=20%.
+    For future weeks: only IR/PUP/Sus (season-long) — weekly Q/D/Out
+    designations are unpredictable and ignored.
 
-    Only skill positions (QB/RB/WR/TE) — no K/DEF redistribution.
-    Mutates projections in place; adds injury_elevation flag on boosted entries.
-    ponytail: simple depth-order redistribution, not snap-share model.
+    Always zeros the injured starter's projected_points.
+    Only skill positions (QB/RB/WR/TE).
+    ponytail: depth-order redistribution, not snap-share model.
     """
-    _SEVERITY = {"IR": 0.85, "OUT": 0.85, "DOUBTFUL": 0.50, "Q": 0.20,
-                 "QUESTIONABLE": 0.20, "D": 0.50}
+    # Future weeks: only apply season-long statuses
+    _SEVERITY_CURRENT = {"IR": 0.85, "OUT": 0.85, "DOUBTFUL": 0.50, "Q": 0.20,
+                         "QUESTIONABLE": 0.20, "D": 0.50, "PUP": 1.0, "SUS": 1.0}
+    _SEVERITY_FUTURE  = {"IR": 0.85, "PUP": 1.0, "SUS": 1.0}
+    _SEVERITY = _SEVERITY_CURRENT if current_week else _SEVERITY_FUTURE
+    _ZERO_STATUSES = {"IR", "OUT", "PUP", "SUS"}  # zero projection regardless of week
     _SKILL = {"QB", "RB", "WR", "TE"}
 
     try:
@@ -382,6 +385,7 @@ def apply_injury_elevation(projections: list[dict], injuries_path: Path,
     for p in projections:
         proj_by_name[_norm_name(p["player_name"])] = p
 
+    zeroed = 0
     elevated = 0
     for (team, pos), depth_list in depth_chart.items():
         for i, (do, norm, raw_name) in enumerate(depth_list):
@@ -392,7 +396,18 @@ def apply_injury_elevation(projections: list[dict], injuries_path: Path,
                 continue
             _status, severity = sev_info
             starter_proj = proj_by_name.get(norm)
-            starter_pts = starter_proj["projected_points"] if starter_proj else 0.0
+
+            # Zero out confirmed-out players regardless of week
+            if starter_proj and _status.upper() in _ZERO_STATUSES:
+                starter_pts = starter_proj["projected_points"]
+                starter_proj["projected_points"] = 0.0
+                starter_proj["projection_lower"] = 0.0
+                starter_proj["projection_upper"] = 0.0
+                starter_proj["injury_status"] = _status
+                zeroed += 1
+            else:
+                starter_pts = starter_proj["projected_points"] if starter_proj else 0.0
+
             if starter_pts <= 0:
                 continue
             boost = round(starter_pts * severity, 2)
@@ -413,8 +428,13 @@ def apply_injury_elevation(projections: list[dict], injuries_path: Path,
                 elevated += 1
                 break
 
+    parts = []
+    if zeroed:
+        parts.append(f"{zeroed} starters zeroed")
     if elevated:
-        print(f"  Injury elevation: {elevated} backups boosted")
+        parts.append(f"{elevated} backups boosted")
+    if parts:
+        print(f"  Injury elevation: {', '.join(parts)}")
         projections.sort(key=lambda x: x["projected_points"], reverse=True)
 
 
@@ -922,11 +942,13 @@ def main():
                                           home_map, spread_map, roster_info, snap_data,
                                           roster_rows)
 
-        # Injury elevation: only for current week (injury status is live data).
-        if target_week == week:
-            injuries_path = Path(__file__).parent.parent / "data" / "injuries" / "latest.json"
-            players_path = Path(__file__).parent.parent / "data" / "players" / "latest.json"
-            apply_injury_elevation(projections, injuries_path, players_path)
+        # Injury elevation for all weeks:
+        # - Current week: all statuses (IR/Out/Doubtful/Q)
+        # - Future weeks: season-long only (IR/PUP/Sus) — weekly Q/D unknown
+        injuries_path = Path(__file__).parent.parent / "data" / "injuries" / "latest.json"
+        players_path = Path(__file__).parent.parent / "data" / "players" / "latest.json"
+        apply_injury_elevation(projections, injuries_path, players_path,
+                               current_week=(target_week == week))
 
         # Team DEF: copy and set per-week opponents/byes.
         week_td = []
