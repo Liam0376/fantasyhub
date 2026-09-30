@@ -51,7 +51,7 @@ Calendar from `settings.playoff_week_start`, `playoff_teams`, and `/state/nfl` (
 
 - `current_week` = NFL state week
 - `last_regular_week` = `playoff_week_start - 1`
-- `final_week` = `min(18, playoff_week_start + ceil(log2(playoff_teams)))` — 2→1, 4→2, 6→3, 8→3 playoff weeks
+- `final_week` = `min(18, playoff_week_start + ceil(log2(playoff_teams)) - 1)` — 6-team playoffs starting wk 15 run 15-17; 4→16, 2→15. Guard `max(1, ceil(...))`.
 - `weeks_left` = `[current_week .. final_week]`
 
 Every response carries `settings_used` (scoring summary, roster shape incl. flex/SUPER_FLEX/bench/IR/taxi counts, num_teams, type, deadline, calendar) so the UI can show assumptions. Weeks after the fantasy final contribute 0 by construction.

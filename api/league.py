@@ -15,7 +15,7 @@ class LeagueNotFound(Exception):
     """
 
 
-def fetch_league(league_id: str) -> dict:
+def fetch_league(league_id: str, include_traded_picks: bool = False) -> dict:
     """Fetch league settings, rosters, and users from Sleeper."""
     league_id = str(league_id).strip()
     if not re.fullmatch(r'\d{1,20}', league_id):
@@ -150,6 +150,24 @@ def fetch_league(league_id: str) -> dict:
         except Exception:
             pass
 
+    # Traded picks (future draft capital) — opt-in: only the trade
+    # engine needs them, so no other endpoint pays the extra call.
+    traded_picks = []
+    if include_traded_picks:
+        try:
+            tr = requests.get(f"{BASE}/league/{league_id}/traded_picks", timeout=10)
+            if tr.ok:
+                for p in tr.json() or []:
+                    traded_picks.append({
+                        "season": p.get("season"),
+                        "round": p.get("round"),
+                        "roster_id": str(p.get("roster_id") or ""),
+                        "previous_owner_id": str(p.get("previous_owner_id") or ""),
+                        "new_owner_id": str(p.get("new_owner_id") or ""),
+                    })
+        except Exception:
+            pass
+
     return {
         "league_id": league_id,
         "name": league.get("name", "Unknown League"),
@@ -167,9 +185,13 @@ def fetch_league(league_id: str) -> dict:
             "num_teams": league.get("total_rosters") or draft_teams or len(teams),
             "waiver_budget": league_settings.get("waiver_budget"),
             "waiver_type": league_settings.get("waiver_type"),
-            "playoff_teams": league_settings.get("playoff_teams"),
-            "playoff_week_start": league_settings.get("playoff_week_start"),
+            "type": league_settings.get("type", 0),
+            "trade_deadline": league_settings.get("trade_deadline"),
+            "playoff_round_type": league_settings.get("playoff_round_type"),
+            "playoff_teams": league_settings.get("playoff_teams") or 6,
+            "playoff_week_start": league_settings.get("playoff_week_start") or 15,
         },
         "teams": teams,
         "draft_picks": draft_picks,
+        "traded_picks": traded_picks,
     }
