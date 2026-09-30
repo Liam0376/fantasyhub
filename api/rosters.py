@@ -109,39 +109,98 @@ def _slot_eligible(pos: str, slot: str) -> bool:
 
 
 def assign_slots(players: list, roster_positions: list) -> tuple:
-    """Greedy slot assignment in canonical roster order.
+    """Optimal starting lineup (max total points), canonical labels.
 
-    Returns (starters, bench) with numbered slots (RB1/RB2/FLEX1/BN1).
+    A slot's value depends only on the player in it (his weekly points),
+    so feasible starter sets form a transversal matroid over slots:
+    processing players in points order with augmenting-path reassignment
+    is exact. The old slot-order greedy parked a QB2 on the bench behind
+    a superflex RB and lost total on that shape.
+
+    Returns (starters, bench) with numbered slots (QB1/RB1/FLEX1/BN1).
     Reserve/IR entries keep their stash slot and never start.
     """
-    pool = sorted(players, key=lambda p: -(p.get("weekly") or 0))
-    used, starters = set(), []
+    pool = sorted(players, key=lambda p: (-(p.get("weekly") or 0),
+                                          str(p.get("sleeper_id") or p.get("player_id") or "")))
+    slots = [s for s in (roster_positions or [])
+             if (s or "").upper() not in ("BN", "IR", "TAXI")]
+
+    def _flex_rank(slot) -> int:
+        # Exploration order (not labels): dedicated slots before flex
+        # pools, smaller pools before larger — among equally-scoring
+        # optimal lineups this keeps the natural assignment (best WRs in
+        # WR slots, remainder in FLEX) that the old greedy produced.
+        up = (slot or "").upper()
+        if up in ("BN", "IR", "TAXI"):
+            return 99
+        if up in FLEX_ELIGIBILITY:
+            return 100 + len(FLEX_ELIGIBILITY[up])
+        return 0
+
+    order = sorted(range(len(slots)), key=lambda i: (_flex_rank(slots[i]), i))
+    holder: dict[int, dict] = {}  # slot index -> player
+
+    def place(p, seen) -> bool:
+        for i in order:
+            if i in seen or not _slot_eligible(p.get("position", ""), slots[i]):
+                continue
+            seen.add(i)
+            cur = holder.get(i)
+            if cur is None or place(cur, seen):
+                holder[i] = p
+                return True
+        return False
+
+    for p in pool:
+        place(p, set())
+
+    # Cosmetic rebalance, total-preserving: when a flex holder and a
+    # dedicated-slot holder can swap, the dedicated slot keeps the better
+    # player (WR slots hold the best WRs, FLEX absorbs the remainder) —
+    # the assignment the old slot-order greedy naturally produced.
+    exact = [i for i in range(len(slots))
+             if (slots[i] or "").upper() not in FLEX_ELIGIBILITY]
+    flex = [i for i in range(len(slots))
+            if (slots[i] or "").upper() in FLEX_ELIGIBILITY]
+
+    def _val(p):
+        return p.get("weekly") or 0
+
+    for _ in range(len(slots) + 1):
+        swapped = False
+        for f in flex:
+            for d in exact:
+                hf, hd = holder.get(f), holder.get(d)
+                if not hf or not hd:
+                    continue
+                if (_slot_eligible(hf.get("position", ""), slots[d])
+                        and _slot_eligible(hd.get("position", ""), slots[f])
+                        and _val(hd) < _val(hf)):
+                    holder[d], holder[f] = hf, hd
+                    swapped = True
+        if not swapped:
+            break
+
     counters: dict[str, int] = {}
+    used, starters = set(), []
 
     def label(slot):
-        base = slot.upper()
+        base = (slot or "").upper()
         counters[base] = counters.get(base, 0) + 1
         return base if counters[base] == 1 and base in ("QB", "TE", "K", "DEF") else f"{base}{counters[base]}"
 
-    for slot in roster_positions or []:
-        up = (slot or "").upper()
-        if up in ("BN", "IR", "TAXI"):
+    for i, slot in enumerate(slots):
+        p = holder.get(i)
+        if p is None:
             continue
-        for p in pool:
-            pid = p.get("sleeper_id", p.get("player_id"))
-            if pid in used:
-                continue
-            if _slot_eligible(p.get("position", ""), up):
-                starters.append({**p, "slot": label(up)})
-                used.add(pid)
-                break
-    bench_n = 0
+        pid = p.get("sleeper_id", p.get("player_id"))
+        starters.append({**p, "slot": label(slot)})
+        used.add(pid)
     bench = []
     for p in pool:
         pid = p.get("sleeper_id", p.get("player_id"))
         if pid not in used:
-            bench_n += 1
-            bench.append({**p, "slot": f"BN{bench_n}"})
+            bench.append({**p, "slot": f"BN{len(bench) + 1}"})
     return starters, bench
 
 
