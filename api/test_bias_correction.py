@@ -25,21 +25,35 @@ def _load_bias():
     return json.loads(BIAS_PATH.read_text())
 
 
+def _disabled(b):
+    return b["fitted_on"].startswith("disabled")
+
+
 def test_bias_file_schema():
     # why: the artifact is the entire output of the experiment; a malformed
     # file (partial write, hand-edit) must fail here, not in production.
+    # Two valid states: fitted on a validation window, or explicitly disabled
+    # with zeroed constants (raw ML passes the gates without correction).
     b = _load_bias()
     assert b["version"] == 1
-    assert b["fitted_on"].startswith("2024 val")
+    disabled = _disabled(b)
+    assert disabled or b["fitted_on"].startswith("2024 val"), b["fitted_on"]
     consts = b["constants"]
     for pos in ("QB", "RB", "WR", "TE"):
         assert pos in consts, f"missing position {pos}"
         for regime in ("early", "late"):
             cell = consts[pos][regime]
             assert isinstance(cell["bias"], float) and abs(cell["bias"]) != float("inf")
-            assert isinstance(cell["n"], int) and cell["n"] > 0
+            assert isinstance(cell["n"], int)
+            if disabled:
+                assert cell["bias"] == 0.0 and cell["n"] == 0, (pos, regime, cell)
+            else:
+                assert cell["n"] > 0
     assert "gate_rerun_2025" in b
-    assert set(b["gate_rerun_2025"]["gates"]) == {"overall_mae", "no_regression", "pairwise"}
+    if disabled:
+        assert b["gate_rerun_2025"].get("note"), "disabled state must document why"
+    else:
+        assert set(b["gate_rerun_2025"]["gates"]) == {"overall_mae", "no_regression", "pairwise"}
 
 
 def test_bias_matches_val_fit():
@@ -51,6 +65,9 @@ def test_bias_matches_val_fit():
         import pytest
         pytest.skip("training_data.jsonl not in repo (30 MB, gitignored)")
     b = _load_bias()
+    if _disabled(b):
+        import pytest
+        pytest.skip("bias correction disabled; no fitted constants to pin")
     ml_projector._load_models()
     model = ml_projector._models.get("RB")
     cols = ml_projector._feature_cols.get("RB", [])
