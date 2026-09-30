@@ -6,12 +6,14 @@ settings (type, trade_deadline, playoff_round_type, traded_picks) — the
 league-aware inputs every later verdict field derives from.
 """
 import os
+import json
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 from league import fetch_league
-from trade_engine import fantasy_calendar, league_profile
+from scoring import norm_name
+from trade_engine import fantasy_calendar, league_profile, load_week_points
 
 
 class _Resp:
@@ -118,3 +120,115 @@ def test_league_profile_reports_settings_used(monkeypatch):
     assert prof["taxi_count"] == 0
     assert prof["calendar"]["final_week"] == 17
     assert "scoring_format" in prof
+
+
+# ------------------------------------------------------- week projections
+
+def _league(rec=1.0):
+    """Minimal fetch_league-shaped dict: season + settings.scoring, like
+    the real fetch_league return value."""
+    return {"season": 2026, "settings": {"scoring": {"rec": rec}}}
+
+
+def _player(name, pos="RB", team="DET", bye_week=None, **avg):
+    avg.setdefault("receptions", 6.0)
+    return {"player_id": f"id_{norm_name(name)}", "player_name": name,
+            "position": pos, "team": team, "avg_stats": avg,
+            "ml_adjustment": 0.0, "bye_week": bye_week}
+
+
+def _write_week(tmp_path, week, players, byes=None, team_def=None):
+    d = tmp_path / f"2026_week_{week:02d}.json"
+    d.write_text(json.dumps({
+        "week": week, "season": 2026, "players": players,
+        "team_def": team_def or [], "byes": byes or {}}))
+    return d
+
+
+def test_rescore_uses_league_scoring(tmp_path, monkeypatch):
+    monkeypatch.setattr("trade_engine._PROJ_DIR", str(tmp_path))
+    monkeypatch.setattr("trade_engine._load_injuries", lambda: {})
+    _write_week(tmp_path, 5, [_player("Jahmyr Gibbs")])
+    rostered = {norm_name("Jahmyr Gibbs")}
+    ppr, _ = load_week_points(_league(rec=1.0), [5], rostered, fa_limit=0)
+    half, _ = load_week_points(_league(rec=0.5), [5], rostered, fa_limit=0)
+    key = (norm_name("Jahmyr Gibbs"), "RB")
+    assert abs((ppr[5]["players"][key]["pts"] - half[5]["players"][key]["pts"]) - 3.0) < 0.01
+
+
+def test_bye_week_scores_zero(tmp_path, monkeypatch):
+    monkeypatch.setattr("trade_engine._PROJ_DIR", str(tmp_path))
+    monkeypatch.setattr("trade_engine._load_injuries", lambda: {})
+    _write_week(tmp_path, 5, [_player("Tyreek Hill", "WR", team="KC")], byes={"KC": 5})
+    weeks, _ = load_week_points(_league(), [5], {norm_name("Tyreek Hill")}, fa_limit=0)
+    row = weeks[5]["players"][(norm_name("Tyreek Hill"), "WR")]
+    assert row["pts"] == 0.0 and row["lo"] == 0.0 and row["hi"] == 0.0
+
+
+def test_out_injury_discounted_one_week_only(tmp_path, monkeypatch):
+    monkeypatch.setattr("trade_engine._PROJ_DIR", str(tmp_path))
+    _write_week(tmp_path, 7, [_player("Jahmyr Gibbs")])
+    _write_week(tmp_path, 8, [_player("Jahmyr Gibbs")])
+    monkeypatch.setattr("trade_engine._load_injuries",
+                        lambda: {f"{norm_name('Jahmyr Gibbs')}|RB": "OUT"})
+    weeks, _ = load_week_points(_league(), [7, 8], {norm_name("Jahmyr Gibbs")}, fa_limit=0)
+    key = (norm_name("Jahmyr Gibbs"), "RB")
+    p7 = weeks[7]["players"][key]["pts"]
+    p8 = weeks[8]["players"][key]["pts"]
+    assert abs(p7 - p8 * 0.6) < 0.01          # OUT: 0.6 for week 7 only
+    assert p8 > 0                            # week 8 back at full value
+
+
+def test_ir_injury_discounted_four_weeks_only(tmp_path, monkeypatch):
+    monkeypatch.setattr("trade_engine._PROJ_DIR", str(tmp_path))
+    for w in (7, 8, 9, 10, 11):
+        _write_week(tmp_path, w, [_player("Jahmyr Gibbs")])
+    monkeypatch.setattr("trade_engine._load_injuries",
+                        lambda: {f"{norm_name('Jahmyr Gibbs')}|RB": "IR"})
+    weeks, _ = load_week_points(_league(), [7, 8, 9, 10, 11],
+                                {norm_name("Jahmyr Gibbs")}, fa_limit=0)
+    key = (norm_name("Jahmyr Gibbs"), "RB")
+    pts = [weeks[w]["players"][key]["pts"] for w in (7, 8, 9, 10, 11)]
+    full = pts[-1]
+    assert all(abs(p - full * 0.6) < 0.01 for p in pts[:-1])   # wks 7-10 at 0.6
+    assert abs(pts[-1] - full) < 0.01                          # wk 11 recovered
+
+
+def test_missing_week_file_falls_back_with_warning(tmp_path, monkeypatch):
+    monkeypatch.setattr("trade_engine._PROJ_DIR", str(tmp_path))
+    monkeypatch.setattr("trade_engine._load_injuries", lambda: {})
+    _write_week(tmp_path, 8, [_player("Jahmyr Gibbs")])       # week 9 file absent
+    weeks, warns = load_week_points(_league(), [9], {norm_name("Jahmyr Gibbs")}, fa_limit=0)
+    assert (norm_name("Jahmyr Gibbs"), "RB") in weeks[9]["players"]
+    assert weeks[9]["fallback_week"] == 8
+    assert any("week 8" in w for w in warns)
+
+
+def test_team_def_scored_and_keyed(tmp_path, monkeypatch):
+    monkeypatch.setattr("trade_engine._PROJ_DIR", str(tmp_path))
+    monkeypatch.setattr("trade_engine._load_injuries", lambda: {})
+    _write_week(tmp_path, 5, [_player("Jahmyr Gibbs")],
+                team_def=[{"team": "KC", "def_avg": {"sacks": 2.0, "ints": 1.0}}])
+    lg = {"season": 2026, "settings": {"scoring": {"rec": 1.0, "sack": 1, "int": 2}}}
+    weeks, _ = load_week_points(lg, [5], {norm_name("KC")}, fa_limit=0)
+    row = weeks[5]["players"][(norm_name("KC"), "DEF")]
+    assert row["pts"] > 0     # league-scored via score_team_def, not raw
+
+
+def test_fa_limit_keeps_best_per_position(tmp_path, monkeypatch):
+    monkeypatch.setattr("trade_engine._PROJ_DIR", str(tmp_path))
+    monkeypatch.setattr("trade_engine._load_injuries", lambda: {})
+    _write_week(tmp_path, 5, [
+        _player("Jahmyr Gibbs", avg={"receptions": 6.0, "rushing_yards": 90, "rushing_tds": 1.0}),
+        _player("Rostered Backup", avg={"receptions": 1.0, "rushing_yards": 10}),
+        _player("FA RB One", avg={"receptions": 4.0, "rushing_yards": 60}),
+        _player("FA RB Two", avg={"receptions": 2.0, "rushing_yards": 30}),
+        _player("FA WR One", "WR", avg={"receptions": 5.0, "receiving_yards": 70}),
+    ])
+    weeks, _ = load_week_points(_league(), [5],
+                                {norm_name("Jahmyr Gibbs"), norm_name("Rostered Backup")},
+                                fa_limit=1)
+    have = weeks[5]["players"]
+    assert (norm_name("FA RB One"), "RB") in have       # best FA RB kept
+    assert (norm_name("FA RB Two"), "RB") not in have  # worse FA RB dropped
+    assert (norm_name("FA WR One"), "WR") in have      # limit is per position
