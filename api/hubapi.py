@@ -16,10 +16,12 @@ import requests
 
 from analytics import compute_analytics
 from league import BASE as _SLEEPER_BASE, fetch_league
+from market import fc_load, fc_params, value_of
 from nfl_state import get_nfl_state
 from projections import get_projections
 from rosters import assign_slots, build_rosters, players_map, resolve_player, scored_index
 from scoring import NFLVERSE_STATS_URL, norm_name, proj_stat_fields
+from trade_engine import acceptance, evaluate_trade, fantasy_calendar, load_week_points
 
 _SLATE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "slate")
 
@@ -495,142 +497,249 @@ def hub_waiver(league_id: str, owner_id=None) -> dict:
 
 # -------------------------------------------------------------------- trade
 
-def _load_fc_market():
-    """FantasyCalc market values keyed by Sleeper ID (weekly snapshot).
-
-    Missing/stale file → {} and every market field degrades to None.
-    Never raise: market comparison is enrichment, not load-bearing.
-    """
-    try:
-        with open(os.path.join(os.path.dirname(__file__), "..", "data", "market", "fantasycalc.json")) as f:
-            d = json.load(f)
-        return d.get("players") or {}
-    except (OSError, ValueError, AttributeError):
-        return {}
-
-
-def _trade_pkg_value(players):
-    weekly, ros = 0.0, 0.0
-    for p in players:
-        vor = float(p.get("vor") or 0)
-        weekly += vor
-        rem = p.get("remaining_games") or 0
-        ros += vor * rem * _injury_mult(p.get("injury_status"))
-    return weekly, ros
+def _match_package(team: dict, ids):
+    """Resolve traded IDs to enriched players (starters, bench, reserve,
+    taxi — IR/taxi players are tradable). Returns (matched, unknown):
+    unknown IDs are reported, never dropped silently, and a cross-team
+    ID matches nowhere (the giving team's roster is the only pool)."""
+    if not ids:
+        return None, []
+    want = [str(x) for x in ids]
+    pool = list(team.get("starters") or []) + list(team.get("bench") or []) \
+        + list(team.get("reserve") or [])
+    matched, unknown = [], []
+    for wid in want:
+        hit = next((p for p in pool
+                    if str(p.get("player_id") or p.get("id")) == wid
+                    or str(p.get("sleeper_id") or "") == wid), None)
+        if hit is None:
+            unknown.append(wid)
+        else:
+            matched.append(hit)
+    return matched, unknown
 
 
-def _pkg_entry(p, fc):
+def _pkg_entry(p, fc, weeks_pts, weeks):
+    """Legacy package row: this-week points, ROS point total (bye- and
+    injury-horizon-aware via the week rows), market value + trend."""
     sid = str(p.get("sleeper_id") or "")
-    m = fc.get(sid) or {}
+    row = (fc or {}).get(sid) or {}
+    pos = (p.get("position") or "").upper()
+    key = (norm_name(p.get("player_name") or ""), pos)
+    pts = [((weeks_pts.get(w) or {}).get("players") or {}).get(key)
+           for w in weeks]
+    weekly = (pts[0] or {}).get("pts", 0) if pts else 0
+    ros = round(sum((r or {}).get("pts", 0) for r in pts), 1)
     return {"player_id": p.get("player_id"), "sleeper_id": sid or None,
             "headshot_url": (f"https://sleepercdn.com/content/nfl/players/thumb/{sid}.jpg" if sid else None),
             "player_name": p.get("player_name"), "position": p.get("position"),
             "team": p.get("team"),
-            "weekly": round(float(p.get("weekly") or 0), 1),
-            "ros": round(float(p.get("vor") or 0) * (p.get("remaining_games") or 0)
-                         * _injury_mult(p.get("injury_status")), 1),
-            "market": m.get("v"), "trend30": m.get("t30")}
+            "weekly": round(weekly or 0, 1), "ros": ros,
+            "market": row.get("v"), "trend30": row.get("t30")}
 
 
-def _slot_fill(league_id, owner_id, slots, remaining):
-    """Best waiver fills for a team gaining open roster slots.
+def _market_gaps(traded: list, fc: dict, weeks_pts: dict, weeks: list,
+                 sid_by_norm: dict) -> list:
+    """Buy-low / sell-high flags: a traded player's model rank within
+    position (ROS points across the loaded rows) vs his market rank
+    (value among the same peers). Peers are same-position players
+    present in both maps, so both ranks compare the same pool. A gap
+    of 10+ ranks either way earns a flag with both ranks shown."""
+    peers: dict = {}
+    for w in weeks:
+        for k, r in (((weeks_pts.get(w) or {}).get("players")) or {}).items():
+            sid = (sid_by_norm or {}).get(k[0])
+            mv = ((fc or {}).get(sid) or {}).get("v") if sid else None
+            if mv is None:
+                continue
+            slot = peers.setdefault(k, [0, mv])
+            slot[0] += r.get("pts") or 0
+    gaps = []
+    for p in traded or []:
+        pos = (p.get("position") or "").upper()
+        key = (norm_name(p.get("player_name") or ""), pos)
+        if key not in peers:
+            continue
+        mine, mv = peers[key]
+        same = [(t, v) for (k, (t, v)) in peers.items() if k[1] == pos]
+        model_rank = 1 + sum(1 for t, v in same if t > mine)
+        market_rank = 1 + sum(1 for t, v in same if v > mv)
+        if market_rank - model_rank >= 10:
+            gaps.append({"player_name": p.get("player_name"), "position": pos,
+                         "model_rank": model_rank, "market_rank": market_rank,
+                         "flag": "buy"})
+        elif model_rank - market_rank >= 10:
+            gaps.append({"player_name": p.get("player_name"), "position": pos,
+                         "model_rank": model_rank, "market_rank": market_rank,
+                         "flag": "sell"})
+    return gaps
 
-    Returns (credit_ros, names): top-slots recs by weekly improvement,
-    scaled by remaining games into ROS points. Empty when no slots,
-    no owner, or no candidates — the verdict then stands on packages.
-    """
-    if slots <= 0 or not owner_id:
-        return 0.0, []
+
+def _trade_error(msg: str) -> dict:
+    """Explicit failure shape: never a fake Even. Legacy numerics stay
+    present as null so the bundle renders an error card, not zeros."""
+    return {"winner": None, "recommendation": None, "value_difference": None,
+            "team_a_ros": None, "team_b_ros": None,
+            "team_a_weekly": None, "team_b_weekly": None,
+            "packages": {"a": [], "b": []},
+            "market_a": None, "market_b": None,
+            "market_coverage_a": 0, "market_coverage_b": 0,
+            "slots": {"gained_a": 0, "gained_b": 0, "credit_a_ros": 0.0,
+                      "credit_b_ros": 0.0, "fill_a": [], "fill_b": [],
+                      "remaining_games": 0},
+            "cold": True, "error": msg, "unknown_ids": [], "warnings": [msg]}
+
+
+def hub_trade(league_id: str, team_a_id=None, team_b_id=None, traded_a=None,
+              traded_b=None, direction_a=None, direction_b=None) -> dict:
+    """Lineup-delta trade verdict. One build_rosters call feeds every
+    step — the old _slot_fill→hub_waiver re-entry (which refetched the
+    league per team) is gone. Flat legacy fields keep their names so
+    the shipped bundle reads them unchanged; new blocks ride alongside.
+    Any failure returns the error shape, never a fake Even."""
     try:
-        recs = (hub_waiver(league_id, owner_id) or {}).get("recommendations") or []
-    except Exception:
-        return 0.0, []
-    top = recs[:slots]
-    credit = round(sum(float(r.get("improvement_over_roster") or 0) for r in top) * remaining, 1)
-    return credit, [r.get("player_name") for r in top if r.get("player_name")]
+        data = build_rosters(league_id)
+        by_id = {str(t["roster_id"]): t for t in data["teams"]}
+        ta = by_id.get(str(team_a_id)) or {}
+        tb = by_id.get(str(team_b_id)) or {}
+        league = fetch_league(league_id, include_traded_picks=True)
+        settings = league.get("settings") or {}
+        rp = settings.get("roster_positions") or []
+        roster_limit = len(rp)
+        st = {"week": data.get("week"), "season": data.get("season_year")}
 
+        pkg_a, unk_a = _match_package(ta, traded_a)
+        pkg_b, unk_b = _match_package(tb, traded_b)
+        unknown_ids = (unk_a or []) + (unk_b or [])
+        legacy = pkg_a is None and pkg_b is None
+        pkg_a, pkg_b = pkg_a or [], pkg_b or []
 
-def hub_trade(league_id: str, team_a_id=None, team_b_id=None, traded_a=None, traded_b=None) -> dict:
-    data = build_rosters(league_id)
-    by_id = {str(t["roster_id"]): t for t in data["teams"]}
-    ta = by_id.get(str(team_a_id)) or {}
-    tb = by_id.get(str(team_b_id)) or {}
-    fc = _load_fc_market()
-    week = data.get("week") or 1
-    try:
-        remaining = max(0, 17 - int(week))
-    except (TypeError, ValueError):
-        remaining = 10
+        rostered = set()
+        for t in data["teams"]:
+            for p in list(t.get("starters") or []) + list(t.get("bench") or []) \
+                    + list(t.get("reserve") or []):
+                rostered.add(norm_name(p.get("player_name") or ""))
 
-    def match(roster_players, ids):
-        if not ids:
-            return None
-        want = {str(x) for x in ids}
-        return [p for p in (roster_players or [])
-                if str(p.get("player_id") or p.get("id")) in want
-                or str(p.get("sleeper_id") or "") in want]
+        cal = fantasy_calendar(settings, data.get("week"))
+        weeks = cal["weeks_left"]
+        weeks_pts, load_warns = load_week_points(league, weeks, rostered)
+        fc, fc_warns = fc_load(settings)
+        sid_by_norm = {}
+        for t in data["teams"]:
+            for p in list(t.get("starters") or []) + list(t.get("bench") or []) \
+                    + list(t.get("reserve") or []):
+                sid_by_norm.setdefault(norm_name(p.get("player_name") or ""),
+                                       str(p.get("sleeper_id") or ""))
 
-    a_all = (ta.get("starters") or []) + (ta.get("bench") or [])
-    b_all = (tb.get("starters") or []) + (tb.get("bench") or [])
-    pkg_a = match(a_all, traded_a)
-    pkg_b = match(b_all, traded_b)
-
-    if pkg_a is None and pkg_b is None:
-        # No packages passed (legacy callers): full-roster comparison.
-        a_w, a_r = _trade_pkg_value(a_all)
-        b_w, b_r = _trade_pkg_value(b_all)
-        extra = {}
-    else:
-        pkg_a = pkg_a or []
-        pkg_b = pkg_b or []
-        a_w, a_r = _trade_pkg_value(pkg_a)
-        b_w, b_r = _trade_pkg_value(pkg_b)
-        na, nb = len(pkg_a), len(pkg_b)
-        gain_a, gain_b = max(0, nb - na), max(0, na - nb)
-        credit_a, fill_a = _slot_fill(league_id, ta.get("owner_id"), gain_a, remaining)
-        credit_b, fill_b = _slot_fill(league_id, tb.get("owner_id"), gain_b, remaining)
-        a_r += credit_a
-        b_r += credit_b
-        market_a = sum((e["market"] or 0) for e in [_pkg_entry(p, fc) for p in pkg_a])
-        market_b = sum((e["market"] or 0) for e in [_pkg_entry(p, fc) for p in pkg_b])
-        extra = {
-            "packages": {"a": [_pkg_entry(p, fc) for p in pkg_a],
-                         "b": [_pkg_entry(p, fc) for p in pkg_b]},
-            "market_a": market_a or None, "market_b": market_b or None,
-            "market_coverage_a": sum(1 for p in pkg_a if (_pkg_entry(p, fc)["market"] is not None)),
-            "market_coverage_b": sum(1 for p in pkg_b if (_pkg_entry(p, fc)["market"] is not None)),
-            "slots": {"gained_a": gain_a, "gained_b": gain_b,
-                      "credit_a_ros": credit_a, "credit_b_ros": credit_b,
-                      "fill_a": fill_a, "fill_b": fill_b,
-                      "remaining_games": remaining},
-        }
-
-    # diff = pkgB - pkgA. In package mode positive means B's package is
-    # worth more, i.e. Team A (who receives it) wins. In legacy full-roster
-    # mode there is no trade — diff just compares roster strength.
-    diff = round(b_r - a_r, 1)
-    mag = abs(diff)
-    if mag < 20:
-        winner, rec = "Even", "Fair trade — rest-of-season value is close."
-    else:
-        strong = "Clear win" if mag >= 50 else "Leans"
-        if "packages" in extra:
-            side = ta if diff > 0 else tb
-            winner = side.get("team_name") or ("Team A" if diff > 0 else "Team B")
-            rec = f"{strong} for {winner} on rest-of-season value."
+        if legacy:
+            # No packages (old callers): nothing moves, verdict Even,
+            # roster lineup totals for the compare view. A huge limit
+            # disables drops; adds/credit clear post-hoc below so
+            # under-limit FA fills can't distort the degenerate.
+            lim = 10 ** 9
         else:
-            side = tb if diff > 0 else ta
-            winner = side.get("team_name") or ("Team B" if diff > 0 else "Team A")
-            rec = f"{side.get('team_name') or winner} has the stronger roster."
-    # Flat shape (not nested): matches father backend's handle_trade
-    # contract {winner, value_difference, recommendation} that trade.js
-    # reads at top level. fetchTrade unwraps only the model-backend
-    # response, so a nested hub fallback silently blanks the eval.
-    return {"winner": winner, "recommendation": rec,
-            "value_difference": diff,
-            "team_a_ros": round(a_r, 1), "team_b_ros": round(b_r, 1),
-            "team_a_weekly": round(a_w, 1), "team_b_weekly": round(b_w, 1),
-            **extra}
+            lim = roster_limit
+
+        market = {"value_a": None, "value_b": None}
+        out = evaluate_trade(team_a=ta, team_b=tb, teams=data["teams"], league=league,
+                    st=st, weeks_pts=weeks_pts, rp=rp,
+                    roster_limit=lim, rostered_names=rostered,
+                    traded_a=pkg_a, traded_b=pkg_b, market=market,
+                    direction_a=direction_a, direction_b=direction_b,
+                    warnings=load_warns + fc_warns)
+        if legacy:
+            for side in ("team_a", "team_b"):
+                out[side]["adds"] = []
+                out[side]["lineup_after"] = list(out[side]["lineup_before"])
+                out[side]["gains"] = {"gain_total": 0.0, "gain_per_week": 0.0,
+                                      "gain_playoffs": 0.0}
+            out["winner"] = "Even"
+            out["band"] = "even"
+            out["value_difference"] = 0.0
+            out["confidence"] = {"k": 0.0, "edge_pct": 0.0, "band": "even"}
+            out["acceptance"] = "likely"
+
+        entries_a = [_pkg_entry(p, fc, weeks_pts, weeks) for p in pkg_a]
+        entries_b = [_pkg_entry(p, fc, weeks_pts, weeks) for p in pkg_b]
+        covered_a = [e for e in entries_a if e["market"] is not None]
+        covered_b = [e for e in entries_b if e["market"] is not None]
+        market["value_a"] = round(sum(e["market"] for e in covered_a), 1) if covered_a else None
+        market["value_b"] = round(sum(e["market"] for e in covered_b), 1) if covered_b else None
+        out["market"] = {"params": fc_params(settings),
+                         "coverage_a": len(covered_a),
+                         "coverage_b": len(covered_b),
+                         "gaps": _market_gaps(pkg_a + pkg_b, fc, weeks_pts, weeks,
+                                              sid_by_norm)}
+        # Acceptance reads the market gap: recompute with real values.
+        gap = None
+        if market["value_a"] is not None and market["value_b"] is not None \
+                and max(market["value_a"], market["value_b"]) > 0:
+            gap = round(100 * abs(market["value_a"] - market["value_b"])
+                        / max(market["value_a"], market["value_b"]), 1)
+        out["market"]["gap_pct"] = gap
+        if not legacy:
+            out["acceptance"] = acceptance(out["team_b"]["gains"]["gain_total"],
+                                     out["confidence"]["k"], gap)
+
+        na, nb = len(pkg_a), len(pkg_b)
+        wname = out["winner"]
+        if wname == "A":
+            winner = ta.get("team_name") or "Team A"
+        elif wname == "B":
+            winner = tb.get("team_name") or "Team B"
+        else:
+            winner = "Even"
+        band = out.get("band", "even")
+        if band == "even":
+            rec = "Fair trade — rest-of-season value is close."
+        else:
+            strong = "Clear win" if band == "clear" else "Leans"
+            rec = f"{strong} for {winner} on rest-of-season value."
+
+        after_a = out["team_a"]["lineup_after"]
+        after_b = out["team_b"]["lineup_after"]
+        warns = list(out.get("warnings") or [])
+        if unknown_ids:
+            warns.append(f"Unknown player IDs (excluded): {', '.join(unknown_ids)}.")
+        deadline = settings.get("trade_deadline")
+        deadline_passed = False
+        try:
+            cur_wk = int(data.get("week") or 0)
+            if deadline is not None and int(deadline) < cur_wk:
+                deadline_passed = True
+                warns.append(f"Trade deadline (week {deadline}) has passed; "
+                             "evaluation only.")
+        except (TypeError, ValueError):
+            pass
+        # Flat shape (not nested): matches father backend's handle_trade
+        # contract {winner, value_difference, recommendation} that trade.js
+        # reads at top level. fetchTrade unwraps only the model-backend
+        # response, so a nested hub fallback silently blanks the eval.
+        return {"winner": winner, "recommendation": rec,
+                "value_difference": out["value_difference"],
+                "team_a_ros": round(sum(after_a), 1),
+                "team_b_ros": round(sum(after_b), 1),
+                "team_a_weekly": round(after_a[0], 1) if after_a else 0.0,
+                "team_b_weekly": round(after_b[0], 1) if after_b else 0.0,
+                "packages": {"a": entries_a, "b": entries_b},
+                "market_a": market["value_a"], "market_b": market["value_b"],
+                "market_coverage_a": len(covered_a),
+                "market_coverage_b": len(covered_b),
+                "slots": {"gained_a": max(0, nb - na), "gained_b": max(0, na - nb),
+                          "credit_a_ros": sum(a["value"] for a in out["team_a"]["adds"]),
+                          "credit_b_ros": sum(b["value"] for b in out["team_b"]["adds"]),
+                          "fill_a": [a["player_name"] for a in out["team_a"]["adds"]],
+                          "fill_b": [b["player_name"] for b in out["team_b"]["adds"]],
+                          "remaining_games": len(weeks)},
+                **{k: v for k, v in out.items()
+                   if k in ("team_a", "team_b", "calendar", "settings_used",
+                            "confidence", "acceptance", "win_win", "lose_lose",
+                            "band", "data_freshness")},
+                "market": out["market"],
+                "deadline_passed": deadline_passed,
+                "unknown_ids": unknown_ids, "warnings": warns}
+    except Exception as e:
+        return _trade_error(f"{type(e).__name__}: {e}")
 
 
 # --------------------------------------- recommendations compat shims
@@ -653,12 +762,16 @@ def hub_rec_waiver(league_id: str, owner_id=None) -> dict:
             "meta": {"timestamp": _utc_ts()}}
 
 
-def hub_rec_trade(league_id: str, team_a_id=None, team_b_id=None, traded_a=None, traded_b=None) -> dict:
+def hub_rec_trade(league_id: str, team_a_id=None, team_b_id=None, traded_a=None,
+                  traded_b=None, direction_a=None, direction_b=None) -> dict:
+    # hub_trade already returns the error shape on failure (never a fake
+    # Even); the except here only guards errors in hub_trade's own
+    # contract assembly, which would be a bug, not a cold backend.
     try:
-        out = hub_trade(league_id, team_a_id, team_b_id, traded_a, traded_b)
-    except Exception:
-        return {"winner": "Even", "recommendation": "Trade data unavailable.",
-                "value_difference": 0, "timestamp": _utc_ts(), "cold": True}
+        out = hub_trade(league_id, team_a_id, team_b_id, traded_a, traded_b,
+                        direction_a=direction_a, direction_b=direction_b)
+    except Exception as e:
+        out = _trade_error(f"{type(e).__name__}: {e}")
     out["timestamp"] = _utc_ts()
     return out
 

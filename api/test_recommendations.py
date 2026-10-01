@@ -31,8 +31,9 @@ def test_waiver_cold_shape():
 
 def test_trade_cold_shape():
     out = hub_rec_trade("0", team_a_id="1", team_b_id="2")
-    assert out["winner"] == "Even"
+    assert out["winner"] is None  # failures are explicit, never fake "Even"
     assert out["cold"] is True
+    assert "error" in out
 
 
 @pytest.mark.network
