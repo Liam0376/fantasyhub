@@ -10,6 +10,7 @@ eligibility, in canonical roster order.
 """
 import json
 import os
+from functools import lru_cache
 
 from analytics import _norm_name, _roster_group, compute_analytics
 from league import fetch_league
@@ -99,8 +100,11 @@ def _enriched(hit: dict, sid: str, pos: str) -> dict:
             **proj_stat_fields(hit.get("avg_stats") or {}, pos)}
 
 
+@lru_cache(maxsize=4096)
 def _slot_eligible(pos: str, slot: str) -> bool:
-    """Can this roster group fill this roster slot?"""
+    """Can this roster group fill this roster slot? Pure function of
+    (pos, slot) — cached because the trade engine calls it millions of
+    times per request through assign_slots."""
     p = _roster_group(pos)
     s = (slot or "").upper()
     if s in FLEX_ELIGIBILITY:
@@ -140,9 +144,18 @@ def assign_slots(players: list, roster_positions: list) -> tuple:
     order = sorted(range(len(slots)), key=lambda i: (_flex_rank(slots[i]), i))
     holder: dict[int, dict] = {}  # slot index -> player
 
+    # Eligible slot indices per position, in exploration order: place()
+    # then scans 3-5 slots instead of all 11. Positions are open-ended
+    # strings, but a league sees a handful — the dict stays tiny.
+    elig: dict[str, list] = {}
+
     def place(p, seen) -> bool:
-        for i in order:
-            if i in seen or not _slot_eligible(p.get("position", ""), slots[i]):
+        pos = (p.get("position") or "").upper()
+        lst = elig.get(pos)
+        if lst is None:
+            lst = elig[pos] = [i for i in order if _slot_eligible(pos, slots[i])]
+        for i in lst:
+            if i in seen:
                 continue
             seen.add(i)
             cur = holder.get(i)

@@ -304,12 +304,18 @@ def apply_trade(team: dict, incoming: list, outgoing: list, weeks_pts: dict,
             wt = weights.get(w, 1.0)
             current = list(active)
             base = team_week_points(current, rows, rp)
+            # Best-first: a fill's gain can't exceed his own points, so
+            # scanning points-desc lets us stop at the first row that
+            # can't beat best_gain. Exact prune, not a heuristic.
+            ordered = sorted(rows.items(), key=lambda kr: -kr[1]["pts"])
             taken = set()
             for _ in range(opens):
                 best, best_gain, best_key = None, 0.0, None
-                for key, row in rows.items():
+                for key, row in ordered:
                     if key[0] in fa_names or key in taken:
                         continue
+                    if row["pts"] <= best_gain + 1e-9:
+                        break
                     gain = team_week_points(
                         current + [{"player_name": row["name"],
                                     "position": row["pos"]}], rows, rp) - base

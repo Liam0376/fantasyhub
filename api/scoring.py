@@ -5,6 +5,8 @@ Single source of truth for stat mapping. Both scripts/compute_week.py
 those avgs per league) import from here. No hardcoded league scoring.
 """
 import math
+import re
+from functools import lru_cache
 
 NFLVERSE_STATS_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv"
 
@@ -147,13 +149,19 @@ def safe_float(v, default=0.0):
 _f = safe_float
 
 
-def norm_name(n: str) -> str:
-    """Normalize a player name for cross-source matching (suffix-proof)."""
-    import re
+_NORM_SUFFIX = re.compile(r"\b(jr\.?|sr\.?|ii|iii|iv|v)\b")
+_NORM_KEEP = re.compile(r"[^a-z0-9 ]")
 
+
+@lru_cache(maxsize=8192)
+def norm_name(n: str) -> str:
+    """Normalize a player name for cross-source matching (suffix-proof).
+
+    Pure function — cached: the trade engine normalizes ~700k names per
+    request through lineup construction alone."""
     n = (n or "").lower()
-    n = re.sub(r"\b(jr\.?|sr\.?|ii|iii|iv|v)\b", "", n)
-    return re.sub(r"[^a-z0-9 ]", "", n).strip()
+    n = _NORM_SUFFIX.sub("", n)
+    return _NORM_KEEP.sub("", n).strip()
 
 
 def roster_group(pos: str) -> str:
