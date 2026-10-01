@@ -768,7 +768,7 @@ def evaluate_trade(team_a: dict, team_b: dict, teams: list, league: dict,
     blk_a = blk(out_a, team_a, dir_a, ga, gd_a)
     blk_b = blk(out_b, team_b, dir_b, gb, gd_b)
     tname = lambda t: (t.get("team_name") or t.get("display_name")
-                       or "The other team")
+                       or "The other team").strip()
     return {"team_a": blk_a, "team_b": blk_b,
             "analysis": {"a": analysis_for(blk_a, gd_a, v["band"], acc,
                                            tname(team_b), cal,
