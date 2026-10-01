@@ -644,7 +644,8 @@ def hub_trade(league_id: str, team_a_id=None, team_b_id=None, traded_a=None,
         out = evaluate_trade(team_a=ta, team_b=tb, teams=data["teams"], league=league,
                     st=st, weeks_pts=weeks_pts, rp=rp,
                     roster_limit=lim, rostered_names=rostered,
-                    traded_a=pkg_a, traded_b=pkg_b, market=market,
+                    traded_a=pkg_a, traded_b=pkg_b,
+                    market=market if fc else None,
                     direction_a=direction_a, direction_b=direction_b,
                     warnings=load_warns + fc_warns)
         if legacy:

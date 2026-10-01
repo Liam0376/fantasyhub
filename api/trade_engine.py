@@ -585,6 +585,9 @@ def evaluate_trade(team_a: dict, team_b: dict, teams: list, league: dict,
     weeks = cal["weeks_left"]
     have = {w: weeks_pts[w] for w in weeks if w in (weeks_pts or {})}
     warns = list(warnings or [])
+    if not weeks:
+        warns.append(f"Fantasy season is over (week {cal['current_week']} past "
+                     f"final week {cal['final_week']}); nothing left to value.")
     for w in weeks:
         if w not in (weeks_pts or {}):
             warns.append(f"No projections for week {w}; treated as 0.")
@@ -624,13 +627,13 @@ def evaluate_trade(team_a: dict, team_b: dict, teams: list, league: dict,
         gap = round(100 * abs(va - vb) / max(va, vb), 1)
     acc = acceptance(gb["gain_total"], k, gap)
 
-    blk = lambda out, d, g: {"gains": g, "lineup_before": out["before"],
-                             "lineup_after": out["after"], "drops": out["drops"],
-                             "adds": out["adds"],
-                             "needs": needs_of(team_a if d == dir_a else team_b,
-                                               teams, have, rp),
-                             "direction": d}
-    return {"team_a": blk(out_a, dir_a, ga), "team_b": blk(out_b, dir_b, gb),
+    blk = lambda out, tm, d, g: {"gains": g, "lineup_before": out["before"],
+                                 "lineup_after": out["after"], "drops": out["drops"],
+                                 "adds": out["adds"],
+                                 "needs": needs_of(tm, teams, have, rp),
+                                 "direction": d}
+    return {"team_a": blk(out_a, team_a, dir_a, ga),
+            "team_b": blk(out_b, team_b, dir_b, gb),
             "winner": v["winner"], "band": v["band"],
             "value_difference": round(ga["gain_total"] - gb["gain_total"], 1),
             "calendar": cal, "settings_used": prof,

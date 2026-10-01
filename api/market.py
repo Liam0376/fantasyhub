@@ -83,12 +83,36 @@ def value_of(fc: dict, sleeper_id) -> object:
 
 
 def _read_default_file():
-    """Cron-written default-combo snapshot, or None when absent/stale."""
+    """Cron-written default-combo snapshot: (players, updated_at), either
+    possibly None when absent/stale/unparseable."""
     try:
         with open(_DEFAULT_PATH) as f:
-            return (json.load(f) or {}).get("players") or None
+            d = json.load(f) or {}
+        return d.get("players") or None, d.get("updated_at")
     except (OSError, ValueError):
+        return None, None
+
+
+_STALE_HOURS = 72  # cron runs daily; 3 days means the pipeline broke
+
+
+def _stale_warning(updated_at) -> object:
+    """Warning when the snapshot carries an old timestamp, else None.
+    Missing timestamp stays quiet (legacy files predate the field)."""
+    if not updated_at:
         return None
+    try:
+        from datetime import datetime, timezone
+        ts = updated_at
+        if isinstance(ts, str) and ts.endswith("Z"):
+            ts = ts[:-1] + "+00:00"
+        age = datetime.now(timezone.utc) - datetime.fromisoformat(ts)
+    except (ValueError, TypeError):
+        return None
+    if age.total_seconds() > _STALE_HOURS * 3600:
+        return (f"FantasyCalc snapshot is stale (updated {updated_at}); "
+                "market context may lag.")
+    return None
 
 
 def fc_load(settings: dict):
@@ -100,9 +124,10 @@ def fc_load(settings: dict):
     """
     params = fc_params(settings)
     if params == _DEFAULT_PARAMS:
-        players = _read_default_file()
+        players, updated_at = _read_default_file()
         if players is not None:
-            return players, []
+            w = _stale_warning(updated_at)
+            return players, ([w] if w else [])
     key = (params["isDynasty"], params["numQbs"], params["numTeams"], params["ppr"])
     now = time.time()
     hit = _fc_cache.get(key)

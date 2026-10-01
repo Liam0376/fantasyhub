@@ -170,3 +170,14 @@ def test_no_packages_legacy_mode_even(monkeypatch):
     assert out["winner"] == "Even"
     assert out["value_difference"] == 0.0
     assert out["team_a_ros"] > 0 and out["team_b_ros"] > 0
+
+
+def test_missing_market_reports_freshness(monkeypatch):
+    # Review catch: data_freshness.market said "ok" with an empty map.
+    _wire(monkeypatch)
+    monkeypatch.setattr(hubapi, "fc_load", lambda *a, **k: ({}, ["market down"]))
+    out = hubapi.hub_trade("L", "1", "2", traded_a=[norm_name("WR A2")],
+                           traded_b=[norm_name("WR B1")])
+    assert out["data_freshness"]["market"] == "missing"
+    assert out["market"]["coverage_a"] == 0
+    assert out["winner"] == "Alpha"  # verdict stands on lineup points

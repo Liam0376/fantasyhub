@@ -706,6 +706,55 @@ def test_direction_from_standings_with_override():
     assert direction_of(teams[2], teams, 2, override="contend") == "contend"
 
 
+def test_needs_differ_per_side_same_direction():
+    # Review catch: both sides middle -> team_b got team_a's needs
+    # (string compare on direction). Needs must follow the team.
+    league = {"season": 2026, "name": "T", "settings": {
+        "scoring": {}, "roster_positions": _RP_MIN,
+        "playoff_week_start": 15, "playoff_teams": 6}}
+    ta = {**_team([_rp("QB A", "QB"), _rp("RB A", "RB"), _rp("RB A2", "RB"),
+                   _rp("WR A1", "WR"), _rp("WR A2", "WR"), _rp("TE A", "TE")],
+                  [_rp("bWR A", "WR")]),
+          "roster_id": "1", "wins": 4, "losses": 5, "fpts": 90.0}
+    tb = {**_team([_rp("QB B", "QB"), _rp("RB B", "RB"), _rp("RB B2", "RB"),
+                   _rp("WR B1", "WR"), _rp("WR B2", "WR"), _rp("TE B", "TE")],
+                  [_rp("bWR B", "WR")]),
+          "roster_id": "2", "wins": 4, "losses": 5, "fpts": 88.0}
+    rows = [("QB A", "QB", 20), ("RB A", "RB", 18), ("RB A2", "RB", 11),
+            ("WR A1", "WR", 14), ("WR A2", "WR", 12), ("TE A", "TE", 9),
+            ("bWR A", "WR", 2),
+            ("QB B", "QB", 19), ("RB B", "RB", 17), ("RB B2", "RB", 15),
+            ("WR B1", "WR", 5), ("WR B2", "WR", 4), ("TE B", "TE", 8),
+            ("bWR B", "WR", 2)]
+    wpts = _weeks_pts({15: rows, 16: rows, 17: rows})
+    rostered = {norm_name(n) for (n, p, v) in rows}
+    out = evaluate_trade(team_a=ta, team_b=tb, teams=[ta, tb], league=league,
+                         st={"week": 15}, weeks_pts=wpts, rp=_RP_MIN,
+                         roster_limit=_LIM8, rostered_names=rostered,
+                         traded_a=[], traded_b=[],
+                         direction_a="middle", direction_b="middle")
+    assert out["team_a"]["direction"] == out["team_b"]["direction"] == "middle"
+    ga = {n["position"]: n["gap"] for n in out["team_a"]["needs"]}
+    gb = {n["position"]: n["gap"] for n in out["team_b"]["needs"]}
+    assert ga["WR"] > 0 > gb["WR"]  # A strong, B thin: not mirrored
+
+
+def test_season_over_warns_not_silent():
+    # Review catch: weeks [] gave a silent Even. Past the fantasy
+    # final the response must say the season is over.
+    league = {"season": 2026, "name": "T", "settings": {
+        "scoring": {}, "roster_positions": _RP_MIN,
+        "playoff_week_start": 15, "playoff_teams": 6}}
+    ta = {**_team([_rp("QB A", "QB")], []), "roster_id": "1",
+          "wins": 8, "losses": 1, "fpts": 100.0}
+    out = evaluate_trade(team_a=ta, team_b=dict(ta, roster_id="2"),
+                         teams=[ta], league=league, st={"week": 18},
+                         weeks_pts={}, rp=_RP_MIN, roster_limit=_LIM8,
+                         rostered_names=set(), traded_a=[], traded_b=[])
+    assert out["winner"] == "Even"
+    assert any("season" in w.lower() and "over" in w.lower() for w in out["warnings"])
+
+
 def test_symmetry_mirrors_evaluate():
     # Prompt case 8: swapping sides swaps gains, mirrors winner, and
     # negates value_difference. Acceptance is directional (partner B),

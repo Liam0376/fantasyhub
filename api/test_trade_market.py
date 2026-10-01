@@ -61,7 +61,7 @@ def test_missing_player_null_not_zero():
 
 def test_market_down_still_verdict(monkeypatch):
     # Dead API and no file: empty map plus a warning, never a raise.
-    monkeypatch.setattr("market._read_default_file", lambda: None)
+    monkeypatch.setattr("market._read_default_file", lambda: (None, None))
     monkeypatch.setattr("market.fc_fetch", lambda *a, **k: (_ for _ in ()).throw(Exception("down")))
     players, warns = fc_load(_settings())
     assert players == {}
@@ -83,10 +83,29 @@ def test_default_combo_uses_file_no_network(monkeypatch, tmp_path):
     assert warns == []
 
 
+def test_stale_default_file_warns(monkeypatch, tmp_path):
+    # Review catch: a days-old cron snapshot served silently. Older
+    # than 72h warns; missing updated_at stays quiet (legacy files).
+    import json
+    from datetime import datetime, timedelta, timezone
+    old = (datetime.now(timezone.utc) - timedelta(hours=100)).isoformat()
+    f = tmp_path / "fantasycalc.json"
+    f.write_text(json.dumps({"updated_at": old, "players": {"4046": {"v": 1}}}))
+    monkeypatch.setattr("market._DEFAULT_PATH", str(f))
+    players, warns = fc_load(_settings())
+    assert players["4046"]["v"] == 1  # still served, but flagged
+    assert any("stale" in w.lower() for w in warns)
+
+    fresh = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+    f.write_text(json.dumps({"updated_at": fresh, "players": {"4046": {"v": 1}}}))
+    _, warns = fc_load(_settings())
+    assert warns == []
+
+
 def test_nondefault_combo_fetches_live_with_ttl(monkeypatch):
     # Superflex settings miss the default file: one live fetch, then
     # the TTL cache serves the second call with no second request.
-    monkeypatch.setattr("market._read_default_file", lambda: None)
+    monkeypatch.setattr("market._read_default_file", lambda: (None, None))
     monkeypatch.setattr("market._fc_cache", {})
     calls = []
 
