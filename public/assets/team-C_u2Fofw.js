@@ -1,4 +1,4 @@
-import{b as X,k as Q,e as J,m as Z,s as ee,n as E,h as d,l as ae,p as F,i as I,o as j,q as te,f as se,r as re,t as ie,v as oe,j as ne}from"./index-D0XiqyTN.js";import{g as le,s as G,r as de,b as ce}from"./teamSelector-BW2LXAtp.js";import{p as pe}from"./playerCard-BUf0bUiu.js";import{c as me,a as ve,e as ye}from"./slots-CAjbNQjp.js";import"./auctionMath-DsCIWbys.js";async function ge(a){const o=await X().catch(()=>null),y=(o==null?void 0:o.rosters)||(o==null?void 0:o.teams)||null,b=(o==null?void 0:o.leagueRosters)||(o==null?void 0:o.allTeams)||[];let i=le();!i&&b.length&&(i=String(b[0].roster_id),G(i));let n=null;if(y&&i&&(y[i]||y[Number(i)])){const e=y[i]||y[Number(i)];n={starters:e.starters||[],bench:e.bench||[],reserve:e.reserve||[],myRoster:e.starters||[],teamMeta:e.team_info||e.teamMeta||{},team_info:e.team_info||e.teamMeta||{},leagueRosters:b,allTeams:b}}else if(n=await Q(i?{roster_id:i}:{}).catch(()=>({starters:[],bench:[],reserve:[],leagueRosters:[],allTeams:[]})),!i){const e=n.leagueRosters||n.allTeams||[];e.length&&(i=String(e[0].roster_id),G(i))}const k=await J({limit:800}).catch(()=>({players:[]})),A=b.length?b:n.leagueRosters||n.allTeams||[],c=n.teamMeta||n.team_info||{},L=new Map;(k.players||[]).forEach(e=>{e.player_id&&L.set(String(e.player_id),e),e.player_name&&L.set(e.player_name.toLowerCase(),e)});const p=await Z(se,te).catch(()=>null),W={vbdParams:me(k.players||[],p),compPlayers:k.players||[]},z=n.starters||n.myRoster||[],H=n.bench||[],V=n.reserve||[],{starters:$,bench:D}=ve(z,H,W),P=V.map((e,t)=>ye({...e,slot:`IR${t+1}`},null,{...W,defaultSlot:`IR${t+1}`})),w=D,u=[...$,...w,...P],f=u.some(e=>e.marketAuction!=null),x=u.some(e=>e.ecr!=null||e.adp!=null);let S=`#— of ${p?p.teams:"?"}`;try{if(y&&typeof y=="object"){const t=Object.entries(y).map(([r,s])=>{const m=((s==null?void 0:s.starters)||(s==null?void 0:s.myRoster)||[]).reduce((h,C)=>h+Number(C.projected_points||0),0),v=(s==null?void 0:s.team_info)||(s==null?void 0:s.teamMeta)||{};return{roster_id:String(v.roster_id||r||""),fpts:m}}).sort((r,s)=>s.fpts-r.fpts).findIndex(r=>String(r.roster_id)===String(i));t!==-1&&(S=`#${t+1} of ${p?p.teams:"?"}`)}else if(Array.isArray(o==null?void 0:o.league_leaderboard)&&o.league_leaderboard.length){const e=o.league_leaderboard.findIndex(t=>String(t.roster_id)===String(i));e!==-1&&(S=`#${e+1} of ${p?p.teams:"?"}`)}else if(Array.isArray(n.league_leaderboard)&&n.league_leaderboard.length){const e=n.league_leaderboard.findIndex(t=>String(t.roster_id)===String(i));e!==-1&&(S=`#${e+1} of ${p?p.teams:"?"}`)}}catch{}const T=u.reduce((e,t)=>e+(t.modelAuction??0),0),O=u.map(e=>e.marketAuction),_=O.every(e=>e!=null)?O.reduce((e,t)=>e+t,0):null,U=$.reduce((e,t)=>e+t.weekly,0),Y=$.reduce((e,t)=>e+t.season,0),R=e=>{const t=$.filter(h=>h.position===e||e==="WR"&&h.slot.startsWith("FLEX")&&h.position==="WR"||e==="RB"&&h.slot.startsWith("FLEX")&&h.position==="RB"),r=t.reduce((h,C)=>h+C.weekly,0),s=t.length||1,l=r/s;let m="SOLID",v="badge-amber";return e==="QB"?l>=18?(m="ELITE",v="badge-emerald"):l<14&&(m="WEAK",v="badge-crimson"):e==="RB"?l>=12?(m="STRONG",v="badge-emerald"):l<8&&(m="WEAK",v="badge-crimson"):e==="WR"?l>=14?(m="STRONG",v="badge-emerald"):l<9&&(m="WEAK",v="badge-crimson"):e==="TE"&&(l>=11?(m="STRONG",v="badge-emerald"):l<7&&(m="WEAK",v="badge-crimson")),{pos:e,totalPts:r.toFixed(1),avg:l.toFixed(1),count:t.length,label:m,cls:v}},K=[R("QB"),R("RB"),R("WR"),R("TE")],q=[5,6,7,8,9,10,11,12,13,14],M={};u.forEach(e=>{const t=e.bye_week||e.bye||null;t&&(M[t]=(M[t]||0)+1)});const __erf=x=>{const s=Math.sign(x),a=Math.abs(x),t=1/(1+.3275911*a);return s*(1-((((1.061405429*t-1.453152027)*t+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-a*a))},__bp=(a,b)=>{const s=Math.hypot((a.upper-a.lower)/1.6832,(b.upper-b.lower)/1.6832);return s===0?(a.weekly===b.weekly?.5:Number(a.weekly>b.weekly)):.5*(1+__erf((a.weekly-b.weekly)/(s*Math.SQRT2)))};const g=[];w.forEach(e=>{$.forEach(t=>{if(e.position===t.position||["RB","WR","TE"].includes(e.position)&&t.slot.startsWith("FLEX")){const s=__bp(e,t);s>=.4&&g.push({benchPlayer:e,starterPlayer:t,prob:s})}})}),g.sort((e,t)=>t.prob-e.prob),a.innerHTML=`
+import{b as X,k as Q,e as J,m as Z,s as ee,n as E,h as d,l as ae,p as F,i as I,o as j,q as te,f as se,r as re,t as ie,v as oe,j as ne}from"./index-UyDjkkdl.js";import{g as le,s as G,r as de,b as ce}from"./teamSelector-CqDE8NDB.js";import{p as pe}from"./playerCard-B5-xKd6o.js";import{c as me,a as ve,e as ye}from"./slots-wISfC84a.js";import{b as he,T as ge}from"./intervals-BMgcr8bT.js";import"./auctionMath-BsUNHzFH.js";async function be(a){const o=await X().catch(()=>null),y=(o==null?void 0:o.rosters)||(o==null?void 0:o.teams)||null,b=(o==null?void 0:o.leagueRosters)||(o==null?void 0:o.allTeams)||[];let i=le();!i&&b.length&&(i=String(b[0].roster_id),G(i));let n=null;if(y&&i&&(y[i]||y[Number(i)])){const e=y[i]||y[Number(i)];n={starters:e.starters||[],bench:e.bench||[],reserve:e.reserve||[],myRoster:e.starters||[],teamMeta:e.team_info||e.teamMeta||{},team_info:e.team_info||e.teamMeta||{},leagueRosters:b,allTeams:b}}else if(n=await Q(i?{roster_id:i}:{}).catch(()=>({starters:[],bench:[],reserve:[],leagueRosters:[],allTeams:[]})),!i){const e=n.leagueRosters||n.allTeams||[];e.length&&(i=String(e[0].roster_id),G(i))}const k=await J({limit:800}).catch(()=>({players:[]})),A=b.length?b:n.leagueRosters||n.allTeams||[],c=n.teamMeta||n.team_info||{},L=new Map;(k.players||[]).forEach(e=>{e.player_id&&L.set(String(e.player_id),e),e.player_name&&L.set(e.player_name.toLowerCase(),e)});const p=await Z(se,te).catch(()=>null),W={vbdParams:me(k.players||[],p),compPlayers:k.players||[]},z=n.starters||n.myRoster||[],H=n.bench||[],V=n.reserve||[],{starters:$,bench:D}=ve(z,H,W),P=V.map((e,t)=>ye({...e,slot:`IR${t+1}`},null,{...W,defaultSlot:`IR${t+1}`})),w=D,f=[...$,...w,...P],u=f.some(e=>e.marketAuction!=null),x=f.some(e=>e.ecr!=null||e.adp!=null);let S=`#— of ${p?p.teams:"?"}`;try{if(y&&typeof y=="object"){const t=Object.entries(y).map(([r,s])=>{const m=((s==null?void 0:s.starters)||(s==null?void 0:s.myRoster)||[]).reduce((g,C)=>g+Number(C.projected_points||0),0),v=(s==null?void 0:s.team_info)||(s==null?void 0:s.teamMeta)||{};return{roster_id:String(v.roster_id||r||""),fpts:m}}).sort((r,s)=>s.fpts-r.fpts).findIndex(r=>String(r.roster_id)===String(i));t!==-1&&(S=`#${t+1} of ${p?p.teams:"?"}`)}else if(Array.isArray(o==null?void 0:o.league_leaderboard)&&o.league_leaderboard.length){const e=o.league_leaderboard.findIndex(t=>String(t.roster_id)===String(i));e!==-1&&(S=`#${e+1} of ${p?p.teams:"?"}`)}else if(Array.isArray(n.league_leaderboard)&&n.league_leaderboard.length){const e=n.league_leaderboard.findIndex(t=>String(t.roster_id)===String(i));e!==-1&&(S=`#${e+1} of ${p?p.teams:"?"}`)}}catch{}const T=f.reduce((e,t)=>e+(t.modelAuction??0),0),O=f.map(e=>e.marketAuction),_=O.every(e=>e!=null)?O.reduce((e,t)=>e+t,0):null,U=$.reduce((e,t)=>e+t.weekly,0),Y=$.reduce((e,t)=>e+t.season,0),R=e=>{const t=$.filter(g=>g.position===e||e==="WR"&&g.slot.startsWith("FLEX")&&g.position==="WR"||e==="RB"&&g.slot.startsWith("FLEX")&&g.position==="RB"),r=t.reduce((g,C)=>g+C.weekly,0),s=t.length||1,l=r/s;let m="SOLID",v="badge-amber";return e==="QB"?l>=18?(m="ELITE",v="badge-emerald"):l<14&&(m="WEAK",v="badge-crimson"):e==="RB"?l>=12?(m="STRONG",v="badge-emerald"):l<8&&(m="WEAK",v="badge-crimson"):e==="WR"?l>=14?(m="STRONG",v="badge-emerald"):l<9&&(m="WEAK",v="badge-crimson"):e==="TE"&&(l>=11?(m="STRONG",v="badge-emerald"):l<7&&(m="WEAK",v="badge-crimson")),{pos:e,totalPts:r.toFixed(1),avg:l.toFixed(1),count:t.length,label:m,cls:v}},K=[R("QB"),R("RB"),R("WR"),R("TE")],q=[5,6,7,8,9,10,11,12,13,14],M={};f.forEach(e=>{const t=e.bye_week||e.bye||null;t&&(M[t]=(M[t]||0)+1)});const h=[];w.forEach(e=>{$.forEach(t=>{if(!(e.position===t.position||["RB","WR","TE"].includes(e.position)&&t.slot.startsWith("FLEX")))return;const s=he(e,t);s>=ge&&h.push({benchPlayer:e,starterPlayer:t,prob:s})})}),h.sort((e,t)=>t.prob-e.prob),a.innerHTML=`
     <!-- Executive Command Center Header -->
     <div class="team-hub-header reveal in">
       <div class="team-hero-card card" style="border-top:1px solid var(--amber)">
@@ -80,17 +80,17 @@ import{b as X,k as Q,e as J,m as Z,s as ee,n as E,h as d,l as ae,p as F,i as I,o
     </div>
 
     <!-- Start/Sit Toss-up Advisor Card -->
-    <div class="card reveal in" style="margin-top:16px; border:1px solid ${g.length?"rgba(245,158,11,0.35)":"var(--border)"}; background:${g.length?"rgba(245,158,11,0.03)":"var(--surface)"}">
-      <div class="card-header" style="border-bottom:1px solid ${g.length?"rgba(245,158,11,0.2)":"var(--border)"}">
+    <div class="card reveal in" style="margin-top:16px; border:1px solid ${h.length?"rgba(245,158,11,0.35)":"var(--border)"}; background:${h.length?"rgba(245,158,11,0.03)":"var(--surface)"}">
+      <div class="card-header" style="border-bottom:1px solid ${h.length?"rgba(245,158,11,0.2)":"var(--border)"}">
         <div style="display:flex; align-items:center; gap:8px">
-          <span class="badge ${g.length?"badge-amber":"badge-emerald"}" style="font-size:12px">Start/Sit Advisor</span>
-          <span class="micro faint">${g.length?`${g.length} Decision(s) to Check`:"Optimal Lineup Configured"}</span>
+          <span class="badge ${h.length?"badge-amber":"badge-emerald"}" style="font-size:12px">Start/Sit Advisor</span>
+          <span class="micro faint">${h.length?`${h.length} Decision(s) to Check`:"Optimal Lineup Configured"}</span>
         </div>
       </div>
       <div class="card-body" style="padding:12px">
-        ${g.length?`
+        ${h.length?`
           <div style="display:flex; flex-direction:column; gap:8px">
-            ${g.slice(0,3).map(e=>`
+            ${h.slice(0,3).map(e=>`
               <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--surface-raised); border:1px solid var(--border); border-radius:10px; padding:10px 12px; flex-wrap:wrap">
                 <div style="display:flex; align-items:center; gap:12px">
                   <div style="display:flex; align-items:center; gap:6px">
@@ -144,7 +144,7 @@ import{b as X,k as Q,e as J,m as Z,s as ee,n as E,h as d,l as ae,p as F,i as I,o
                   <th>Matchup</th>
                   <th style="color:var(--amber)">Projected FPTS (Wk/17G)</th>
                   <th style="color:var(--amber)">Model $</th>
-                  ${f?`<th style="color:var(--sky)">Market $</th>
+                  ${u?`<th style="color:var(--sky)">Market $</th>
                   <th>Δ $</th>`:""}
                   <th>Edge</th>
                   ${x?`<th>ECR</th>
@@ -156,7 +156,7 @@ import{b as X,k as Q,e as J,m as Z,s as ee,n as E,h as d,l as ae,p as F,i as I,o
                 </tr>
               </thead>
               <tbody>
-                ${$.map(e=>B(e,!1,f,x)).join("")}
+                ${$.map(e=>B(e,!1,u,x)).join("")}
               </tbody>
             </table>
           </div>
@@ -187,7 +187,7 @@ import{b as X,k as Q,e as J,m as Z,s as ee,n as E,h as d,l as ae,p as F,i as I,o
                   <th>Matchup</th>
                   <th style="color:var(--amber)">Projected FPTS (Wk/17G)</th>
                   <th style="color:var(--amber)">Model $</th>
-                  ${f?`<th style="color:var(--sky)">Market $</th>
+                  ${u?`<th style="color:var(--sky)">Market $</th>
                   <th>Δ $</th>`:""}
                   <th>Edge</th>
                   ${x?`<th>ECR</th>
@@ -199,7 +199,7 @@ import{b as X,k as Q,e as J,m as Z,s as ee,n as E,h as d,l as ae,p as F,i as I,o
                 </tr>
               </thead>
               <tbody>
-                ${w.map(e=>B(e,!1,f,x)).join("")}
+                ${w.map(e=>B(e,!1,u,x)).join("")}
               </tbody>
             </table>
           </div>
@@ -231,7 +231,7 @@ import{b as X,k as Q,e as J,m as Z,s as ee,n as E,h as d,l as ae,p as F,i as I,o
                     <th>Matchup</th>
                     <th>Projected FPTS</th>
                     <th>Model $</th>
-                    ${f?`<th>Market $</th>
+                    ${u?`<th>Market $</th>
                     <th>Δ $</th>`:""}
                     <th>Edge</th>
                     ${x?"<th>ECR</th>":""}
@@ -240,7 +240,7 @@ import{b as X,k as Q,e as J,m as Z,s as ee,n as E,h as d,l as ae,p as F,i as I,o
                   </tr>
                 </thead>
                 <tbody>
-                  ${P.map(e=>B(e,!0,f,x)).join("")}
+                  ${P.map(e=>B(e,!0,u,x)).join("")}
                 </tbody>
               </table>
             </div>
@@ -249,7 +249,7 @@ import{b as X,k as Q,e as J,m as Z,s as ee,n as E,h as d,l as ae,p as F,i as I,o
       </div>
     `:""}
 
-  `,ce(()=>{ge(a)}),a.querySelectorAll("[data-player-row]").forEach(e=>{e.addEventListener("click",t=>{if(t.target.closest("button, a"))return;const r=e.getAttribute("data-player-row"),s=u.find(l=>String(l.player_id)===String(r));s&&j(s,a)})}),a.querySelectorAll("[data-player-id]").forEach(e=>{const t=()=>{const r=e.getAttribute("data-player-id"),s=u.find(l=>String(l.player_id)===String(r));s&&j(s,a)};e.addEventListener("click",r=>{r.stopPropagation(),t()}),e.tagName!=="BUTTON"&&e.addEventListener("keydown",r=>{(r.key==="Enter"||r.key===" ")&&(r.preventDefault(),t())})}),a.querySelectorAll("[data-pid]").forEach(e=>{e.style.cursor="pointer",e.addEventListener("click",t=>{t.stopPropagation();const r=e.getAttribute("data-pid"),s=u.find(l=>String(l.player_id)===String(r));s&&j(s,a)})})}function B(a,o=!1,y=!0,b=!0){const i=a.deltaAuction>0?"text-good":a.deltaAuction<0?"text-bad":"faint",n=a.deltaAuction>0?"+":"",k=a.edge==="BUY"?"badge-emerald":a.edge==="SELL"?"badge-crimson":"badge-faint",A=a.edge==="BUY"?"▲ ":a.edge==="SELL"?"▼ ":"";let c="—";return a.position==="QB"?c=`${a.season_pass_yd} PassYd · ${a.season_tds} TD`:a.position==="RB"?c=`${a.season_rush_yd} RushYd · ${a.season_rec_yd} RecYd · ${a.season_tds} TD`:a.position==="WR"||a.position==="TE"?c=`${a.season_rec_yd} RecYd · ${a.season_rec} Rec · ${a.season_tds} TD`:c=`${a.season_tds} TD`,`
+  `,ce(()=>{be(a)}),a.querySelectorAll("[data-player-row]").forEach(e=>{e.addEventListener("click",t=>{if(t.target.closest("button, a"))return;const r=e.getAttribute("data-player-row"),s=f.find(l=>String(l.player_id)===String(r));s&&j(s,a)})}),a.querySelectorAll("[data-player-id]").forEach(e=>{const t=()=>{const r=e.getAttribute("data-player-id"),s=f.find(l=>String(l.player_id)===String(r));s&&j(s,a)};e.addEventListener("click",r=>{r.stopPropagation(),t()}),e.tagName!=="BUTTON"&&e.addEventListener("keydown",r=>{(r.key==="Enter"||r.key===" ")&&(r.preventDefault(),t())})}),a.querySelectorAll("[data-pid]").forEach(e=>{e.style.cursor="pointer",e.addEventListener("click",t=>{t.stopPropagation();const r=e.getAttribute("data-pid"),s=f.find(l=>String(l.player_id)===String(r));s&&j(s,a)})})}function B(a,o=!1,y=!0,b=!0){const i=a.deltaAuction>0?"text-good":a.deltaAuction<0?"text-bad":"faint",n=a.deltaAuction>0?"+":"",k=a.edge==="BUY"?"badge-emerald":a.edge==="SELL"?"badge-crimson":"badge-faint",A=a.edge==="BUY"?"▲ ":a.edge==="SELL"?"▼ ":"";let c="—";return a.position==="QB"?c=`${a.season_pass_yd} PassYd · ${a.season_tds} TD`:a.position==="RB"?c=`${a.season_rush_yd} RushYd · ${a.season_rec_yd} RecYd · ${a.season_tds} TD`:a.position==="WR"||a.position==="TE"?c=`${a.season_rec_yd} RecYd · ${a.season_rec} Rec · ${a.season_tds} TD`:c=`${a.season_tds} TD`,`
     <tr data-player-row="${d(a.player_id)}" data-team="${a.team||""}" class="clickable-row" style="cursor:pointer; --team-accent:${re((a.team||"").toUpperCase())}">
       <td class="micro faint mono" style="font-weight:700"><button class="row-open-btn" data-player-id="${d(a.player_id)}" aria-label="Open details for ${E(a.player_name||a.player_id)}" title="Open details for ${E(a.player_name||a.player_id)}" style="background:none; border:0; padding:0; font:inherit; color:inherit; cursor:pointer; font-weight:700">${d(a.slot)}</button></td>
       <td>
@@ -279,4 +279,4 @@ import{b as X,k as Q,e as J,m as Z,s as ee,n as E,h as d,l as ae,p as F,i as I,o
       <td class="mono micro faint">${d(c)}</td>
       <td>${ne(a.injury_status)}</td>
     </tr>
-  `}function N(a){return pe({...a,projected_points:a.weekly,point_estimate:a.weekly,projection_lower:a.lower,projection_upper:a.upper,auction:a.modelAuction},{showInterval:!0,showTeamLogo:!0})}export{ge as renderTeam};
+  `}function N(a){return pe({...a,projected_points:a.weekly,point_estimate:a.weekly,projection_lower:a.lower,projection_upper:a.upper,auction:a.modelAuction},{showInterval:!0,showTeamLogo:!0})}export{be as renderTeam};
