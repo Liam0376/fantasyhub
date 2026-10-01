@@ -306,27 +306,45 @@ def apply_trade(team: dict, incoming: list, outgoing: list, weeks_pts: dict,
                       "value": round(mv, 1)})
         active = [x for x in active if x is not c]
 
-    fa_names = set(rostered_names or set()) | {
-        norm_name(p.get("player_name") or "") for p in active + reserve}
-    adds: dict = {}
-    credit: dict = {}
-    credit_group: dict = {}  # week -> group -> raw points from FA fills
-    opens = max(0, roster_limit - len(active) - len(reserve))
-    if opens:
+    # Before/after rosters can be identical (no-op package): memo so
+    # the second side is a dict lookup, not a re-scan of every FA.
+    _fill_cache: dict = {}
+
+    def _fills(roster, reserve_n, exclude):
+        """Per-week best free-agent fills for open roster spots.
+
+        Both sides run this: an open slot could be filled with or
+        without the trade, so crediting only the after side books a
+        waiver pickup as a trade win (the phantom "+15.3 stronger at
+        DEF" on a QB/RB swap). Adds display stays after-side only —
+        the caller drops them for the before side. Fills stay
+        per-week — the best streamer differs by week; one FA never
+        fills two spots in a week.
+        """
+        key = (tuple(norm_name(p.get("player_name") or "") for p in roster),
+               reserve_n, tuple(sorted(exclude)))
+        if key in _fill_cache:
+            return _fill_cache[key]
+        fa = set(rostered_names or set()) | exclude
+        credit, cgroup, adds = {}, {}, {}
+        opens_ = max(0, roster_limit - len(roster) - reserve_n)
+        if not opens_:
+            _fill_cache[key] = (credit, cgroup, adds)
+            return credit, cgroup, adds
         for w in sorted(weeks_pts):
             rows = weeks_pts[w].get("players") or {}
             wt = weights.get(w, 1.0)
-            current = list(active)
+            current = list(roster)
             base = team_week_points(current, rows, rp)
             # Best-first: a fill's gain can't exceed his own points, so
             # scanning points-desc lets us stop at the first row that
             # can't beat best_gain. Exact prune, not a heuristic.
             ordered = sorted(rows.items(), key=lambda kr: -kr[1]["pts"])
             taken = set()
-            for _ in range(opens):
+            for _ in range(opens_):
                 best, best_gain, best_key = None, 0.0, None
-                for key, row in ordered:
-                    if key[0] in fa_names or key in taken:
+                for ck, row in ordered:
+                    if ck[0] in fa or ck in taken:
                         continue
                     if row["pts"] <= best_gain + 1e-9:
                         break
@@ -334,21 +352,38 @@ def apply_trade(team: dict, incoming: list, outgoing: list, weeks_pts: dict,
                         current + [{"player_name": row["name"],
                                     "position": row["pos"]}], rows, rp) - base
                     if gain > best_gain + 1e-9:
-                        best, best_gain, best_key = row, gain, key
+                        best, best_gain, best_key = row, gain, ck
                 if best is None:
                     break
                 taken.add(best_key)
-                current.append({"player_name": best["name"], "position": best["pos"]})
+                current.append({"player_name": best["name"],
+                                "position": best["pos"]})
                 base = team_week_points(current, rows, rp)
                 val = round(wt * best_gain, 2)
                 slot = adds.setdefault(best["name"],
                                        {"player_name": best["name"],
-                                        "position": best["pos"], "value": 0.0})
+                                        "position": best["pos"],
+                                        "value": 0.0})
                 slot["value"] = round(slot["value"] + val, 2)
                 credit[w] = round(credit.get(w, 0.0) + best_gain, 2)
-                cg = credit_group.setdefault(w, {})
                 gname = roster_group(best["pos"])
+                cg = cgroup.setdefault(w, {})
                 cg[gname] = cg.get(gname, 0.0) + best_gain
+        _fill_cache[key] = (credit, cgroup, adds)
+        return credit, cgroup, adds
+
+    reserve_all = list(team.get("reserve") or [])
+    in_names = {norm_name((p or {}).get("player_name") or "")
+                for p in incoming or []}
+    credit, credit_group, adds = _fills(
+        active, len(reserve),
+        {norm_name(p.get("player_name") or "") for p in active + reserve})
+    # Incoming players are the partner's, not free agents — the
+    # before side must never "stream" the very player being traded.
+    credit_b, credit_b_group, _ = _fills(
+        before_active, len(reserve_all),
+        {norm_name(p.get("player_name") or "") for p in before_active + reserve_all}
+        | in_names)
 
     before, after, delta = [], [], []
     gb_acc, ga_acc = {}, {}
@@ -356,8 +391,11 @@ def apply_trade(team: dict, incoming: list, outgoing: list, weeks_pts: dict,
         rows = weeks_pts[w].get("players") or {}
         b_groups = _lineup_by_group(before_active, rows, rp)
         a_groups = _lineup_by_group(active, rows, rp)
-        # FA fills fold into the after-side totals and their own groups,
-        # so sum(a_groups) equals the old team_week_points + credit.
+        # FA fills fold into their groups, so sum(groups) equals the
+        # side's lineup total. Before-side fills mirror after-side —
+        # free pickups cancel instead of reading as trade gains.
+        for gname, val in credit_b_group.get(w, {}).items():
+            b_groups[gname] = b_groups.get(gname, 0.0) + val
         for gname, val in credit_group.get(w, {}).items():
             a_groups[gname] = a_groups.get(gname, 0.0) + val
         b = round(sum(b_groups.values()), 2)

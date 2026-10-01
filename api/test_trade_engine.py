@@ -436,8 +436,12 @@ def test_add_fills_open_slot_with_best_fa():
                       outgoing=[_rp("Puka Nacua", "WR"), _rp("Bench WR A", "WR")],
                       weeks_pts=wpts, rp=_RP, roster_limit=_LIMIT,
                       rostered_names=rostered)
-    # Before 105; after base 103 + FA WR 10 fill = 113 -> +8 per week.
-    assert out["weekly_delta"] == [8.0, 8.0]
+    # Symmetric fills: the free FA WR scores for both sides, so his
+    # points cancel. Before 105+8 (FA WR into WR3 over benched 2) =
+    # 113; after 103+10 (FA WR into empty WR3) = 113 -> 0 per week.
+    # The old +8 booked the waiver pickup as a trade win.
+    assert out["weekly_delta"] == [0.0, 0.0]
+    assert out["groups_before"]["WR"] == 36.0  # 14+12+10: before filled
     assert len(out["adds"]) == 1
     assert norm_name(out["adds"][0]["player_name"]) == norm_name("FA WR")
     assert out["adds"][0]["value"] == 20.0  # 10 per week, summed
@@ -905,3 +909,24 @@ def test_evaluate_trade_includes_analysis():
     assert any("10.0 fewer points" in x for x in sb)
     assert any("Beta would likely say no" in x for x in sa)
     assert any("You'd likely turn this down" in x for x in sb)
+
+
+def test_open_slot_fill_not_a_trade_gain():
+    # Under-limit team with an empty DEF spot: the waiver DEF scores
+    # with or without the trade, so it must credit BOTH sides and
+    # cancel — never read as "+15.3 stronger at DEF" from a QB/RB swap.
+    rp = ["QB", "RB", "RB", "WR", "WR", "TE", "DEF", "BN"]
+    a = _team([_rp("QB A", "QB"), _rp("RB A", "RB"), _rp("RB A2", "RB"),
+               _rp("WR A1", "WR"), _rp("WR A2", "WR"), _rp("TE A", "TE")],
+              [_rp("bWR A", "WR")])  # 7 players, limit 8 -> one open spot
+    rows = [("QB A", "QB", 20), ("RB A", "RB", 18), ("RB A2", "RB", 11),
+            ("WR A1", "WR", 14), ("WR A2", "WR", 12), ("TE A", "TE", 9),
+            ("bWR A", "WR", 2), ("Waiver D", "DEF", 15.3), ("Waiver K", "K", 7)]
+    wpts = _weeks_pts({5: rows, 6: rows})
+    rostered = {norm_name(n) for n, p, v in rows
+                if n not in ("Waiver D", "Waiver K")}
+    out = apply_trade(a, incoming=[], outgoing=[], weeks_pts=wpts, rp=rp,
+                      roster_limit=8, rostered_names=rostered)
+    assert out["weekly_delta"] == [0.0, 0.0]
+    assert out["groups_before"]["DEF"] == 15.3
+    assert out["groups_after"]["DEF"] == 15.3
