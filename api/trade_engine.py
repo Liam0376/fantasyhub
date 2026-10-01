@@ -178,6 +178,7 @@ def fantasy_calendar(settings: dict, current_week: int) -> dict:
         "final_week": final,
         "weeks_left": list(range(max(1, cur), final + 1)) if cur <= final else [],
         "playoff_weeks": list(range(pws, final + 1)),
+        "playoff_teams": pt,
     }
 
 
@@ -341,3 +342,300 @@ def apply_trade(team: dict, incoming: list, outgoing: list, weeks_pts: dict,
                   "value": round(v["value"], 1)} for v in adds.values()),
                 key=lambda d: (-d["value"], d["player_name"])),
             "weekly_delta": delta}
+
+
+# ------------------------------------------------- verdict and weighting
+
+_PLAYOFF_MULT = 1.25  # playoff weeks count extra, but only for playoff teams
+
+
+def _seed_map(teams: list) -> dict:
+    """roster_id -> playoff seed, by wins then fpts (name breaks ties)."""
+    ordered = sorted(teams or [],
+                     key=lambda t: (-(t.get("wins") or 0), -(t.get("fpts") or 0),
+                                    str(t.get("roster_id"))))
+    return {str(t.get("roster_id")): i + 1 for i, t in enumerate(ordered)}
+
+
+def playoff_weight(week: int, cal: dict, team: dict, direction) -> float:
+    """1.25 for playoff weeks iff the team holds a playoff seed.
+
+    Missing seed never assumes contention (1.0). A rebuild override
+    forces 1.0 even in the field; contend forces 1.25 on the outside.
+    """
+    if (direction or "middle") == "rebuild":
+        return 1.0
+    if week not in (cal.get("playoff_weeks") or []):
+        return 1.0
+    if (direction or "middle") == "contend":
+        return _PLAYOFF_MULT
+    try:
+        seed = int((team or {}).get("seed") or 0)
+    except (TypeError, ValueError):
+        seed = 0
+    pt = cal.get("playoff_teams") or 6
+    return _PLAYOFF_MULT if 0 < seed <= pt else 1.0
+
+
+def direction_of(team: dict, teams: list, playoff_teams: int, override=None) -> str:
+    """Contender / middle / rebuilder from standings, or the override.
+
+    Contender = playoff seed plus top-half points. Rebuilder = bottom
+    third by wins. Everything else is middle — and middle is where most
+    teams live most of the season.
+    """
+    if override in ("contend", "middle", "rebuild"):
+        return override
+    n = len(teams or [])
+    if n == 0:
+        return "middle"
+    seeds = _seed_map(teams)
+    by_fpts = sorted(teams or [],
+                     key=lambda t: (-(t.get("fpts") or 0), str(t.get("roster_id"))))
+    fpts_rank = next((i + 1 for i, t in enumerate(by_fpts)
+                      if str(t.get("roster_id")) == str(team.get("roster_id"))), n)
+    by_wins = sorted(teams or [],
+                     key=lambda t: ((t.get("wins") or 0), str(t.get("roster_id"))))
+    wins_asc = next((i + 1 for i, t in enumerate(by_wins)
+                     if str(t.get("roster_id")) == str(team.get("roster_id"))), n)
+    if seeds.get(str(team.get("roster_id")), n + 1) <= (playoff_teams or 6) \
+            and fpts_rank <= n / 2:
+        return "contend"
+    if wins_asc <= max(1, n // 3):
+        return "rebuild"
+    return "middle"
+
+
+def _group_starter_pts(team: dict, week_rows: dict, rp: list) -> dict:
+    """Optimal-starter points by position group for one team, one week."""
+    pool = []
+    for p in list(team.get("starters") or []) + list(team.get("bench") or []):
+        pos = (p.get("position") or "").upper()
+        row = (week_rows or {}).get((norm_name(p.get("player_name") or ""), pos))
+        pool.append({**p, "weekly": row["pts"] if row else 0.0})
+    starters, _ = assign_slots(pool, rp)
+    out: dict = {}
+    for s in starters:
+        g = roster_group(s.get("position") or "")
+        out[g] = out.get(g, 0.0) + (s.get("weekly") or 0)
+    return out
+
+
+def needs_of(team: dict, teams: list, weeks_pts: dict, rp: list) -> list:
+    """Per-group starter strength vs the league median, plus bye clusters.
+
+    gap < 0 means the team's starters trail the median starter group —
+    that is the need. bye_cluster lists NFL teams with 2+ rostered
+    players in the group (one shared off-week guts the position).
+    """
+    weeks = sorted(weeks_pts)
+    groups = ["QB", "RB", "WR", "TE"]
+    mine = {g: [] for g in groups}
+    league = {g: [] for g in groups}
+    for t in teams or []:
+        avgs: dict = {}
+        for w in weeks:
+            rows = weeks_pts[w].get("players") or {}
+            for g, v in _group_starter_pts(t, rows, rp).items():
+                if g in avgs:
+                    avgs[g].append(v)
+                else:
+                    avgs[g] = [v]
+        for g in groups:
+            if avgs.get(g):
+                league[g].append(sum(avgs[g]) / len(avgs[g]))
+                if str(t.get("roster_id")) == str(team.get("roster_id")):
+                    mine[g] = avgs[g]
+    first_rows = (weeks_pts[weeks[0]].get("players") or {}) if weeks else {}
+    out = []
+    active = list(team.get("starters") or []) + list(team.get("bench") or [])
+    for g in groups:
+        if not mine[g] and not any(roster_group((p.get("position") or "")) == g
+                                   for p in active):
+            continue
+        meds = sorted(league[g])
+        if not meds:
+            med = 0.0
+        elif len(meds) % 2:
+            med = meds[len(meds) // 2]
+        else:
+            med = (meds[len(meds) // 2 - 1] + meds[len(meds) // 2]) / 2
+        avg = (sum(mine[g]) / len(mine[g])) if mine[g] else 0.0
+        by_nfl: dict = {}
+        for p in active:
+            if roster_group(p.get("position") or "") != g:
+                continue
+            key = (norm_name(p.get("player_name") or ""),
+                   (p.get("position") or "").upper())
+            tm = p.get("team") or (first_rows.get(key) or {}).get("team") or ""
+            by_nfl.setdefault(tm, 0)
+            by_nfl[tm] += 1
+        out.append({"position": g, "gap": round(avg - med, 1),
+                    "bye_cluster": sorted(t for t, c in by_nfl.items() if t and c >= 2)})
+    return out
+
+
+def gains_from_delta(weekly_delta: list, weeks: list, weights: dict,
+                     playoff_weeks: list) -> dict:
+    """Weighted gains from raw per-week deltas: total, per week, playoffs."""
+    total, po = 0.0, 0.0
+    for d, w in zip(weekly_delta or [], weeks or []):
+        wt = (weights or {}).get(w, 1.0)
+        total += wt * d
+        if w in (playoff_weeks or []):
+            po += wt * d
+    n = len(weekly_delta or [])
+    return {"gain_total": round(total, 1),
+            "gain_per_week": round(total / n, 2) if n else 0.0,
+            "gain_playoffs": round(po, 1)}
+
+
+def uncertainty_k(pkg_a: dict, pkg_b: dict) -> float:
+    """Combined projection uncertainty across both packages and weeks.
+
+    Per side per week u = sqrt(Σ ((hi-lo)/2)²); k = sqrt(Σ (u_a+u_b)²).
+    Wider intervals widen the Even band — fixed cutoffs would call a
+    coin-flip "clear win" in a high-variance week.
+    """
+    total = 0.0
+    for w in set(pkg_a) | set(pkg_b):
+        ua = sum(((hi - lo) / 2) ** 2 for lo, hi in pkg_a.get(w) or []) ** 0.5
+        ub = sum(((hi - lo) / 2) ** 2 for lo, hi in pkg_b.get(w) or []) ** 0.5
+        total += (ua + ub) ** 2
+    return round(total ** 0.5, 2)
+
+
+def verdict(gains_a: float, gains_b: float, k: float, base_total: float) -> dict:
+    """Winner from weighted gains; Even lives inside uncertainty.
+
+    |diff| ≤ k is noise (Even); ≤ 2k leans; beyond is clear. edge_pct
+    scales the edge against weekly starting totals so bands read the
+    same in a 10-team shootout and a 14-team grinder.
+    """
+    diff = (gains_a or 0.0) - (gains_b or 0.0)
+    mag = abs(diff)
+    k = k or 0.0
+    if mag <= k:
+        band = "even"
+    elif mag <= 2 * k:
+        band = "leans"
+    else:
+        band = "clear"
+    winner = "Even" if band == "even" else ("A" if diff > 0 else "B")
+    base = base_total or 0.0
+    return {"winner": winner, "band": band,
+            "edge_pct": round(100 * mag / base, 1) if base > 0 else 0.0}
+
+
+def acceptance(partner_gain: float, k: float, market_gap_pct) -> str:
+    """Would the partner say yes: likely / possible / unlikely.
+
+    Starts from the partner's own lineup gain; the market gap tempers
+    it (a lopsided market price kills even a fair-points deal). No
+    market means the delta decides alone.
+    """
+    g = partner_gain or 0.0
+    k = k or 0.0
+    if market_gap_pct is None:
+        if g >= 0:
+            return "likely"
+        return "possible" if g >= -0.5 * k else "unlikely"
+    if g >= 0 and market_gap_pct <= 15:
+        return "likely"
+    if g >= -0.5 * k or market_gap_pct <= 30:
+        return "possible"
+    return "unlikely"
+
+
+def _pkg_intervals(traded: list, weeks_pts: dict, weeks: list) -> dict:
+    """{week: [(lo, hi)]} for the traded players, from week rows."""
+    out = {}
+    for w in weeks:
+        rows = (weeks_pts.get(w) or {}).get("players") or {}
+        pairs = []
+        for p in traded or []:
+            row = rows.get((norm_name(p.get("player_name") or ""),
+                            (p.get("position") or "").upper()))
+            if row:
+                pairs.append((row.get("lo") or 0, row.get("hi") or 0))
+        out[w] = pairs
+    return out
+
+
+def evaluate_trade(team_a: dict, team_b: dict, teams: list, league: dict,
+                   st: dict, weeks_pts: dict, rp: list, roster_limit: int,
+                   rostered_names, traded_a: list, traded_b: list,
+                   market=None, direction_a=None, direction_b=None,
+                   warnings=None):
+    """Full verdict from loaded structures (Task 7 wires the loading).
+
+    traded_a/b are resolved player dicts (Task 7 resolves IDs and
+    collects unknown_ids). Only calendar weeks count — rows past the
+    fantasy final never enter a gain. market is None or
+    {"value_a","value_b"}; acceptance reads it, the verdict never does.
+    """
+    prof = league_profile(league, st)
+    cal = prof["calendar"]
+    weeks = cal["weeks_left"]
+    have = {w: weeks_pts[w] for w in weeks if w in (weeks_pts or {})}
+    warns = list(warnings or [])
+    for w in weeks:
+        if w not in (weeks_pts or {}):
+            warns.append(f"No projections for week {w}; treated as 0.")
+    fb_weeks = sorted({weeks_pts[w].get("fallback_week") for w in have
+                       if weeks_pts[w].get("fallback_week")})
+
+    seeds = _seed_map(teams)
+    pt = prof["playoff_teams"]
+    dir_a = direction_of(team_a, teams, pt, direction_a)
+    dir_b = direction_of(team_b, teams, pt, direction_b)
+    wa = {w: playoff_weight(w, cal, {"seed": seeds.get(str(team_a.get("roster_id")))}, dir_a)
+          for w in weeks}
+    wb = {w: playoff_weight(w, cal, {"seed": seeds.get(str(team_b.get("roster_id")))}, dir_b)
+          for w in weeks}
+
+    out_a = apply_trade(team_a, incoming=traded_b, outgoing=traded_a,
+                        weeks_pts=have, rp=rp, roster_limit=roster_limit,
+                        rostered_names=rostered_names, weights=wa)
+    out_b = apply_trade(team_b, incoming=traded_a, outgoing=traded_b,
+                        weeks_pts=have, rp=rp, roster_limit=roster_limit,
+                        rostered_names=rostered_names, weights=wb)
+    ga = gains_from_delta(out_a["weekly_delta"], weeks, wa, cal["playoff_weeks"])
+    gb = gains_from_delta(out_b["weekly_delta"], weeks, wb, cal["playoff_weeks"])
+
+    k = uncertainty_k(_pkg_intervals(traded_a, have, weeks),
+                      _pkg_intervals(traded_b, have, weeks))
+    base = 0.0
+    if out_a["before"] or out_b["before"]:
+        base = ((sum(out_a["before"]) / max(1, len(out_a["before"])))
+                + (sum(out_b["before"]) / max(1, len(out_b["before"])))) / 2
+    v = verdict(ga["gain_total"], gb["gain_total"], k, base)
+
+    va = (market or {}).get("value_a") if market else None
+    vb = (market or {}).get("value_b") if market else None
+    gap = None
+    if va is not None and vb is not None and max(va, vb) > 0:
+        gap = round(100 * abs(va - vb) / max(va, vb), 1)
+    acc = acceptance(gb["gain_total"], k, gap)
+
+    blk = lambda out, d, g: {"gains": g, "lineup_before": out["before"],
+                             "lineup_after": out["after"], "drops": out["drops"],
+                             "adds": out["adds"],
+                             "needs": needs_of(team_a if d == dir_a else team_b,
+                                               teams, have, rp),
+                             "direction": d}
+    return {"team_a": blk(out_a, dir_a, ga), "team_b": blk(out_b, dir_b, gb),
+            "winner": v["winner"], "band": v["band"],
+            "value_difference": round(ga["gain_total"] - gb["gain_total"], 1),
+            "calendar": cal, "settings_used": prof,
+            "confidence": {"k": k, "edge_pct": v["edge_pct"], "band": v["band"]},
+            "acceptance": acc,
+            "win_win": ga["gain_total"] > 0 and gb["gain_total"] > 0
+            and min(ga["gain_total"], gb["gain_total"]) >= 0.25 * k,
+            "lose_lose": ga["gain_total"] < 0 and gb["gain_total"] < 0,
+            "market": None if market is None else {"value_a": va, "value_b": vb,
+                                                   "gap_pct": gap},
+            "warnings": warns,
+            "data_freshness": {"projections": "fallback" if fb_weeks else "ok",
+                               "fallback_weeks": fb_weeks,
+                               "market": "missing" if market is None else "ok"}}

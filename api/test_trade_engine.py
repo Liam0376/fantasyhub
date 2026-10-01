@@ -13,8 +13,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from league import fetch_league
 from scoring import norm_name
-from trade_engine import (apply_trade, fantasy_calendar, league_profile,
-                          load_week_points)
+from trade_engine import (acceptance, apply_trade, direction_of,
+                          evaluate_trade, fantasy_calendar, gains_from_delta,
+                          league_profile, load_week_points, marginal_value,
+                          needs_of, playoff_weight, uncertainty_k, verdict)
 
 
 class _Resp:
@@ -511,3 +513,231 @@ def test_apply_trade_deterministic_for_identical_rosters():
     assert out_a["weekly_delta"] == out_b["weekly_delta"]
     assert out_a["drops"] == out_b["drops"]
     assert [d["player_name"] for d in out_a["adds"]] == [d["player_name"] for d in out_b["adds"]]
+
+
+# ------------------------------------------------- verdict and weighting
+
+_RP_MIN = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "BN"]
+_RP_MIN_SF = ["QB", "SUPER_FLEX", "RB", "RB", "WR", "WR", "TE", "BN"]
+_LIM8 = 8
+
+
+def test_same_qb_wr_trade_differs_1qb_vs_superflex():
+    # Prompt case 3: A sends its benched QB2 (18) for B's WR (13).
+    # 1QB: QB2 never starts -> A gains, B loses. Superflex: QB2 starts
+    # at SF -> A loses its SF edge, B gains it. Same players, opposite
+    # verdicts.
+    a = _team([_rp("QB1", "QB"), _rp("QB2", "QB"), _rp("RB1", "RB"),
+               _rp("RB2", "RB"), _rp("WR1", "WR"), _rp("WR2", "WR"),
+               _rp("TE1", "TE")], [_rp("bWR", "WR")])
+    b = _team([_rp("QBb", "QB"), _rp("RBb1", "RB"), _rp("RBb2", "RB"),
+               _rp("WRb1", "WR"), _rp("WRb2", "WR"), _rp("TEb", "TE")],
+              [_rp("WRb3", "WR"), _rp("RBb3", "RB")])
+    rows = [("QB1", "QB", 22), ("QB2", "QB", 18), ("RB1", "RB", 16),
+            ("RB2", "RB", 10), ("WR1", "WR", 14), ("WR2", "WR", 12),
+            ("TE1", "TE", 8), ("bWR", "WR", 4),
+            ("QBb", "QB", 20), ("RBb1", "RB", 15), ("RBb2", "RB", 9),
+            ("WRb1", "WR", 16), ("WRb2", "WR", 13), ("TEb", "TE", 7),
+            ("WRb3", "WR", 11), ("RBb3", "RB", 5)]
+    wpts = _weeks_pts({5: rows, 6: rows})
+    rostered = {norm_name(p["player_name"]) for p in
+                a["starters"] + a["bench"] + b["starters"] + b["bench"]}
+    a1 = apply_trade(a, incoming=[_rp("WRb2", "WR")], outgoing=[_rp("QB2", "QB")],
+                     weeks_pts=wpts, rp=_RP_MIN, roster_limit=_LIM8,
+                     rostered_names=rostered)
+    b1 = apply_trade(b, incoming=[_rp("QB2", "QB")], outgoing=[_rp("WRb2", "WR")],
+                     weeks_pts=wpts, rp=_RP_MIN, roster_limit=_LIM8,
+                     rostered_names=rostered)
+    assert a1["weekly_delta"] == [9.0, 9.0]
+    assert b1["weekly_delta"] == [-8.0, -8.0]
+    a2 = apply_trade(a, incoming=[_rp("WRb2", "WR")], outgoing=[_rp("QB2", "QB")],
+                     weeks_pts=wpts, rp=_RP_MIN_SF, roster_limit=_LIM8,
+                     rostered_names=rostered)
+    b2 = apply_trade(b, incoming=[_rp("QB2", "QB")], outgoing=[_rp("WRb2", "WR")],
+                     weeks_pts=wpts, rp=_RP_MIN_SF, roster_limit=_LIM8,
+                     rostered_names=rostered)
+    assert a2["weekly_delta"] == [-5.0, -5.0]
+    assert b2["weekly_delta"] == [5.0, 5.0]
+
+
+def test_third_rb_same_bye_worth_less():
+    # Prompt case 4: the same third RB is worth more when his bye
+    # differs from the other two (covers their bye weeks) than when
+    # all three sit the same week. Marginal value, no extra code.
+    rp = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "BN"]
+    base = [_rp("QB A", "QB"), _rp("RB1", "RB"), _rp("RB2", "RB"),
+            _rp("WR1", "WR"), _rp("WR2", "WR"), _rp("TE A", "TE"),
+            _rp("bWR", "WR")]
+    w5 = [("QB A", "QB", 20), ("RB1", "RB", 16), ("RB2", "RB", 14),
+          ("WR1", "WR", 13), ("WR2", "WR", 11), ("TE A", "TE", 8),
+          ("bWR", "WR", 3), ("Third Same", "RB", 12), ("Third Diff", "RB", 11)]
+    # Week 6: RB1/RB2 on bye. Same-bye third sits too; different-bye
+    # third plays (12) and covers the slots.
+    w6 = [("QB A", "QB", 20), ("RB1", "RB", 0), ("RB2", "RB", 0),
+          ("WR1", "WR", 13), ("WR2", "WR", 11), ("TE A", "TE", 8),
+          ("bWR", "WR", 3), ("Third Same", "RB", 0), ("Third Diff", "RB", 12)]
+    wpts = _weeks_pts({5: w5, 6: w6})
+    mv_same = marginal_value(_rp("Third Same", "RB"), base, wpts, rp)
+    mv_diff = marginal_value(_rp("Third Diff", "RB"), base, wpts, rp)
+    assert mv_diff > mv_same > 0
+
+
+def test_short_injury_keeps_most_ros():
+    # Prompt case 5: a 60% week-1 discount (OUT horizon) keeps ~90% of
+    # a 4-week gain. Weighted gain of the discounted delta vs full.
+    full = gains_from_delta([18.0] * 4, [5, 6, 7, 8],
+                            {5: 1.0, 6: 1.0, 7: 1.0, 8: 1.0}, [])
+    hurt = gains_from_delta([10.8, 18.0, 18.0, 18.0], [5, 6, 7, 8],
+                            {5: 1.0, 6: 1.0, 7: 1.0, 8: 1.0}, [])
+    assert full["gain_total"] == 72.0
+    assert hurt["gain_total"] / full["gain_total"] >= 0.85
+
+
+def test_playoff_gain_weighted_at_1_25():
+    g = gains_from_delta([8.0, 8.0, 8.0], [15, 16, 17],
+                         {15: 1.25, 16: 1.25, 17: 1.25}, [15, 16, 17])
+    assert g["gain_total"] == 30.0
+    assert g["gain_playoffs"] == 30.0
+    assert g["gain_per_week"] == 10.0
+
+
+def test_weeks_after_fantasy_final_zero():
+    # Prompt case 6: week-18 rows exist but the calendar ends at 17 —
+    # evaluate_trade must produce identical gains with or without them.
+    league = {"season": 2026, "name": "T", "settings": {
+        "scoring": {}, "roster_positions": _RP_MIN,
+        "playoff_week_start": 15, "playoff_teams": 6}}
+    ta = {**_team([_rp("QB A", "QB"), _rp("RB A", "RB"), _rp("RB A2", "RB"),
+                   _rp("WR A1", "WR"), _rp("WR A2", "WR"), _rp("TE A", "TE")],
+                  [_rp("bWR A", "WR")]),
+          "roster_id": "1", "wins": 8, "losses": 1, "fpts": 100.0}
+    tb = {**_team([_rp("QB B", "QB"), _rp("RB B", "RB"), _rp("RB B2", "RB"),
+                   _rp("WR B1", "WR"), _rp("WR B2", "WR"), _rp("TE B", "TE")],
+                  [_rp("bWR B", "WR")]),
+          "roster_id": "2", "wins": 7, "losses": 2, "fpts": 95.0}
+    rows = [("QB A", "QB", 20), ("RB A", "RB", 18), ("RB A2", "RB", 11),
+            ("WR A1", "WR", 14), ("WR A2", "WR", 12), ("TE A", "TE", 9),
+            ("bWR A", "WR", 2),
+            ("QB B", "QB", 19), ("RB B", "RB", 17), ("RB B2", "RB", 15),
+            ("WR B1", "WR", 22), ("WR B2", "WR", 13), ("TE B", "TE", 8),
+            ("bWR B", "WR", 4)]
+    # Week 18 rows are enormous: any leak into gains explodes the total.
+    rows18 = [(n, p, 100.0) for (n, p, v) in rows]
+    base_wp = _weeks_pts({15: rows, 16: rows, 17: rows})
+    leak_wp = _weeks_pts({15: rows, 16: rows, 17: rows, 18: rows18})
+    rostered = {norm_name(n) for (n, p, v) in rows}
+    kw = dict(team_a=ta, team_b=tb, teams=[ta, tb], league=league,
+              st={"week": 15}, rp=_RP_MIN, roster_limit=_LIM8,
+              rostered_names=rostered,
+              traded_a=[_rp("WR A2", "WR")], traded_b=[_rp("WR B1", "WR")])
+    out_base = evaluate_trade(weeks_pts=base_wp, **kw)
+    out_leak = evaluate_trade(weeks_pts=leak_wp, **kw)
+    assert out_base["team_a"]["gains"] == out_leak["team_a"]["gains"]
+    assert out_base["team_b"]["gains"] == out_leak["team_b"]["gains"]
+    assert out_base["calendar"]["weeks_left"] == [15, 16, 17]
+
+
+def test_playoff_weight_only_for_playoff_field():
+    cal = fantasy_calendar({"playoff_week_start": 15, "playoff_teams": 6}, 7)
+    assert playoff_weight(15, cal, {"seed": 5}, None) == 1.25
+    assert playoff_weight(15, cal, {"seed": 7}, None) == 1.0
+    assert playoff_weight(10, cal, {"seed": 5}, None) == 1.0
+    assert playoff_weight(15, cal, {"seed": 5}, "rebuild") == 1.0
+    assert playoff_weight(15, cal, {"seed": 10}, "contend") == 1.25
+    assert playoff_weight(15, cal, {}, None) == 1.0  # no seed, no assumption
+
+
+def test_wider_intervals_widen_even_band():
+    # Prompt case 12: same 10-point edge. Tight intervals -> Clear win;
+    # sloppy ones -> Leans. Even bands scale with uncertainty, not a
+    # fixed 20/50 cutoff.
+    tight_a = {5: [(9.0, 11.0)]}
+    tight_b = {5: [(9.0, 11.0)]}
+    wide_a = {5: [(6.0, 14.0)]}
+    wide_b = {5: [(6.0, 14.0)]}
+    k_tight = uncertainty_k(tight_a, tight_b)
+    k_wide = uncertainty_k(wide_a, wide_b)
+    assert k_wide > k_tight
+    assert verdict(10.0, 0.0, k_tight, 100.0)["band"] == "clear"
+    assert verdict(10.0, 0.0, k_wide, 100.0)["band"] == "leans"
+    assert verdict(1.0, 0.0, k_wide, 100.0)["winner"] == "Even"
+
+
+def test_acceptance_likely_partner_gains():
+    assert acceptance(5.0, 4.0, 10.0) == "likely"
+    assert acceptance(-1.0, 4.0, 10.0) == "possible"
+    assert acceptance(-3.0, 4.0, 50.0) == "unlikely"
+    assert acceptance(2.0, 4.0, None) == "likely"   # market down: delta only
+    assert acceptance(-3.0, 4.0, None) == "unlikely"
+
+
+def test_needs_reported_per_team():
+    # A starts 5/4/3 at WR, B starts 14/12: A's WR gap is negative.
+    # A's top two WRs share KC (same bye) -> cluster; B's don't.
+    rp = ["QB", "RB", "RB", "WR", "WR", "WR", "TE", "FLEX", "BN"]
+    a = {**_team([_rp("QB A", "QB"), _rp("RB A", "RB"), _rp("RB A2", "RB"),
+               {**_rp("WR A1", "WR"), "team": "KC"},
+               {**_rp("WR A2", "WR"), "team": "KC"},
+               {**_rp("WR A3", "WR"), "team": "TB"},
+               _rp("TE A", "TE")], [_rp("bRB A", "RB")]), "roster_id": "1"}
+    b = {**_team([_rp("QB B", "QB"), _rp("RB B", "RB"), _rp("RB B2", "RB"),
+               {**_rp("WR B1", "WR"), "team": "DET"},
+               {**_rp("WR B2", "WR"), "team": "GB"},
+               _rp("TE B", "TE")], [_rp("bRB B", "RB")]), "roster_id": "2"}
+    rows = [("QB A", "QB", 20), ("RB A", "RB", 16), ("RB A2", "RB", 10),
+            ("WR A1", "WR", 5), ("WR A2", "WR", 4), ("WR A3", "WR", 3),
+            ("TE A", "TE", 8), ("bRB A", "RB", 2),
+            ("QB B", "QB", 19), ("RB B", "RB", 15), ("RB B2", "RB", 9),
+            ("WR B1", "WR", 14), ("WR B2", "WR", 12), ("TE B", "TE", 7),
+            ("bRB B", "RB", 2)]
+    wpts = _weeks_pts({5: rows})
+    na = {n["position"]: n for n in needs_of(a, [a, b], wpts, rp)}
+    nb = {n["position"]: n for n in needs_of(b, [a, b], wpts, rp)}
+    assert na["WR"]["gap"] < 0 < nb["WR"]["gap"]
+    assert na["WR"]["bye_cluster"] == ["KC"]
+    assert nb["WR"]["bye_cluster"] == []
+
+
+def test_direction_from_standings_with_override():
+    mk = lambda rid, w, f: {"roster_id": rid, "wins": w, "losses": 0, "fpts": f}
+    teams = [mk("1", 8, 100.0), mk("2", 7, 95.0), mk("3", 2, 80.0)]
+    assert direction_of(teams[0], teams, 2) == "contend"
+    assert direction_of(teams[2], teams, 2) == "rebuild"
+    assert direction_of(teams[2], teams, 2, override="contend") == "contend"
+
+
+def test_symmetry_mirrors_evaluate():
+    # Prompt case 8: swapping sides swaps gains, mirrors winner, and
+    # negates value_difference. Acceptance is directional (partner B),
+    # so it is excluded from the mirror.
+    league = {"season": 2026, "name": "T", "settings": {
+        "scoring": {}, "roster_positions": _RP_MIN,
+        "playoff_week_start": 15, "playoff_teams": 6}}
+    ta = {**_team([_rp("QB A", "QB"), _rp("RB A", "RB"), _rp("RB A2", "RB"),
+                   _rp("WR A1", "WR"), _rp("WR A2", "WR"), _rp("TE A", "TE")],
+                  [_rp("bWR A", "WR")]),
+          "roster_id": "1", "wins": 8, "losses": 1, "fpts": 100.0}
+    tb = {**_team([_rp("QB B", "QB"), _rp("RB B", "RB"), _rp("RB B2", "RB"),
+                   _rp("WR B1", "WR"), _rp("WR B2", "WR"), _rp("TE B", "TE")],
+                  [_rp("bWR B", "WR")]),
+          "roster_id": "2", "wins": 7, "losses": 2, "fpts": 95.0}
+    rows = [("QB A", "QB", 20), ("RB A", "RB", 18), ("RB A2", "RB", 11),
+            ("WR A1", "WR", 14), ("WR A2", "WR", 5), ("TE A", "TE", 9),
+            ("bWR A", "WR", 2),
+            ("QB B", "QB", 19), ("RB B", "RB", 17), ("RB B2", "RB", 15),
+            ("WR B1", "WR", 22), ("WR B2", "WR", 13), ("TE B", "TE", 8),
+            ("bWR B", "WR", 4)]
+    wpts = _weeks_pts({15: rows, 16: rows, 17: rows})
+    rostered = {norm_name(n) for (n, p, v) in rows}
+    kw = dict(teams=[ta, tb], league=league, st={"week": 15}, rp=_RP_MIN,
+              roster_limit=_LIM8, rostered_names=rostered)
+    fwd = evaluate_trade(team_a=ta, team_b=tb,
+                         traded_a=[_rp("WR A2", "WR")],
+                         traded_b=[_rp("WR B1", "WR")], weeks_pts=wpts, **kw)
+    rev = evaluate_trade(team_a=tb, team_b=ta,
+                         traded_a=[_rp("WR B1", "WR")],
+                         traded_b=[_rp("WR A2", "WR")], weeks_pts=wpts, **kw)
+    assert fwd["team_a"]["gains"] == rev["team_b"]["gains"]
+    assert fwd["team_b"]["gains"] == rev["team_a"]["gains"]
+    assert fwd["value_difference"] == -rev["value_difference"]
+    assert {fwd["winner"], rev["winner"]} <= {"A", "B"} or fwd["winner"] == rev["winner"] == "Even"
