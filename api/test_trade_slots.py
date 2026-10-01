@@ -103,7 +103,7 @@ def test_contract_legacy_fields_present(monkeypatch):
     # New blocks ride alongside.
     for key in ("settings_used", "calendar", "team_a", "team_b",
                 "confidence", "acceptance", "market", "warnings",
-                "unknown_ids", "data_freshness"):
+                "unknown_ids", "data_freshness", "analysis"):
         assert key in out, key
     assert out.get("cold") is not True
 

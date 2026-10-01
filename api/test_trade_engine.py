@@ -790,3 +790,118 @@ def test_symmetry_mirrors_evaluate():
     assert fwd["team_b"]["gains"] == rev["team_a"]["gains"]
     assert fwd["value_difference"] == -rev["value_difference"]
     assert {fwd["winner"], rev["winner"]} <= {"A", "B"} or fwd["winner"] == rev["winner"] == "Even"
+
+
+# ------------------------------------------- plain-English trade analysis
+
+def test_apply_trade_reports_group_averages():
+    # Per-position lineup totals, averaged over weeks: the raw material
+    # for "stronger at WR, thinner at RB" sentences. Sums must match
+    # the overall before/after lists (rounding tolerance only).
+    a = _team([_rp("QB A", "QB"), _rp("RB1", "RB"), _rp("RB2", "RB"),
+               _rp("WR1", "WR"), _rp("WR2", "WR"), _rp("TE A", "TE")],
+              [_rp("bWR", "WR")])
+    rows = [("QB A", "QB", 20), ("RB1", "RB", 18), ("RB2", "RB", 11),
+            ("WR1", "WR", 14), ("WR2", "WR", 12), ("TE A", "TE", 9),
+            ("bWR", "WR", 2), ("WR new", "WR", 22)]
+    wpts = _weeks_pts({5: rows, 6: rows})
+    rp = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "BN"]
+    out = apply_trade(a, incoming=[_rp("WR new", "WR")],
+                      outgoing=[_rp("WR2", "WR")], weeks_pts=wpts, rp=rp,
+                      roster_limit=8,
+                      rostered_names={norm_name(n) for n, p, v in rows})
+    assert out["groups_before"]["WR"] == 28.0   # 14 + 12 + FLEX bench 2
+    assert out["groups_after"]["WR"] == 38.0    # 22 + 14 + FLEX bench 2
+    assert out["groups_before"]["QB"] == 20.0
+    n = len(out["before"])
+    assert abs(sum(out["groups_before"].values())
+               - sum(out["before"]) / n) <= 0.3
+    assert abs(sum(out["groups_after"].values())
+               - sum(out["after"]) / n) <= 0.3
+
+
+def test_analysis_sentences_plain_and_complete():
+    from trade_engine import analysis_for
+    block = {"gains": {"raw_total": 24.0, "raw_per_week": 8.0,
+                       "raw_playoffs": 24.0},
+             "needs": [{"position": "WR", "gap": -6.0, "bye_cluster": ["KC"]}],
+             "direction": "contend"}
+    cal = {"weeks_left": [15, 16, 17], "playoff_weeks": [15, 16, 17]}
+    sents = analysis_for(block, {"WR": 10.0, "RB": -1.6}, "clear",
+                         "unlikely", "Beta", cal, perspective="partner")
+    text = " ".join(sents)
+    assert "+8.0 more points" in text
+    assert "+24" in text
+    assert "stronger at WR" in text and "+10.0" in text
+    assert "thinner at RB" in text and "-1.6" in text
+    assert "need at WR" in text
+    assert "KC" in text and "bye" in text
+    assert "Playoffs" in text and "15-17" in text and "count extra" in text
+    assert "Beta would likely say no" in text
+    assert "Too close to call" not in text      # band is clear
+    assert "marginal" not in text.lower()
+    assert "matroid" not in text.lower()
+    for bad in ("None", "nan", "k ="):
+        assert bad not in text
+
+
+def test_analysis_losses_and_coin_flip_read_plain():
+    from trade_engine import analysis_for
+    block = {"gains": {"raw_total": -24.0, "raw_per_week": -8.0,
+                       "raw_playoffs": -10.0},
+             "needs": [], "direction": "middle"}
+    cal = {"weeks_left": [5, 6], "playoff_weeks": []}
+    sents = analysis_for(block, {}, "even", "likely", "Alpha", cal,
+                         perspective="me")
+    text = " ".join(sents)
+    assert "8.0 fewer points" in text
+    assert "position mix stays about the same" in text
+    assert "Too close to call" in text
+    assert "You'd likely take this deal" in text
+    # No playoff weeks left -> no playoff sentence.
+    assert "Playoffs" not in text
+
+
+def test_analysis_season_over_single_sentence():
+    from trade_engine import analysis_for
+    block = {"gains": {"raw_total": 0.0, "raw_per_week": 0.0,
+                       "raw_playoffs": 0.0}, "needs": [], "direction": "middle"}
+    sents = analysis_for(block, {}, "even", "likely", "X",
+                         {"weeks_left": [], "playoff_weeks": []},
+                         perspective="partner")
+    assert len(sents) == 1 and "over" in sents[0]
+
+
+def test_evaluate_trade_includes_analysis():
+    league = {"season": 2026, "name": "T", "settings": {
+        "scoring": {}, "roster_positions": _RP_MIN,
+        "playoff_week_start": 15, "playoff_teams": 6}}
+    ta = {**_team([_rp("QB A", "QB"), _rp("RB A", "RB"), _rp("RB A2", "RB"),
+                   _rp("WR A1", "WR"), _rp("WR A2", "WR"), _rp("TE A", "TE")],
+                  [_rp("bWR A", "WR")]),
+          "roster_id": "1", "team_name": "Alpha", "wins": 8, "losses": 1,
+          "fpts": 100.0}
+    tb = {**_team([_rp("QB B", "QB"), _rp("RB B", "RB"), _rp("RB B2", "RB"),
+                   _rp("WR B1", "WR"), _rp("WR B2", "WR"), _rp("TE B", "TE")],
+                  [_rp("bWR B", "WR")]),
+          "roster_id": "2", "team_name": "Beta", "wins": 7, "losses": 2,
+          "fpts": 95.0}
+    rows = [("QB A", "QB", 20), ("RB A", "RB", 18), ("RB A2", "RB", 11),
+            ("WR A1", "WR", 14), ("WR A2", "WR", 12), ("TE A", "TE", 9),
+            ("bWR A", "WR", 2),
+            ("QB B", "QB", 19), ("RB B", "RB", 17), ("RB B2", "RB", 15),
+            ("WR B1", "WR", 22), ("WR B2", "WR", 13), ("TE B", "TE", 8),
+            ("bWR B", "WR", 4)]
+    wpts = _weeks_pts({15: rows, 16: rows, 17: rows})
+    rostered = {norm_name(n) for (n, p, v) in rows}
+    out = evaluate_trade(team_a=ta, team_b=tb, teams=[ta, tb], league=league,
+                         st={"week": 15}, weeks_pts=wpts, rp=_RP_MIN,
+                         roster_limit=_LIM8, rostered_names=rostered,
+                         traded_a=[_rp("WR A2", "WR")],
+                         traded_b=[_rp("WR B1", "WR")])
+    sa, sb = out["analysis"]["a"], out["analysis"]["b"]
+    assert sa and sb and all(isinstance(x, str) for x in sa + sb)
+    assert any("+10.0 more points" in x for x in sa)   # 22 in, 12 out
+    assert any("10.0 fewer points" in x for x in sb)
+    assert any("Beta would likely say no" in x for x in sa)
+    assert any("You'd likely turn this down" in x for x in sb)

@@ -735,7 +735,7 @@ def hub_trade(league_id: str, team_a_id=None, team_b_id=None, traded_a=None,
                 **{k: v for k, v in out.items()
                    if k in ("team_a", "team_b", "calendar", "settings_used",
                             "confidence", "acceptance", "win_win", "lose_lose",
-                            "band", "data_freshness")},
+                            "band", "data_freshness", "analysis")},
                 "market": out["market"],
                 "deadline_passed": deadline_passed,
                 "unknown_ids": unknown_ids, "warnings": warns}

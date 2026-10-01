@@ -211,11 +211,11 @@ def league_profile(league: dict, st: dict) -> dict:
 
 # ------------------------------------------------- lineup delta engine
 
-def team_week_points(players: list, week_rows: dict, rp: list) -> float:
-    """Optimal starting-lineup total for a player list in one week.
+def _lineup_by_group(players: list, week_rows: dict, rp: list) -> dict:
+    """Optimal-starter points summed by position group, one week.
 
-    Points come from the league-scored week rows; a player with no row
-    (unknown ID, position-key miss) contributes an honest 0.
+    Shared by team_week_points (total = sum of groups) and the analysis
+    deltas — one assignment pass serves both.
     """
     pool = []
     for p in players or []:
@@ -223,7 +223,20 @@ def team_week_points(players: list, week_rows: dict, rp: list) -> float:
         row = (week_rows or {}).get((norm_name(p.get("player_name") or ""), pos))
         pool.append({**p, "weekly": row["pts"] if row else 0.0})
     starters, _ = assign_slots(pool, rp)
-    return round(sum(s.get("weekly") or 0 for s in starters), 2)
+    out: dict = {}
+    for s in starters:
+        g = roster_group(s.get("position") or "")
+        out[g] = out.get(g, 0.0) + (s.get("weekly") or 0)
+    return out
+
+
+def team_week_points(players: list, week_rows: dict, rp: list) -> float:
+    """Optimal starting-lineup total for a player list in one week.
+
+    Points come from the league-scored week rows; a player with no row
+    (unknown ID, position-key miss) contributes an honest 0.
+    """
+    return round(sum(_lineup_by_group(players, week_rows, rp).values()), 2)
 
 
 def marginal_value(player: dict, roster: list, weeks_pts: dict,
@@ -297,6 +310,7 @@ def apply_trade(team: dict, incoming: list, outgoing: list, weeks_pts: dict,
         norm_name(p.get("player_name") or "") for p in active + reserve}
     adds: dict = {}
     credit: dict = {}
+    credit_group: dict = {}  # week -> group -> raw points from FA fills
     opens = max(0, roster_limit - len(active) - len(reserve))
     if opens:
         for w in sorted(weeks_pts):
@@ -332,16 +346,36 @@ def apply_trade(team: dict, incoming: list, outgoing: list, weeks_pts: dict,
                                         "position": best["pos"], "value": 0.0})
                 slot["value"] = round(slot["value"] + val, 2)
                 credit[w] = round(credit.get(w, 0.0) + best_gain, 2)
+                cg = credit_group.setdefault(w, {})
+                gname = roster_group(best["pos"])
+                cg[gname] = cg.get(gname, 0.0) + best_gain
 
     before, after, delta = [], [], []
+    gb_acc, ga_acc = {}, {}
     for w in sorted(weeks_pts):
         rows = weeks_pts[w].get("players") or {}
-        b = team_week_points(before_active, rows, rp)
-        a = team_week_points(active, rows, rp) + credit.get(w, 0.0)
+        b_groups = _lineup_by_group(before_active, rows, rp)
+        a_groups = _lineup_by_group(active, rows, rp)
+        # FA fills fold into the after-side totals and their own groups,
+        # so sum(a_groups) equals the old team_week_points + credit.
+        for gname, val in credit_group.get(w, {}).items():
+            a_groups[gname] = a_groups.get(gname, 0.0) + val
+        b = round(sum(b_groups.values()), 2)
+        a = round(sum(a_groups.values()), 2)
+        for gname, val in b_groups.items():
+            gb_acc[gname] = gb_acc.get(gname, 0.0) + val
+        for gname, val in a_groups.items():
+            ga_acc[gname] = ga_acc.get(gname, 0.0) + val
         before.append(round(b, 1))
         after.append(round(a, 1))
         delta.append(round(a - b, 1))
+    n = len(before)
+    groups_before = ({g: round(v / n, 1) for g, v in sorted(gb_acc.items())}
+                     if n else {})
+    groups_after = ({g: round(v / n, 1) for g, v in sorted(ga_acc.items())}
+                    if n else {})
     return {"before": before, "after": after,
+            "groups_before": groups_before, "groups_after": groups_after,
             "drops": drops,
             "adds": sorted(
                 ({"player_name": v["player_name"], "position": v["position"],
@@ -414,17 +448,9 @@ def direction_of(team: dict, teams: list, playoff_teams: int, override=None) -> 
 
 def _group_starter_pts(team: dict, week_rows: dict, rp: list) -> dict:
     """Optimal-starter points by position group for one team, one week."""
-    pool = []
-    for p in list(team.get("starters") or []) + list(team.get("bench") or []):
-        pos = (p.get("position") or "").upper()
-        row = (week_rows or {}).get((norm_name(p.get("player_name") or ""), pos))
-        pool.append({**p, "weekly": row["pts"] if row else 0.0})
-    starters, _ = assign_slots(pool, rp)
-    out: dict = {}
-    for s in starters:
-        g = roster_group(s.get("position") or "")
-        out[g] = out.get(g, 0.0) + (s.get("weekly") or 0)
-    return out
+    return _lineup_by_group(
+        list(team.get("starters") or []) + list(team.get("bench") or []),
+        week_rows, rp)
 
 
 def needs_of(team: dict, teams: list, weeks_pts: dict, rp: list) -> list:
@@ -491,9 +517,17 @@ def gains_from_delta(weekly_delta: list, weeks: list, weights: dict,
         if w in (playoff_weeks or []):
             po += wt * d
     n = len(weekly_delta or [])
+    raw = round(sum(weekly_delta or []), 1)
+    raw_po = round(sum(d for d, w in zip(weekly_delta or [], weeks or [])
+                       if w in (playoff_weeks or [])), 1)
     return {"gain_total": round(total, 1),
             "gain_per_week": round(total / n, 2) if n else 0.0,
-            "gain_playoffs": round(po, 1)}
+            "gain_playoffs": round(po, 1),
+            # Raw (unweighted) twins: plain-English sentences must quote
+            # real lineup points, not playoff-inflated ones.
+            "raw_total": raw,
+            "raw_per_week": round(raw / n, 2) if n else 0.0,
+            "raw_playoffs": raw_po}
 
 
 def uncertainty_k(pkg_a: dict, pkg_b: dict) -> float:
@@ -551,6 +585,99 @@ def acceptance(partner_gain: float, k: float, market_gap_pct) -> str:
     if g >= -0.5 * k or market_gap_pct <= 30:
         return "possible"
     return "unlikely"
+
+
+def analysis_for(block: dict, group_delta: dict, band: str, acceptance: str,
+                 partner_name: str, cal: dict, perspective="partner") -> list:
+    """Plain-English "what do I win" sentences for one side of a trade.
+
+    Deterministic templates over numbers the engine already computed —
+    no LLM, no jargon, nothing a first-time fantasy player can't read.
+    Quotes RAW lineup points (playoff weighting is explained in its own
+    line instead of inflating the headline). perspective="partner"
+    phrases acceptance about the other team; "me" makes it second
+    person, because acceptance asks whether *this* side says yes.
+    """
+    if not cal.get("weeks_left"):
+        return ["The fantasy season is already over — there is nothing left "
+                "to gain from a trade."]
+    g = block.get("gains") or {}
+    per = g.get("raw_per_week") or 0.0
+    total = g.get("raw_total") or 0.0
+    po = g.get("raw_playoffs") or 0.0
+
+    if per >= 0.05:
+        s = [f"Your lineup scores about +{per:.1f} more points each week "
+             f"— about +{total:.1f} the rest of the season."]
+    elif per <= -0.05:
+        s = [f"Your lineup scores about {abs(per):.1f} fewer points each "
+             f"week — about {abs(total):.1f} fewer the rest of the season."]
+    else:
+        s = ["Your weekly lineup score stays about the same."]
+
+    gd = {k: round(v, 1) for k, v in (group_delta or {}).items()}
+    ups = sorted((k for k, v in gd.items() if v >= 0.5), key=lambda k: -gd[k])
+    downs = sorted((k for k, v in gd.items() if v <= -0.5), key=lambda k: gd[k])
+    if ups and downs:
+        s.append(f"You come out stronger at {ups[0]} ({gd[ups[0]]:+.1f}/wk) "
+                 f"and thinner at {downs[0]} ({gd[downs[0]]:+.1f}/wk).")
+    elif ups:
+        s.append(f"You come out stronger at {ups[0]} ({gd[ups[0]]:+.1f}/wk).")
+    elif downs:
+        s.append(f"You come out a bit thinner at {downs[0]} "
+                 f"({gd[downs[0]]:+.1f}/wk).")
+    else:
+        s.append("Your position mix stays about the same.")
+
+    weak = min((nm for nm in (block.get("needs") or [])
+                if (nm.get("gap") or 0) < -0.5),
+               key=lambda nm: nm.get("gap") or 0, default=None)
+    if weak:
+        pos = weak["position"]
+        d = gd.get(pos, 0.0)
+        if d >= 0.5:
+            line = (f"Fills your need at {pos} — you were starting below "
+                    "the league's average there.")
+        elif d <= -0.5:
+            line = (f"You get thinner at {pos}, where you were already "
+                    "below the league's average.")
+        else:
+            line = (f"Still thin at {pos} — you were already below the "
+                    "league's average there, and this trade does not "
+                    "change it.")
+        cluster = weak.get("bye_cluster") or []
+        if cluster:
+            line += (f" Heads up: your {' and '.join(cluster)} {pos}s "
+                     "share a bye week.")
+        s.append(line)
+
+    pw = cal.get("playoff_weeks") or []
+    if pw and abs(po) >= 0.5:
+        line = (f"Playoffs: {abs(po):.1f} points of that go "
+                f"{'your way' if po >= 0 else 'against you'} "
+                f"in weeks {pw[0]}-{pw[-1]}")
+        if (block.get("direction") or "") == "contend":
+            line += ", and those weeks count extra for you"
+        s.append(line + ".")
+
+    if band == "even":
+        s.append("Too close to call — treat it as a coin flip.")
+    elif per >= 0:
+        s.append("This leans your way." if band == "leans"
+                 else "Fairly confident in this edge.")
+    else:
+        s.append("This leans against you." if band == "leans"
+                 else "Fairly confident this costs you points.")
+
+    if perspective == "me":
+        s.append({"likely": "You'd likely take this deal.",
+                  "possible": "You might go for it — it could go either way.",
+                  "unlikely": "You'd likely turn this down."}
+                 .get(acceptance, "You might go for it."))
+    else:
+        s.append(f"{partner_name} "
+                 f"{'would likely take this deal' if acceptance == 'likely' else 'might go for it — worth asking' if acceptance == 'possible' else 'would likely say no'}.")
+    return s
 
 
 def _pkg_intervals(traded: list, weeks_pts: dict, weeks: list) -> dict:
@@ -627,13 +754,28 @@ def evaluate_trade(team_a: dict, team_b: dict, teams: list, league: dict,
         gap = round(100 * abs(va - vb) / max(va, vb), 1)
     acc = acceptance(gb["gain_total"], k, gap)
 
-    blk = lambda out, tm, d, g: {"gains": g, "lineup_before": out["before"],
-                                 "lineup_after": out["after"], "drops": out["drops"],
-                                 "adds": out["adds"],
-                                 "needs": needs_of(tm, teams, have, rp),
-                                 "direction": d}
-    return {"team_a": blk(out_a, team_a, dir_a, ga),
-            "team_b": blk(out_b, team_b, dir_b, gb),
+    gdelta = lambda out: {
+        g: round(out["groups_after"].get(g, 0.0)
+                 - out["groups_before"].get(g, 0.0), 1)
+        for g in set(out["groups_before"]) | set(out["groups_after"])}
+    gd_a, gd_b = gdelta(out_a), gdelta(out_b)
+    blk = lambda out, tm, d, g, gd: {"gains": g, "lineup_before": out["before"],
+                                     "lineup_after": out["after"],
+                                     "drops": out["drops"],
+                                     "adds": out["adds"],
+                                     "needs": needs_of(tm, teams, have, rp),
+                                     "direction": d, "group_delta": gd}
+    blk_a = blk(out_a, team_a, dir_a, ga, gd_a)
+    blk_b = blk(out_b, team_b, dir_b, gb, gd_b)
+    tname = lambda t: (t.get("team_name") or t.get("display_name")
+                       or "The other team")
+    return {"team_a": blk_a, "team_b": blk_b,
+            "analysis": {"a": analysis_for(blk_a, gd_a, v["band"], acc,
+                                           tname(team_b), cal,
+                                           perspective="partner"),
+                         "b": analysis_for(blk_b, gd_b, v["band"], acc,
+                                           tname(team_a), cal,
+                                           perspective="me")},
             "winner": v["winner"], "band": v["band"],
             "value_difference": round(ga["gain_total"] - gb["gain_total"], 1),
             "calendar": cal, "settings_used": prof,
