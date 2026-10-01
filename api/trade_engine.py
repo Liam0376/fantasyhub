@@ -11,6 +11,7 @@ import os
 
 from analytics import _load_injuries, rescore_player
 from conformal import interval_fields
+from rosters import assign_slots
 from scoring import describe_scoring, norm_name, roster_group, score_team_def
 
 _PROJ_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "projections")
@@ -205,3 +206,138 @@ def league_profile(league: dict, st: dict) -> dict:
         "taxi_count": sum(1 for p in rp if p == "TAXI"),
         "calendar": fantasy_calendar(s, st.get("week")),
     }
+
+
+# ------------------------------------------------- lineup delta engine
+
+def team_week_points(players: list, week_rows: dict, rp: list) -> float:
+    """Optimal starting-lineup total for a player list in one week.
+
+    Points come from the league-scored week rows; a player with no row
+    (unknown ID, position-key miss) contributes an honest 0.
+    """
+    pool = []
+    for p in players or []:
+        pos = (p.get("position") or "").upper()
+        row = (week_rows or {}).get((norm_name(p.get("player_name") or ""), pos))
+        pool.append({**p, "weekly": row["pts"] if row else 0.0})
+    starters, _ = assign_slots(pool, rp)
+    return round(sum(s.get("weekly") or 0 for s in starters), 2)
+
+
+def marginal_value(player: dict, roster: list, weeks_pts: dict,
+                   rp: list, weights=None) -> float:
+    """Weighted lineup points the roster gains from carrying `player`.
+
+    Σ weeks weight × (lineup with − lineup without). Bye and injury
+    cover show up here with no extra code: a backup who starts during
+    a starter's discounted weeks has real marginal value.
+    """
+    name = norm_name(player.get("player_name") or "")
+    total = 0.0
+    for w in sorted(weeks_pts):
+        rows = weeks_pts[w].get("players") or {}
+        wt = (weights or {}).get(w, 1.0)
+        with_p = team_week_points(roster + [player], rows, rp)
+        without = team_week_points(
+            [p for p in roster if norm_name(p.get("player_name") or "") != name],
+            rows, rp)
+        total += wt * (with_p - without)
+    return round(total, 2)
+
+
+def _row_pts(weeks_pts: dict, player: dict) -> float:
+    """Total rescored points for a player across weeks (tie-break input)."""
+    key = (norm_name(player.get("player_name") or ""),
+           (player.get("position") or "").upper())
+    total = 0.0
+    for w in weeks_pts:
+        row = (weeks_pts[w].get("players") or {}).get(key) or {}
+        total += row.get("pts") or 0
+    return round(total, 2)
+
+
+def apply_trade(team: dict, incoming: list, outgoing: list, weeks_pts: dict,
+                rp: list, roster_limit: int, rostered_names=None, weights=None):
+    """Lineup change from a trade: per-week before/after totals, the
+    roster moves that make it legal, and the raw weekly deltas.
+
+    Over the limit, drop the lowest (marginal, total pts, name) player
+    and charge the drop. Under the limit, each open spot fills per week
+    with the best positive-marginal free agent (adds[] carries the
+    summed value per player). weekly_delta stays raw — playoff
+    weighting is Task 5's job. Fills are per-week because the best
+    streamer differs by week; one FA never fills two spots in a week.
+    """
+    weights = weights or {}
+    out_names = {norm_name((p or {}).get("player_name") or "") for p in outgoing or []}
+    before_active = list(team.get("starters") or []) + list(team.get("bench") or [])
+    active = [p for p in before_active
+              if norm_name(p.get("player_name") or "") not in out_names]
+    reserve = [p for p in (team.get("reserve") or [])
+               if norm_name(p.get("player_name") or "") not in out_names]
+    active += list(incoming or [])
+
+    drops = []
+    while len(active) + len(reserve) > roster_limit and active:
+        scored = sorted(
+            ((marginal_value(c, [x for x in active if x is not c],
+                             weeks_pts, rp, weights),
+              _row_pts(weeks_pts, c), norm_name(c.get("player_name") or ""), c)
+             for c in active),
+            key=lambda t: (t[0], t[1], t[2]))
+        mv, _, _, c = scored[0]
+        drops.append({"player_name": c.get("player_name"),
+                      "position": c.get("position"),
+                      "value": round(mv, 1)})
+        active = [x for x in active if x is not c]
+
+    fa_names = set(rostered_names or set()) | {
+        norm_name(p.get("player_name") or "") for p in active + reserve}
+    adds: dict = {}
+    credit: dict = {}
+    opens = max(0, roster_limit - len(active) - len(reserve))
+    if opens:
+        for w in sorted(weeks_pts):
+            rows = weeks_pts[w].get("players") or {}
+            wt = weights.get(w, 1.0)
+            current = list(active)
+            base = team_week_points(current, rows, rp)
+            taken = set()
+            for _ in range(opens):
+                best, best_gain, best_key = None, 0.0, None
+                for key, row in rows.items():
+                    if key[0] in fa_names or key in taken:
+                        continue
+                    gain = team_week_points(
+                        current + [{"player_name": row["name"],
+                                    "position": row["pos"]}], rows, rp) - base
+                    if gain > best_gain + 1e-9:
+                        best, best_gain, best_key = row, gain, key
+                if best is None:
+                    break
+                taken.add(best_key)
+                current.append({"player_name": best["name"], "position": best["pos"]})
+                base = team_week_points(current, rows, rp)
+                val = round(wt * best_gain, 2)
+                slot = adds.setdefault(best["name"],
+                                       {"player_name": best["name"],
+                                        "position": best["pos"], "value": 0.0})
+                slot["value"] = round(slot["value"] + val, 2)
+                credit[w] = round(credit.get(w, 0.0) + best_gain, 2)
+
+    before, after, delta = [], [], []
+    for w in sorted(weeks_pts):
+        rows = weeks_pts[w].get("players") or {}
+        b = team_week_points(before_active, rows, rp)
+        a = team_week_points(active, rows, rp) + credit.get(w, 0.0)
+        before.append(round(b, 1))
+        after.append(round(a, 1))
+        delta.append(round(a - b, 1))
+    return {"before": before, "after": after,
+            "drops": drops,
+            "adds": sorted(
+                ({"player_name": v["player_name"], "position": v["position"],
+                  "value": round(v["value"], 1)} for v in adds.values()),
+                key=lambda d: (-d["value"], d["player_name"])),
+            "weekly_delta": delta}
