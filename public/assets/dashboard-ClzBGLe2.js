@@ -1,5 +1,5 @@
-const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-BGtn1Ijh.js","assets/index-Bv-evaW0.css"])))=>i.map(i=>d[i]);
-import{f as I,a as K,b as Y,c as G,d as J,e as B,g as Q,h as r,l as X,u as Z,p as S,i as M,t as P,j as ss,_ as es}from"./index-BGtn1Ijh.js";async function ns(e){var D,F,A,E;const[i,g,t,h,$,j,N]=await Promise.all([I(),K(),Y().catch(()=>null),G().catch(()=>({trending_adds:[]})),J({}).catch(()=>({recommendations:[]})),B({edge:"BUY",limit:400}).catch(()=>({players:[]})),B({edge:"SELL",limit:400}).catch(()=>({players:[]}))]),y=Q(i.lastUpdated||i.last_updated||((F=(D=g.entries)==null?void 0:D[0])==null?void 0:F.ran_at)),x=i.leagueName||"Dashboard",v=i.week??(t==null?void 0:t.week)??null,n=[...(t==null?void 0:t.leagueRosters)||[]].sort((s,a)=>(a.wins??0)-(s.wins??0)||(a.fpts??0)-(s.fpts??0)),c=(t==null?void 0:t.playoff_teams)??6,b=((t==null?void 0:t.playoff_week_start)??15)-1,l=Math.max(0,b-(v??1)),m=as(n,c,l),p=[];for(const[s,a]of Object.entries((t==null?void 0:t.rosters)||{})){const d=a.teamMeta||a.team_info||{},o=d.display_name||d.team_name||`Team ${s}`;for(const u of[...a.starters||[],...a.bench||[]]){const w=u.injury_status;w&&w!=="Healthy"&&w!=="Active"&&p.push({...u,owner:o})}}p.sort((s,a)=>U(a.injury_status)-U(s.injury_status));const _=(h.trending_adds||[]).slice(0,4),L=[...$.recommendations||[]].sort((s,a)=>(a.improvement_over_roster??-99)-(s.improvement_over_roster??-99)).slice(0,5),z=i.scoring_settings||{},k=Number(z.rec??1),W=k===1?"Full PPR":k===.5?"Half PPR":k===0?"Non-PPR":`${k} PPR`,R=(t==null?void 0:t.rosters)||{},C=Object.keys(R).length>0,f=new Map;for(const[s,a]of Object.entries(R)){const d=((A=a.teamMeta)==null?void 0:A.team_name)||((E=a.teamMeta)==null?void 0:E.display_name)||`Team ${s}`;for(const o of[...a.starters||[],...a.bench||[]])o.player_id!=null&&f.set(String(o.player_id),d),o.sleeper_id!=null&&f.set(String(o.sleeper_id),d)}const H=s=>{const a=(s.position||"").toUpperCase();return a==="K"||a==="DEF"?!1:C?f.has(String(s.player_id))||s.sleeper_id!=null&&f.has(String(s.sleeper_id)):!0},T=s=>[...s].filter(H).sort((a,d)=>Number(d.auction??0)-Number(a.auction??0)).slice(0,3),q=T(j.players||[]),V=T(N.players||[]);e.innerHTML=`
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/index-CFYKaGey.js","assets/index-V8f3eWSH.css"])))=>i.map(i=>d[i]);
+import{f as I,a as K,b as Y,c as G,d as J,e as B,g as Q,h as r,l as X,u as Z,p as S,i as M,t as P,j as ss,_ as es}from"./index-CFYKaGey.js";async function ns(e){var D,F,A,E;const[i,g,t,h,$,j,N]=await Promise.all([I(),K(),Y().catch(()=>null),G().catch(()=>({trending_adds:[]})),J({}).catch(()=>({recommendations:[]})),B({edge:"BUY",limit:400}).catch(()=>({players:[]})),B({edge:"SELL",limit:400}).catch(()=>({players:[]}))]),y=Q(i.lastUpdated||i.last_updated||((F=(D=g.entries)==null?void 0:D[0])==null?void 0:F.ran_at)),x=i.leagueName||"Dashboard",v=i.week??(t==null?void 0:t.week)??null,n=[...(t==null?void 0:t.leagueRosters)||[]].sort((s,a)=>(a.wins??0)-(s.wins??0)||(a.fpts??0)-(s.fpts??0)),c=(t==null?void 0:t.playoff_teams)??6,b=((t==null?void 0:t.playoff_week_start)??15)-1,l=Math.max(0,b-(v??1)),m=as(n,c,l),p=[];for(const[s,a]of Object.entries((t==null?void 0:t.rosters)||{})){const d=a.teamMeta||a.team_info||{},o=d.display_name||d.team_name||`Team ${s}`;for(const u of[...a.starters||[],...a.bench||[]]){const w=u.injury_status;w&&w!=="Healthy"&&w!=="Active"&&p.push({...u,owner:o})}}p.sort((s,a)=>U(a.injury_status)-U(s.injury_status));const _=(h.trending_adds||[]).slice(0,4),L=[...$.recommendations||[]].sort((s,a)=>(a.improvement_over_roster??-99)-(s.improvement_over_roster??-99)).slice(0,5),z=i.scoring_settings||{},k=Number(z.rec??1),W=k===1?"Full PPR":k===.5?"Half PPR":k===0?"Non-PPR":`${k} PPR`,R=(t==null?void 0:t.rosters)||{},C=Object.keys(R).length>0,f=new Map;for(const[s,a]of Object.entries(R)){const d=((A=a.teamMeta)==null?void 0:A.team_name)||((E=a.teamMeta)==null?void 0:E.display_name)||`Team ${s}`;for(const o of[...a.starters||[],...a.bench||[]])o.player_id!=null&&f.set(String(o.player_id),d),o.sleeper_id!=null&&f.set(String(o.sleeper_id),d)}const H=s=>{const a=(s.position||"").toUpperCase();return a==="K"||a==="DEF"?!1:C?f.has(String(s.player_id))||s.sleeper_id!=null&&f.has(String(s.sleeper_id)):!0},T=s=>[...s].filter(H).sort((a,d)=>Number(d.auction??0)-Number(a.auction??0)).slice(0,3),q=T(j.players||[]),V=T(N.players||[]);e.innerHTML=`
     <div class="dash-band reveal in">
       <div class="dash-band-main">
         <div class="kicker">${r([i.season?`${i.season} Season`:"",v!=null?`Week ${v}`:"",y.label].filter(Boolean).join(" · "))}</div>
@@ -15,7 +15,7 @@ import{f as I,a as K,b as Y,c as G,d as J,e as B,g as Q,h as r,l as X,u as Z,p a
     ${is(i)?'<div class="alert alert-warn reveal in" role="status">Demo data — run refresh to load live Sleeper data.</div>':""}
 
     <div class="dash-grid reveal in reveal-delay-1">
-      <div class="card dash-span-4">
+      <div class="card dash-span-12">
         <div class="card-header"><h3>Playoff Race</h3><span class="kicker">sim odds · ${l} left</span></div>
         <div class="card-body" style="padding:6px 12px">
           ${n.length?n.map((s,a)=>{const d=Math.round((m[a]??0)*100),o=d>=70?"var(--emerald)":d>=35?"var(--amber-strong)":"var(--text-faint)",u=s.wins==null&&s.losses==null?"–":`${s.wins??0}–${s.losses??0}${s.ties?`–${s.ties}`:""}`;return`
@@ -33,7 +33,7 @@ import{f as I,a as K,b as Y,c as G,d as J,e as B,g as Q,h as r,l as X,u as Z,p a
         </div>
       </div>
 
-      <div class="card dash-span-4">
+      <div class="card dash-span-6">
         <div class="card-header"><h3>Status Report</h3><span class="kicker">rostered · ${p.length}</span></div>
         <div class="card-body" style="padding:6px 12px">
           ${p.length?p.slice(0,6).map(s=>`
@@ -58,7 +58,7 @@ import{f as I,a as K,b as Y,c as G,d as J,e as B,g as Q,h as r,l as X,u as Z,p a
         </div>
       </div>
 
-      <div class="card dash-span-4">
+      <div class="card dash-span-6">
         <div class="card-header"><h3>Waiver Targets</h3><a href="#waiver" class="kicker" style="color:var(--flag)">all →</a></div>
         <div class="card-body" style="padding:6px 12px">
           ${L.length?L.map(s=>`
@@ -77,7 +77,7 @@ import{f as I,a as K,b as Y,c as G,d as J,e as B,g as Q,h as r,l as X,u as Z,p a
         </div>
       </div>
 
-      <div class="card dash-span-7">
+      <div class="card dash-span-12">
         <div class="card-header"><h3>Trade Signals</h3><a href="#auction" class="kicker" style="color:var(--flag)">values →</a></div>
         <div class="card-body">
           <div class="signal-cols">
@@ -93,7 +93,7 @@ import{f as I,a as K,b as Y,c as G,d as J,e as B,g as Q,h as r,l as X,u as Z,p a
         </div>
       </div>
 
-      <div class="card dash-span-5">
+      <div class="card dash-span-12">
         <div class="card-header"><h3>Sync</h3><span class="row" style="gap:5px"><span class="dot ${y.level==="fresh"?"fresh":y.level==="stale"?"stale":"cold"}"></span><span class="kicker">${r(y.label)}</span></span></div>
         <div class="card-body" style="padding:10px 12px">
           <div class="micro faint">${i.lastUpdated?`Updated ${new Date(i.lastUpdated).toLocaleString()}`:"Local DB Active"}</div>
@@ -108,7 +108,7 @@ import{f as I,a as K,b as Y,c as G,d as J,e as B,g as Q,h as r,l as X,u as Z,p a
         </div>
       </div>
     </div>
-  `,e.querySelectorAll("[data-pid]").forEach(s=>{s.addEventListener("click",async()=>{const a=s.getAttribute("data-pid"),d=[...$.recommendations||[],...p].find(o=>String(o.player_id)===String(a));if(d){const{openPlayerModal:o}=await es(async()=>{const{openPlayerModal:u}=await import("./index-BGtn1Ijh.js").then(w=>w.V);return{openPlayerModal:u}},__vite__mapDeps([0,1]));o(d,e)}})})}function O(e,i){return`
+  `,e.querySelectorAll("[data-pid]").forEach(s=>{s.addEventListener("click",async()=>{const a=s.getAttribute("data-pid"),d=[...$.recommendations||[],...p].find(o=>String(o.player_id)===String(a));if(d){const{openPlayerModal:o}=await es(async()=>{const{openPlayerModal:u}=await import("./index-CFYKaGey.js").then(w=>w.V);return{openPlayerModal:u}},__vite__mapDeps([0,1]));o(d,e)}})})}function O(e,i){return`
     <div class="mini-row">
       ${S(e,26)}
       <div style="flex:1; min-width:0">

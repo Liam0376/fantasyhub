@@ -1,4 +1,4 @@
-import{f as H,H as C,n as $,h as r,O as _,P as w,y as D,q as R,Q as k,R as U,S as A,T as E,U as j}from"./index-BGtn1Ijh.js";function F(u){return`<div class="player-modal-backdrop show" id="setupBackdrop" style="position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; padding:16px">
+import{f as H,H as C,n as $,h as r,O as _,P as w,y as D,q as R,Q as k,R as U,S as A,T as E,U as j}from"./index-CFYKaGey.js";function F(u){return`<div class="player-modal-backdrop show" id="setupBackdrop" style="position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; padding:16px">
     <div class="card player-modal-card show" id="setupCard" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="setupTitle" style="max-width:520px; width:100%; max-height:90vh; overflow:auto; padding:20px">
       ${u}
     </div>
