@@ -5,7 +5,7 @@ Status: PROPOSED
 
 ## Context
 
-fantasyhub (`~/projects/fantasyhub`) is a $0, public, stateless Vercel port of
+Draftly (`~/projects/fantasyhub`) is a $0, public, stateless Vercel port of
 `~/projects/football-sports-analytics` ("the father project") — paste a
 Sleeper league link, get projections and auction values, no sign-up. It
 currently ships a stripped-down projection method: `scripts/compute_week.py`
@@ -20,16 +20,16 @@ is a backtested, evidence-gated pipeline (MAE 4.563, corr 0.648, pairwise
 74.1%, coverage 82% — frozen production numbers, see that file's header) that
 blends toward a prior when the sample is thin, regresses TDs to a position
 mean, caps usage-trend swings, and damps Vegas/weather adjustments. This spec
-ports that validated pipeline into fantasyhub's serverless architecture.
+ports that validated pipeline into Draftly's serverless architecture.
 
 ## Goals
 
 - Fix the Week 1 (and generally thin-sample) overweighting bug at the root,
   not with a clamp.
-- Bring fantasyhub's model quality to parity with the father project's frozen
+- Bring Draftly's model quality to parity with the father project's frozen
   benchmark, verified by the same class of backtest metrics, not by eyeballing
   a few players.
-- Preserve fantasyhub's constraints: $0 hosting, fully public with no
+- Preserve Draftly's constraints: $0 hosting, fully public with no
   sign-up, stateless Vercel functions, weekly GitHub Action as the only
   scheduled compute.
 - Stay out of scope creep: port the validated production path only, not the
@@ -51,10 +51,10 @@ ports that validated pipeline into fantasyhub's serverless architecture.
 3. **Market data ($ECR/ADP/edge-triangle): dropped, not ported.**
    FantasyPros' free API tier is ToS-restricted to personal/non-production
    use (confirmed: https://api.fantasypros.com/public/v2/docs, 50 req/day,
-   "limited to non-production use"). fantasyhub is public — wiring that key
+   "limited to non-production use"). Draftly is public — wiring that key
    in would violate FantasyPros' terms. The CSV fallback (`fantasypros_csv.py`)
    is a manual per-week export, incompatible with an unattended public cron.
-   fantasyhub stays model-only; `hubapi.py` already returns `null` for these
+   Draftly stays model-only; `hubapi.py` already returns `null` for these
    fields with the comment "anything without a source... returns empty" —
    no code change needed here, just confirming the null stays intentional
    and is not a bug to chase.
@@ -98,7 +98,7 @@ keeps the blast radius contained to `scripts/compute_week.py` and two new
 ### `api/stat_projector.py` (new)
 
 Direct, minimal port of the father project's validated functions. Ported
-1:1 where fantasyhub's data shapes already match (they do — both group
+1:1 where Draftly's data shapes already match (they do — both group
 nflverse weekly rows by player, list-of-dicts history). Constants
 (`POS_TD_MEANS`, `VEGAS_TD_DAMPING`, `WIND_THRESHOLD_MPH`, etc.) copied
 verbatim — these are backtested values, not tunable knobs to second-guess
@@ -110,7 +110,7 @@ evidence they help, adds surface area for no benefit).
 
 ### `api/conformal.py` (new)
 
-Just `qhat()` and `POS_RESIDUALS` — replaces fantasyhub's current heuristic
+Just `qhat()` and `POS_RESIDUALS` — replaces Draftly's current heuristic
 `_interval_width` (pos-factor × point-factor formula with no real residual
 data underneath). `POS_RESIDUALS` table copied verbatim (backtested,
 frozen — see stat_projector.py header).
@@ -218,7 +218,7 @@ touched area, not just the new files:
   production path).
 - Backtest infrastructure as a general framework — `scripts/backtest.py`
   here is purpose-built for this one gate, not a reusable harness for
-  future ML experiments fantasyhub doesn't need yet (YAGNI — the father
+  future ML experiments Draftly doesn't need yet (YAGNI — the father
   project's own XGBoost/ensemble attempts were all REJECTED anyway).
 - The small, independent bugfixes identified earlier this session
   (`sleeper_id`/headshot join for the standalone Projections tab, auction

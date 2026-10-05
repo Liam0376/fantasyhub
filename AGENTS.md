@@ -1,4 +1,4 @@
-# FantasyHub — agent notes
+# Draftly — agent notes
 
 Project memory lives in claude-mem (`fantasyhub` project). The block below is a
 snapshot generated from it; refresh with:

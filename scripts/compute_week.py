@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Weekly projection computation for Fantasy Hub.
+"""Weekly projection computation for Draftly.
 
 Fetches current season stats from nflverse, computes projections for
 remaining weeks, and writes JSON to data/projections/.

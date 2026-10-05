@@ -89,7 +89,7 @@ Legacy no-package mode (no `traded_a`/`traded_b`): degenerate case — nothing c
 ## Part 5: Market (FantasyCalc) — context, not verdict
 
 - `scripts/snapshot_fantasycalc.py`: params from the league — `isDynasty` = (`settings.type == 2`), `numQbs` = 2 if any `SUPER_FLEX` slot or ≥2 QB slots else 1, `numTeams` from league, `ppr` = `round(rec)` (0 / 0.5 / 1). Field fix: read `value`, `trend30Day`, `maybeTier`, `maybeAdp`, `maybeRosterPercent`, `maybeMovingStandardDeviation`, `maybeTradeFrequency` from the **top level** of each item, `sleeperId` from `player`.
-- Caching: cron keeps writing the default-combo file (`data/market/fantasycalc.json`). The API, for non-default combos, fetches live on first use per instance with a module-level TTL cache (6 h), `User-Agent: fantasyhub/1.0`, 10 s timeout, never fails the request (market null + warning).
+- Caching: cron keeps writing the default-combo file (`data/market/fantasycalc.json`). The API, for non-default combos, fetches live on first use per instance with a module-level TTL cache (6 h), `User-Agent: Draftly/1.0`, 10 s timeout, never fails the request (market null + warning).
 - Missing player = `null` market entry, never 0. `market_a` / `market_b` (legacy display sums) sum covered players only; `coverage_a/b` report counts. No market sum ever feeds the verdict.
 - Market usage: (a) acceptance odds, (b) per-player buy-low/sell-high gaps — flag when a player's market rank within position differs from his model-points rank by a large margin (report both ranks), (c) dynasty long-term block (incl. PICK rows) — parsed and reported when the league is dynasty, not used in verdict.
 

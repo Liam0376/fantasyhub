@@ -5,19 +5,19 @@ Status: PROPOSED (autonomous overnight run, per explicit user instruction)
 
 ## Context
 
-Cross-repo knowledge graph (fantasyhub + football-sports-analytics, `graphify-out/graph.json`) built this session to compare both codebases systematically for reimplementation/duplication. Two concrete findings, both evidence-backed:
+Cross-repo knowledge graph (Draftly + football-sports-analytics, `graphify-out/graph.json`) built this session to compare both codebases systematically for reimplementation/duplication. Two concrete findings, both evidence-backed:
 
-1. fantasyhub's `/hub-api/news` endpoint (`api/index.py`) returns a hardcoded stub: `{"trending_adds": [], "fantasypros_news": []}`. The father project's `src/ffanalytics/adapters/news.py::get_trending_adds()` implements this for real, hitting Sleeper's free `/v1/players/nfl/trending/add` endpoint — no API key, no FantasyPros dependency, no ToS restriction (unlike ECR/ADP/market data, which stays correctly dropped).
+1. Draftly's `/hub-api/news` endpoint (`api/index.py`) returns a hardcoded stub: `{"trending_adds": [], "fantasypros_news": []}`. The father project's `src/ffanalytics/adapters/news.py::get_trending_adds()` implements this for real, hitting Sleeper's free `/v1/players/nfl/trending/add` endpoint — no API key, no FantasyPros dependency, no ToS restriction (unlike ECR/ADP/market data, which stays correctly dropped).
 2. An earlier ponytail-audit this session (before this graphify pass) found three constant tables copy-pasted verbatim across `api/analytics.py`, `scripts/compute_week.py`, and `scripts/backtest.py`: `POS_WIDTH`/`POS_WIDTH_FACTORS`, the interval-width composition formula (`base * pos_factor * point_factor`, clamped 3-14), and `REF_SCORING`. Never fixed. Father project keeps each of these in exactly one place.
 
-A third candidate — `hub/src/lib/relevance.js`'s depth-chart-based player-relevance tiering — was investigated and explicitly rejected: it depends on a build-time-baked JSON snapshot derived from FantasyPros' depth-chart CSV, the same ToS-restricted data class already excluded from fantasyhub. It is correctly absent from fantasyhub's shipped bundle (confirmed via grep — no trace of `depthChart`/`isDepthRelevant`/`DEPTH_TOP_N`). Do not port it.
+A third candidate — `hub/src/lib/relevance.js`'s depth-chart-based player-relevance tiering — was investigated and explicitly rejected: it depends on a build-time-baked JSON snapshot derived from FantasyPros' depth-chart CSV, the same ToS-restricted data class already excluded from Draftly. It is correctly absent from Draftly's shipped bundle (confirmed via grep — no trace of `depthChart`/`isDepthRelevant`/`DEPTH_TOP_N`). Do not port it.
 
 ## Goals
 
 - Wire up trending-adds for real, using only free, unrestricted Sleeper data.
 - Consolidate the three duplicated constant tables into one source each, referenced everywhere.
 - No new dependencies, no schema changes to `/hub-api/*` response shapes beyond filling in the currently-empty `trending_adds` array.
-- Reuse fantasyhub's existing local player snapshot (`data/players/latest.json`, `rosters.py::players_map()`) instead of father's live 5MB player-dump fetch — cheaper, already-cached, same lookup semantics.
+- Reuse Draftly's existing local player snapshot (`data/players/latest.json`, `rosters.py::players_map()`) instead of father's live 5MB player-dump fetch — cheaper, already-cached, same lookup semantics.
 
 ## Part 1: Trending Adds
 

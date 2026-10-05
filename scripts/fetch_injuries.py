@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Snapshot Sleeper injury statuses for Fantasy Hub.
+"""Snapshot Sleeper injury statuses for Draftly.
 
 The /players/nfl dump (~15MB) is too big for serverless per-request
 fetch, so the weekly cron snapshots the compact injury map to

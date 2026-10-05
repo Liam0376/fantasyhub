@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Harden fantasyhub + football-sports-analytics to shippable, then assemble them into one new monorepo with full history.
+**Goal:** Harden Draftly + football-sports-analytics to shippable, then assemble them into one new monorepo with full history.
 
-**Architecture:** Phase A hardens hub on main with prod verified. Phase B hardens father on main. Phase C subtree-merges both mains into a new repo (`apps/fantasyhub/` + `research/`), records canonical-path ADR, wires root CI.
+**Architecture:** Phase A hardens hub on main with prod verified. Phase B hardens father on main. Phase C subtree-merges both mains into a new repo (`apps/draftly/` + `research/`), records canonical-path ADR, wires root CI.
 
-**Tech Stack:** git subtree, pytest, Vercel (root dir `apps/fantasyhub`), GitHub archive.
+**Tech Stack:** git subtree, pytest, Vercel (root dir `apps/draftly`), GitHub archive.
 
 **Spec:** This plan is the spec (user brief 2026-10-05: new combined repo, both perfect first). No separate design doc.
 
@@ -151,7 +151,7 @@ Expected: main clean, nothing ahead.
 
 ```bash
 git init fantasy-football && cd fantasy-football
-git subtree add -P apps/fantasyhub /Users/liam/projects/fantasyhub main
+git subtree add -P apps/draftly /Users/liam/projects/fantasyhub main
 git subtree add -P research /Users/liam/projects/football-sports-analytics main
 ```
 
@@ -159,13 +159,13 @@ Expected: `git log --oneline | wc -l` ≈ 435 combined; both subtrees build.
 
 - [ ] **Step 2: Prune non-portable weight from research/**
 
-Delete from `research/`: `hub/` local app (superseded by Vercel app), `FantasyHub.app`, `StartFantasyHub.command`, `data/fantasy.db*`, `data/nfl_cache/`. Keep: `src/`, `scripts/`, `tests/`, `docs/`, `rejected-ml-evidence`, specs.
+Delete from `research/`: `hub/` local app (superseded by Vercel app), `Draftly.app`, `StartDraftly.command`, `data/fantasy.db*`, `data/nfl_cache/`. Keep: `src/`, `scripts/`, `tests/`, `docs/`, `rejected-ml-evidence`, specs.
 Expected: `pytest` still collects in both subtrees; no binary blobs (`find . -size +10M` empty).
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add -A && git commit -m "chore: monorepo from fantasyhub + football-sports-analytics mains"
+git add -A && git commit -m "chore: monorepo from Draftly + football-sports-analytics mains"
 ```
 
 ### Task C2: Record canonical-path ADR
@@ -173,7 +173,7 @@ git add -A && git commit -m "chore: monorepo from fantasyhub + football-sports-a
 **Files:**
 - Create: `research/docs/architecture-decisions/0005-monorepo-canonical-paths.md`
 
-Content (one page): serve = `apps/fantasyhub`; research = `research/src|scripts`; `research/hub/` deleted as superseded; FP/StatsGuy/ECR not ported (FantasyCalc instead, ECR null by design); accuracy freeze numbers; shadow/rating excluded from serve.
+Content (one page): serve = `apps/draftly`; research = `research/src|scripts`; `research/hub/` deleted as superseded; FP/StatsGuy/ECR not ported (FantasyCalc instead, ECR null by design); accuracy freeze numbers; shadow/rating excluded from serve.
 
 - [ ] **Step 1: Write ADR and commit**
 
@@ -182,8 +182,8 @@ Expected: reviewer (Liam) approves wording; commit message `docs: ADR-0005 monor
 ### Task C3: Root CI + Vercel repoint + archive olds
 
 **Files:**
-- Create: `.github/workflows/pytest.yml` (two jobs: `apps/fantasyhub` pytest, `research` pytest)
-- Vercel dashboard: root directory → `apps/fantasyhub`
+- Create: `.github/workflows/pytest.yml` (two jobs: `apps/draftly` pytest, `research` pytest)
+- Vercel dashboard: root directory → `apps/draftly`
 
 - [ ] **Step 1: Add workflow, push, watch green**
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Snapshot FantasyCalc redraft trade values for Fantasy Hub.
+"""Snapshot FantasyCalc redraft trade values for Draftly.
 
 Default league-average cut (12-team/1-QB/PPR) for market-vs-model
 deltas; exact league econ still comes from our VBD. Non-default

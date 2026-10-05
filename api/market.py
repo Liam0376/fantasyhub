@@ -14,7 +14,7 @@ import time
 import requests
 
 _URL = "https://api.fantasycalc.com/values/current"
-_UA = {"User-Agent": "fantasyhub/1.0"}
+_UA = {"User-Agent": "Draftly/1.0"}
 _TTL = 6 * 3600  # FantasyCalc refreshes every few hours; daily is plenty
 
 _DEFAULT_PATH = os.path.join(os.path.dirname(__file__), "..", "data",

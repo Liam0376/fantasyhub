@@ -29,7 +29,7 @@ KICKER_STATS = [
     "fg_made_40_49", "fg_made_50_59", "fg_missed", "pat_made",
 ]
 
-# Which of fantasyhub's AVG_STAT_KEYS (see api/scoring.py) this pipeline
+# Which of Draftly's AVG_STAT_KEYS (see api/scoring.py) this pipeline
 # projects. Everything else (IDP, first downs, fumble-recovery detail,
 # long-TD, FG-miss brackets by distance, PAT missed, special-teams TD)
 # has no backtest evidence in the father project and keeps the existing

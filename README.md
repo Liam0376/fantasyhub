@@ -1,4 +1,4 @@
-# Fantasy Hub
+# Draftly
 
 Fantasy football analytics. Paste your Sleeper league link, get instant projections and auction values.
 

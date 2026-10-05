@@ -36,7 +36,7 @@
 # api/test_hub_news.py
 """Regression test for /hub-api/news trending-adds, wired to the real
 free Sleeper endpoint this session's graphify research confirmed
-fantasyhub was stubbing out despite having no ToS restriction on it
+Draftly was stubbing out despite having no ToS restriction on it
 (unlike ECR/ADP/market data, which stays correctly dropped)."""
 import sys
 import os

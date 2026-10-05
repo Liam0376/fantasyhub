@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Snapshot Sleeper player ID map for Fantasy Hub.
+"""Snapshot Sleeper player ID map for Draftly.
 
 Rosters reference players by Sleeper ID; projections use nflverse GSIS
 IDs. The full /players/nfl dump (~15MB) is too big for serverless, so

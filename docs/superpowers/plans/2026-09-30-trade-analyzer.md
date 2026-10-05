@@ -201,7 +201,7 @@ def test_needs_reported_per_team():                     # thin WR vs league medi
 - Test: `api/test_trade_market.py`
 
 **Interfaces:**
-- Produces: `fc_params(settings) -> {"isDynasty": bool, "numQbs": 1|2, "numTeams": int, "ppr": 0|0.5|1}`; `fc_fetch(params, timeout=10) -> list` (public API, UA `fantasyhub/1.0`); `fc_load(settings) -> dict` — default-combo file first, else live fetch under module-level TTL cache (6 h), else `{}` + warning; `parse_fc(items) -> dict[sleeper_id, {"v", "t30", "tier", "adp", "roster_pct", "msd", "freq"}]` reading the seven fields from item top level.
+- Produces: `fc_params(settings) -> {"isDynasty": bool, "numQbs": 1|2, "numTeams": int, "ppr": 0|0.5|1}`; `fc_fetch(params, timeout=10) -> list` (public API, UA `Draftly/1.0`); `fc_load(settings) -> dict` — default-combo file first, else live fetch under module-level TTL cache (6 h), else `{}` + warning; `parse_fc(items) -> dict[sleeper_id, {"v", "t30", "tier", "adp", "roster_pct", "msd", "freq"}]` reading the seven fields from item top level.
 - Consumes: `data/market/fantasycalc.json` (default combo, cron-written).
 
 - [ ] **Step 1: Write the failing tests** — fixture items with `maybeTier` etc. at top level and `player.sleeperId` nested:

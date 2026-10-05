@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace fantasyhub's naive weighted-recent-average projection with the father project's backtested shrinkage/regression pipeline (`stat_projector.py`), fixing the Week 1 overweighting bug, and add a backtest harness that proves the new pipeline is actually better before it ships.
+**Goal:** Replace Draftly's naive weighted-recent-average projection with the father project's backtested shrinkage/regression pipeline (`stat_projector.py`), fixing the Week 1 overweighting bug, and add a backtest harness that proves the new pipeline is actually better before it ships.
 
 **Architecture:** Two new pure-function modules (`api/conformal.py`, `api/stat_projector.py`) ported near-verbatim from `~/projects/football-sports-analytics/src/ffanalytics/`. `scripts/compute_week.py` gains a prior-season fetch and a same-week weather fetch, then calls the new pipeline instead of a bare average for the stat keys it covers. `scripts/backtest.py` is the evidence gate: old method vs new method, scored on a real holdout, before the switch ships.
 
-**Tech Stack:** Python 3.12, stdlib only (`csv`, `io`, `math`, `json`) + `requests` (already a dependency). No new third-party packages — matches fantasyhub's `requirements.txt: requests>=2.31`.
+**Tech Stack:** Python 3.12, stdlib only (`csv`, `io`, `math`, `json`) + `requests` (already a dependency). No new third-party packages — matches Draftly's `requirements.txt: requests>=2.31`.
 
 **Spec:** `docs/superpowers/specs/2026-09-16-projection-engine-port-design.md`
 
@@ -131,7 +131,7 @@ git commit -m "feat: port conformal qhat interval math from father project"
 - Test: `api/test_stat_projector.py`
 
 **Interfaces:**
-- Consumes: nothing from Task 1 directly (conformal intervals are applied in `api/analytics.py`, not inside this module — matches the father project's separation, where `stat_projector.py`'s own `compute_conformal_bounds` is a convenience wrapper this port does NOT need, since fantasyhub already computes width per-league in `api/analytics.py::_interval_width` and Task 6 below repoints that at `conformal.qhat`).
+- Consumes: nothing from Task 1 directly (conformal intervals are applied in `api/analytics.py`, not inside this module — matches the father project's separation, where `stat_projector.py`'s own `compute_conformal_bounds` is a convenience wrapper this port does NOT need, since Draftly already computes width per-league in `api/analytics.py::_interval_width` and Task 6 below repoints that at `conformal.qhat`).
 - Produces: `project_player_stats(player_history, position, prior_season_stats=None, implied_total=0, wind_mph=0, temp_f=None) -> dict[str, float]`, `build_game_context(schedule: list[dict]) -> dict`, `COVERED_STATS: dict[str, list[str]]` (QB/skill/kicker stat-key lists) — all consumed by Task 4 (`scripts/compute_week.py`).
 
 - [ ] **Step 1: Write the failing test**
@@ -251,7 +251,7 @@ Expected: `ModuleNotFoundError: No module named 'stat_projector'`
 Port these functions from
 `~/projects/football-sports-analytics/src/ffanalytics/stat_projector.py`
 **verbatim**, with one addition: a `COVERED_STATS` export so
-`scripts/compute_week.py` (Task 4) knows which of fantasyhub's
+`scripts/compute_week.py` (Task 4) knows which of Draftly's
 `AVG_STAT_KEYS` this pipeline actually projects (father project's
 backtest only covers QB/skill/kicker core stats — IDP, first downs,
 fumble-recovery detail, long-TD, FG-miss brackets, and special-teams TD
@@ -287,7 +287,7 @@ KICKER_STATS = [
     "fg_made_40_49", "fg_made_50_59", "fg_missed", "pat_made",
 ]
 
-# Which of fantasyhub's AVG_STAT_KEYS (see api/scoring.py) this pipeline
+# Which of Draftly's AVG_STAT_KEYS (see api/scoring.py) this pipeline
 # projects. Everything else (IDP, first downs, fumble-recovery detail,
 # long-TD, FG-miss brackets by distance, PAT missed, special-teams TD)
 # has no backtest evidence in the father project and keeps the existing
