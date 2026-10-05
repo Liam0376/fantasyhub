@@ -1498,7 +1498,7 @@ vercel --prod
 Then spot-check the same way this session already validated fixes:
 
 ```bash
-curl -s "https://fantasyhub-five.vercel.app/hub-api/projections?league_id=1397736035240173568&limit=5" | python3 -m json.tool
+curl -s "https://draftly-liamfelixb-9782s-projects.vercel.app/hub-api/projections?league_id=1397736035240173568&limit=5" | python3 -m json.tool
 ```
 
 Confirm Josh Allen (or whoever's currently top-projected) no longer

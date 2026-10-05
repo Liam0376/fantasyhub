@@ -63,7 +63,7 @@ Expected: `git status -sb` shows `main...origin/main` with nothing ahead/behind.
 
 - [ ] **Step 1: Confirm auto-deploy picked up HEAD**
 
-Run: `curl -s https://fantasyhub-five.vercel.app/health`
+Run: `curl -s https://draftly-liamfelixb-9782s-projects.vercel.app/health`
 Expected: `{"status": "ok"}`.
 
 - [ ] **Step 2: Spot-check one served value against local**
